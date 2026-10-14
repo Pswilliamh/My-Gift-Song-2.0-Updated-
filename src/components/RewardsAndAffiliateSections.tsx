@@ -14,7 +14,8 @@ import {
   Plus,
   DollarSign,
   ShieldCheck,
-  ExternalLink
+  ExternalLink,
+  RotateCcw
 } from "lucide-react";
 
 export interface ReferralEntry {
@@ -32,6 +33,8 @@ interface RewardsAndAffiliateProps {
   freeSongsUsedHistory: { title: string; recipient: string; date: string }[];
   referrals: ReferralEntry[];
   onAddReferral: (name: string, email: string, tier: "basic_099" | "premium") => void;
+  onResetFreeSongs: () => void;
+  onRefundSongSlot: (index: number) => void;
   onStartSongInStudio: (preset?: { target?: string; context?: string; genre?: string }) => void;
 }
 
@@ -41,6 +44,8 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   freeSongsUsedHistory,
   referrals,
   onAddReferral,
+  onResetFreeSongs,
+  onRefundSongSlot,
   onStartSongInStudio,
 }) => {
   // Referral state
@@ -50,6 +55,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   const [referralCode] = useState("HADDI-VIP-2026");
   const [copiedRefLink, setCopiedRefLink] = useState(false);
   const [referralBanner, setReferralBanner] = useState<string | null>(null);
+  const [resetNotice, setResetNotice] = useState<string | null>(null);
 
   // Affiliate state
   const [affiliateHandle, setAffiliateHandle] = useState("minstrel-partner");
@@ -124,12 +130,12 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                 </p>
               </div>
 
-              {/* Counter Card */}
-              <div className="bg-black/80 border border-[#FFD700]/40 rounded-2xl p-6 text-center min-w-[210px] shrink-0">
+              {/* Counter Card + Reset Button */}
+              <div className="bg-black/80 border border-[#FFD700]/40 rounded-2xl p-6 text-center min-w-[225px] shrink-0 space-y-2">
                 <p className="text-[11px] font-mono uppercase tracking-widest text-[#C5A880]">
                   Free Songs Remaining
                 </p>
-                <div className="text-5xl font-display font-extrabold text-[#FFD700] my-2">
+                <div className="text-5xl font-display font-extrabold text-[#FFD700] my-1">
                   {isAnyLifetimeUnlocked ? "∞" : `${freeSongsRemaining} / 5`}
                 </div>
                 <p className="text-xs text-emerald-400 font-mono">
@@ -141,8 +147,29 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     ? `$0.00 • Ready to Redeem`
                     : "All 5 Free Songs Used"}
                 </p>
+                {freeSongsRemaining < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetFreeSongs();
+                      setResetNotice("Your 5-Song Free Pass has been reset back to 5 / 5!");
+                      setTimeout(() => setResetNotice(null), 3500);
+                    }}
+                    className="mt-2 w-full py-2 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[11px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all"
+                  >
+                    <RotateCcw size={12} />
+                    <span>Reset to 5/5 Free</span>
+                  </button>
+                )}
               </div>
             </div>
+
+            {resetNotice && (
+              <div className="mt-4 p-3 rounded-xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-200 text-xs font-mono flex items-center gap-2">
+                <Check size={14} className="text-emerald-400 shrink-0" />
+                <span>{resetNotice}</span>
+              </div>
+            )}
 
             {/* 5 Interactive Stamp Slots */}
             <div className="mt-8 grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -163,7 +190,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     key={slotIdx}
                     className={`rounded-xl p-4 border transition-all flex flex-col justify-between ${
                       isUsed
-                        ? "bg-black/40 border-[#C5A880]/20 opacity-75"
+                        ? "bg-black/40 border-[#C5A880]/20 opacity-85"
                         : "bg-[#251e19]/70 border-[#FFD700]/50 shadow-[0_0_15px_rgba(255,215,0,0.1)]"
                     }`}
                   >
@@ -193,7 +220,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       </p>
                     </div>
 
-                    {!isUsed && (
+                    {!isUsed ? (
                       <button
                         type="button"
                         onClick={() =>
@@ -207,6 +234,20 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       >
                         <span>Use Free Slot</span>
                         <ArrowRight size={12} />
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          onRefundSongSlot(slotIdx);
+                          setResetNotice(`Gift Pass #${slotIdx + 1} restored! You can re-create this song for free.`);
+                          setTimeout(() => setResetNotice(null), 3500);
+                        }}
+                        className="mt-4 w-full py-2 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                        title="Song not good? Restore this free slot!"
+                      >
+                        <RotateCcw size={11} />
+                        <span>Redo / Reset Slot</span>
                       </button>
                     )}
                   </div>
@@ -225,13 +266,29 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   <strong className="text-[#FFD700]">Lifetime Premium Account for Free</strong>!
                 </span>
               </div>
-              <button
-                type="button"
-                onClick={() => onStartSongInStudio()}
-                className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#e6c200] text-black font-display font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all cursor-pointer"
-              >
-                🎵 Create Next Free Song in Studio
-              </button>
+              <div className="flex flex-wrap items-center gap-2.5">
+                {freeSongsRemaining < 5 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      onResetFreeSongs();
+                      setResetNotice("All 5 Free Song slots have been restored (5/5)!");
+                      setTimeout(() => setResetNotice(null), 3500);
+                    }}
+                    className="px-4 py-3 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw size={14} />
+                    <span>Reset All 5 Free Songs</span>
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onStartSongInStudio()}
+                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#e6c200] text-black font-display font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all cursor-pointer"
+                >
+                  🎵 Create Next Free Song in Studio
+                </button>
+              </div>
             </div>
           </div>
         </div>

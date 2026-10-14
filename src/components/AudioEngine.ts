@@ -100,7 +100,7 @@ export class AudioLuteEngine {
       try {
         audioBuffer = await new Promise<AudioBuffer>((resolve, reject) => {
           // slice(0) copies buffer to avoid Web Audio detachment
-          audioCtx.decodeAudioData(bytes.buffer.slice(0), resolve, reject);
+          audioCtx.decodeAudioData(bytes.buffer.slice(0) as ArrayBuffer, resolve, reject);
         });
       } catch {
         // RIFF decode failed; will attempt PCM fallback below

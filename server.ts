@@ -525,9 +525,17 @@ async function generateLyriaSongAudio(
   const preferredModel = options.useClipModel ? "lyria-3-clip-preview" : "lyria-3-pro-preview";
   const fallbackModel = options.useClipModel ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
 
-  const musicPrompt = options.lyrics
-    ? `Generate a warm, heartfelt, studio-quality sung ${genre} song with expressive lead vocals and rich acoustic instrumentation dedicated to ${recipient}. Story context: "${storyPrompt}". Sing these blessing lyrics:\n${options.lyrics}`
-    : `Generate a warm, heartfelt, studio-quality sung ${genre} blessing song with expressive lead vocals, acoustic guitar ("silver strings"), and uplifting melody dedicated to ${recipient}. Weave Christian covenant themes of Blessing, Grace, Favor, and Faithfulness into the lyrics based on this story: "${storyPrompt}"`;
+  const trimmedLyrics = options.lyrics
+    ? options.lyrics
+        .split("\n")
+        .filter((l) => !l.trim().startsWith("[") && l.trim().length > 0)
+        .slice(0, 12)
+        .join("\n")
+    : "";
+
+  const musicPrompt = trimmedLyrics
+    ? `Generate a complete, warm, studio-quality sung ${genre} song with expressive lead vocals, rich acoustic guitar, and full band arrangement dedicated to ${recipient}. Occasion: ${storyPrompt.substring(0, 220)}. Lyrics to sing:\n${trimmedLyrics}`
+    : `Generate a complete, warm, studio-quality sung ${genre} blessing song with expressive lead vocals, acoustic guitar, and uplifting melody dedicated to ${recipient}. Weave Christian covenant themes of Blessing, Grace, Favor, and Faithfulness into the sung lyrics based on this story: "${storyPrompt.substring(0, 300)}"`;
 
   const buildContents = () => {
     if (options.imageDataUrl && options.imageDataUrl.startsWith("data:image/")) {
@@ -548,9 +556,6 @@ async function generateLyriaSongAudio(
     const response = await ai.models.generateContentStream({
       model: modelName,
       contents: buildContents(),
-      config: {
-        responseModalities: [Modality.AUDIO],
-      },
     });
 
     const audioChunks: Buffer[] = [];
@@ -602,7 +607,7 @@ async function generateLyriaSongAudio(
   }
 }
 
-// Option 2: Haddi Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts / gemini-3.1-flash-tts-preview)
+// Option 2: Haddi Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts)
 async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
   const ai = getAiClient();
   const narrationPrompt = `Create a warm, acoustic-style musical narrative blessing spoken by Haddi the Street Minstrel from Jakarta based on this user story: "${storyPrompt}"`;
@@ -653,14 +658,22 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
     throw new Error("No output audio data in interaction response");
   } catch (error) {
     console.warn("Interactions API TTS error, trying models.generateContent fallback:", error);
-    // 2. Fallback to models.generateContent with gemini-3.1-flash-tts-preview
+    // 2. Fallback to models.generateContent with gemini-3.8-flash-lite-tts
     const response = await ai.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{
-        parts: [{
-          text: narrationPrompt
-        }]
-      }],
+      model: "gemini-3.8-flash-lite-tts",
+      contents: [
+        {
+          role: "user",
+          parts: [
+            {
+              text: narrationPrompt,
+              speechMetadata: {
+                style: "Warm, soulful Indonesian street minstrel storyteller",
+              },
+            } as any,
+          ],
+        },
+      ],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {
@@ -826,8 +839,8 @@ app.post("/api/generate-avatar-intro", async (req, res) => {
 
     // Select warm Zephyr voice
     const response = await client.models.generateContent({
-      model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: promptText }] }],
+      model: "gemini-3.8-flash-lite-tts",
+      contents: [{ role: "user", parts: [{ text: promptText }] }],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {
@@ -955,7 +968,7 @@ async function bootstrap() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: { middlewareMode: true, hmr: false },
       appType: "spa",
     });
     app.use(vite.middlewares);

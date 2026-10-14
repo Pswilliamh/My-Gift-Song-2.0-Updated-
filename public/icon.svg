@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a120b" />
+      <stop offset="50%" stop-color="#0d0a08" />
+      <stop offset="100%" stop-color="#26180d" />
+    </linearGradient>
+    <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FFE57F" />
+      <stop offset="45%" stop-color="#FFD700" />
+      <stop offset="100%" stop-color="#C58B2B" />
+    </linearGradient>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#F59E0B" />
+      <stop offset="100%" stop-color="#B45309" />
+    </linearGradient>
+    <radialGradient id="glowGrad" cx="50%" cy="48%" r="44%">
+      <stop offset="0%" stop-color="#FFD700" stop-opacity="0.28" />
+      <stop offset="100%" stop-color="#FFD700" stop-opacity="0" />
+    </radialGradient>
+  </defs>
+
+  <!-- Rounded Square App Background -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  <circle cx="256" cy="256" r="220" fill="url(#glowGrad)" />
+
+  <!-- Outer Golden Crest Ring (Inside 80% Maskable Safe Zone) -->
+  <circle cx="256" cy="256" r="184" fill="none" stroke="url(#goldGrad)" stroke-width="10" opacity="0.9" />
+  <circle cx="256" cy="256" r="168" fill="none" stroke="#C5A880" stroke-width="2.5" stroke-dasharray="8 8" opacity="0.55" />
+
+  <!-- Acoustic Guitar Body Silhouette & Soundhole -->
+  <g transform="translate(256, 266) rotate(-32) translate(-256, -266)">
+    <!-- Guitar Neck & Headstock -->
+    <rect x="243" y="102" width="26" height="145" rx="6" fill="url(#goldGrad)" />
+    <rect x="237" y="76" width="38" height="34" rx="8" fill="url(#amberGrad)" stroke="#FFE57F" stroke-width="3" />
+    <!-- Tuning Pegs -->
+    <circle cx="231" cy="85" r="5" fill="#FFE57F" />
+    <circle cx="231" cy="99" r="5" fill="#FFE57F" />
+    <circle cx="281" cy="85" r="5" fill="#FFE57F" />
+    <circle cx="281" cy="99" r="5" fill="#FFE57F" />
+
+    <!-- Upper & Lower Bout of Acoustic Guitar -->
+    <path
+      d="M256 218
+         C215 218, 192 244, 198 274
+         C202 292, 214 302, 214 314
+         C214 326, 180 342, 180 382
+         C180 424, 214 446, 256 446
+         C298 446, 332 424, 332 382
+         C332 342, 298 326, 298 314
+         C298 302, 310 292, 314 274
+         C320 244, 297 218, 256 218 Z"
+      fill="url(#goldGrad)"
+      stroke="#FFFBEB"
+      stroke-width="4"
+    />
+
+    <!-- Soundhole -->
+    <circle cx="256" cy="306" r="28" fill="#120d09" stroke="#C58B2B" stroke-width="5" />
+    <!-- Bridge -->
+    <rect x="226" y="378" width="60" height="12" rx="5" fill="#1a120b" />
+
+    <!-- Silver/Gold Strings -->
+    <line x1="248" y1="95" x2="248" y2="380" stroke="#FFFBEB" stroke-width="2" opacity="0.85" />
+    <line x1="256" y1="95" x2="256" y2="380" stroke="#FFFBEB" stroke-width="2.2" opacity="0.95" />
+    <line x1="264" y1="95" x2="264" y2="380" stroke="#FFFBEB" stroke-width="2" opacity="0.85" />
+  </g>
+
+  <!-- Floating Musical Notes & Gift Ribbon Sparkles -->
+  <g fill="url(#goldGrad)">
+    <!-- Beamed Eighth Note Left -->
+    <path d="M138 205 V152 L182 140 V193" fill="none" stroke="url(#goldGrad)" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" />
+    <circle cx="130" cy="208" r="14" />
+    <circle cx="174" cy="196" r="14" />
+
+    <!-- Sparkle Star Top Right -->
+    <path d="M366 132 L374 154 L396 162 L374 170 L366 192 L358 170 L336 162 L358 154 Z" fill="#FFE57F" />
+
+    <!-- Gift Badge Pill Bottom -->
+    <rect x="166" y="396" width="180" height="40" rx="20" fill="#120d09" stroke="url(#goldGrad)" stroke-width="4" />
+    <text x="256" y="422" text-anchor="middle" fill="#FFD700" font-family="Georgia, serif" font-weight="bold" font-size="22" letter-spacing="2">MYGIFTSONG</text>
+  </g>
+</svg>

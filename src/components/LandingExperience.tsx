@@ -10,9 +10,11 @@ import {
   Gift,
   ArrowRight,
   Video,
-  RotateCcw
+  RotateCcw,
+  ShieldCheck
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
+import { PWAInstallButton } from "./PWAInstallButton";
 
 interface ChatMessage {
   id: string;
@@ -24,6 +26,8 @@ interface ChatMessage {
 interface LandingExperienceProps {
   freeSongsRemaining: number;
   referralCount: number;
+  adminEmail?: string;
+  onResetFreeSongs?: () => void;
   audioSource: string | null;
   lyriaAudioUrl: string | null;
   narrationAudioUrl: string | null;
@@ -36,12 +40,14 @@ interface LandingExperienceProps {
     context?: string;
     genre?: string;
     autoGenerate?: boolean;
-    initialSection?: "studio" | "free-songs" | "lifetime" | "affiliate";
+    initialSection?: "studio" | "free-songs" | "lifetime" | "affiliate" | "admin";
   }) => void;
 }
 
 export const LandingExperience: React.FC<LandingExperienceProps> = ({
   freeSongsRemaining,
+  adminEmail,
+  onResetFreeSongs,
   audioSource,
   lyriaAudioUrl,
   narrationAudioUrl,
@@ -91,6 +97,19 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     },
   ]);
 
+  useEffect(() => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === "welcome-2"
+          ? {
+              ...m,
+              text: `Your first ${freeSongsRemaining} custom gift songs are 100% FREE. Who are we blessing with your first gift song today? (e.g., "My daughter Maya", "Mom & Dad", "Best friend David")`,
+            }
+          : m
+      )
+    );
+  }, [freeSongsRemaining]);
+
   // Auto-scroll chat container
   useEffect(() => {
     if (chatContainerRef.current) {
@@ -139,10 +158,30 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     }, 50);
   };
 
+  const [secretClicks, setSecretClicks] = useState(0);
+
+  const handleCopyrightClick = () => {
+    const next = secretClicks + 1;
+    if (next >= 5) {
+      setSecretClicks(0);
+      onInitiateSystem({ initialSection: "admin" });
+    } else {
+      setSecretClicks(next);
+    }
+  };
+
   const handleSendChat = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = chatInput.trim();
     if (!trimmed) return;
+
+    // Secret hidden admin login trigger via chat input
+    const lower = trimmed.toLowerCase();
+    if (lower === "/admin" || lower === "pswilliamh@gmail.com" || lower === "admin:pswilliamh") {
+      setChatInput("");
+      onInitiateSystem({ initialSection: "admin" });
+      return;
+    }
 
     const userMsg: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -230,9 +269,11 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
       {/* Minimal Clean Top Header on White Background */}
       <header className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-bold shadow-md">
-            <Music size={20} />
-          </div>
+          <img
+            src="/pwa-192x192.png"
+            alt="mygiftsong.ai App Icon"
+            className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
+          />
           <div>
             <span className="font-display text-lg font-bold tracking-wide text-slate-900 block leading-none">
               mygiftsong.ai
@@ -243,16 +284,31 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
           </div>
         </div>
 
-        {/* Clean Status & Initiate Button */}
-        <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-mono font-semibold hover:bg-amber-100 transition-all cursor-pointer"
-          >
-            <Gift size={14} className="text-amber-600" />
-            <span>{freeSongsRemaining} of 5 Free Songs Left</span>
-          </button>
+        {/* Clean Status, Android/Desktop PWA Install & Initiate Button */}
+        <div className="flex flex-wrap items-center gap-2">
+          <PWAInstallButton variant="light" />
+
+          <div className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-300 overflow-hidden">
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
+              className="inline-flex items-center gap-1.5 px-3 py-2 text-amber-900 text-xs font-mono font-semibold hover:bg-amber-100 transition-all cursor-pointer"
+            >
+              <Gift size={14} className="text-amber-600" />
+              <span>{freeSongsRemaining} of 5 Free Songs Left</span>
+            </button>
+            {freeSongsRemaining < 5 && onResetFreeSongs && (
+              <button
+                type="button"
+                onClick={onResetFreeSongs}
+                className="px-2.5 py-2 bg-amber-200/80 hover:bg-amber-300 text-amber-950 text-[11px] font-mono font-bold border-l border-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
+                title="Reset Free Song Pass back to 5/5"
+              >
+                <RotateCcw size={12} />
+                <span>Reset 5/5</span>
+              </button>
+            )}
+          </div>
 
           <button
             type="button"
@@ -661,7 +717,12 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
 
       {/* Clean Minimal Footer with Direct Links to Separate System Sections */}
       <footer className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 font-mono">
-        <span>© 2026 mygiftsong.ai • Haddi the Street Minstrel</span>
+        <span
+          onClick={handleCopyrightClick}
+          className="select-none cursor-default"
+        >
+          © 2026 mygiftsong.ai • Haddi the Street Minstrel
+        </span>
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="button"
