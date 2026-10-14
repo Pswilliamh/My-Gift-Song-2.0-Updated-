@@ -887,28 +887,36 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-[#0d0a08] text-white flex flex-col justify-between font-sans selection:bg-[#FFD700] selection:text-black main-studio-bg">
-      
-      {/* --- Ambient Star Decor --- */}
-      <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30">
-        <div className="absolute top-[10%] left-[5%] text-[#C5A880] text-lg ambient-decor"><Star size={16} /></div>
-        <div className="absolute top-[40%] right-[8%] text-[#C5A880]/30 text-xl ambient-decor delay-1000"><Star size={12} /></div>
-        <div className="absolute bottom-[25%] left-[12%] text-[#C5A880]/40 text-lg ambient-decor delay-3000"><Star size={14} /></div>
-        <div className="absolute top-[80%] right-[20%] text-[#C5A880]/25 text-2xl ambient-decor delay-500"><Star size={10} /></div>
-      </div>
+    <div
+      className={
+        !isSystemInitiated
+          ? "min-h-screen bg-white text-slate-900 flex flex-col justify-between font-sans selection:bg-amber-400 selection:text-black"
+          : "min-h-screen bg-[#0d0a08] text-white flex flex-col justify-between font-sans selection:bg-[#FFD700] selection:text-black main-studio-bg"
+      }
+    >
+      {/* --- Ambient Star Decor & Floating Note Stream (Only in Full Studio View) --- */}
+      {isSystemInitiated && (
+        <>
+          <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30">
+            <div className="absolute top-[10%] left-[5%] text-[#C5A880] text-lg ambient-decor"><Star size={16} /></div>
+            <div className="absolute top-[40%] right-[8%] text-[#C5A880]/30 text-xl ambient-decor delay-1000"><Star size={12} /></div>
+            <div className="absolute bottom-[25%] left-[12%] text-[#C5A880]/40 text-lg ambient-decor delay-3000"><Star size={14} /></div>
+            <div className="absolute top-[80%] right-[20%] text-[#C5A880]/25 text-2xl ambient-decor delay-500"><Star size={10} /></div>
+          </div>
 
-      {/* --- Kinetic Audio Accents: Floating Note Stream --- */}
-      <div className="fixed w-full pointer-events-none overflow-hidden z-10" style={{ top: "15%", height: "180px" }}>
-        <div className="music-note-stream">
-          <span className="note-item" style={{ animationDelay: "0s", top: "10%" }}>♫</span>
-          <span className="note-item" style={{ animationDelay: "2s", top: "35%" }}>♪</span>
-          <span className="note-item" style={{ animationDelay: "4.5s", top: "15%" }}>♬</span>
-          <span className="note-item" style={{ animationDelay: "6.5s", top: "65%" }}>♫</span>
-          <span className="note-item" style={{ animationDelay: "8s", top: "25%" }}>♪</span>
-          <span className="note-item" style={{ animationDelay: "10s", top: "45%" }}>♬</span>
-          <span className="note-item" style={{ animationDelay: "12s", top: "5%" }}>♫</span>
-        </div>
-      </div>
+          <div className="fixed w-full pointer-events-none overflow-hidden z-10" style={{ top: "15%", height: "180px" }}>
+            <div className="music-note-stream">
+              <span className="note-item" style={{ animationDelay: "0s", top: "10%" }}>♫</span>
+              <span className="note-item" style={{ animationDelay: "2s", top: "35%" }}>♪</span>
+              <span className="note-item" style={{ animationDelay: "4.5s", top: "15%" }}>♬</span>
+              <span className="note-item" style={{ animationDelay: "6.5s", top: "65%" }}>♫</span>
+              <span className="note-item" style={{ animationDelay: "8s", top: "25%" }}>♪</span>
+              <span className="note-item" style={{ animationDelay: "10s", top: "45%" }}>♬</span>
+              <span className="note-item" style={{ animationDelay: "12s", top: "5%" }}>♫</span>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* --- CLEAN CLUTTER-FREE LANDING PAGE (BEFORE SYSTEM INITIATION) --- */}
       {!isSystemInitiated ? (

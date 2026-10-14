@@ -9,11 +9,8 @@ import {
   Sparkles,
   Gift,
   ArrowRight,
-  Disc,
-  Mic,
-  CheckCircle2,
-  Crown,
-  Users
+  Video,
+  RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 
@@ -45,14 +42,11 @@ interface LandingExperienceProps {
 
 export const LandingExperience: React.FC<LandingExperienceProps> = ({
   freeSongsRemaining,
-  referralCount,
   audioSource,
   lyriaAudioUrl,
   narrationAudioUrl,
   activeTrackType,
   onSelectTrackType,
-  isPlayingDemo,
-  onToggleDemoPlayback,
   onInitiateSystem,
 }) => {
   // Chat flow state for "Create Your First Gift Song"
@@ -61,11 +55,26 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   const [selectedGenre, setSelectedGenre] = useState("Acoustic Folk");
   const [chatStep, setChatStep] = useState<"recipient" | "story" | "ready">("recipient");
   const [chatInput, setChatInput] = useState("");
-  const [volume, setVolume] = useState(85);
-  const [muted, setMuted] = useState(false);
-  const [demoProgress, setDemoProgress] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+
+  // Haddi Video Player state
+  const [selectedVideo, setSelectedVideo] = useState<"flagship" | "encore">("flagship");
+  const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+  const [isVideoMuted, setIsVideoMuted] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  const videoSources = {
+    flagship: {
+      src: "/video/song-gift.mp4",
+      title: "Haddi Performing: The Gift of a Song",
+      subtitle: "Live Street Minstrel Performance • Jakarta Acoustic Corner",
+    },
+    encore: {
+      src: "/video/premium-preview.mp4",
+      title: "Haddi Encore: Acoustic Blessing Serenade",
+      subtitle: "Custom Gift Song Video Showcase • Performed by Haddi",
+    },
+  };
 
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
@@ -89,14 +98,46 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     }
   }, [messages]);
 
-  // Simulate progress bar when demo Lute is playing and no HTML5 audio element is active
-  useEffect(() => {
-    if (!isPlayingDemo || audioSource) return;
-    const timer = window.setInterval(() => {
-      setDemoProgress((prev) => (prev >= 100 ? 0 : prev + 1.5));
-    }, 500);
-    return () => clearInterval(timer);
-  }, [isPlayingDemo, audioSource]);
+  const handleToggleVideoPlay = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.muted = false;
+      setIsVideoMuted(false);
+      vid.play().catch((err) => {
+        console.warn("Video play fallback:", err);
+      });
+    } else {
+      vid.pause();
+    }
+  };
+
+  const handleToggleVideoMute = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    const nextMute = !vid.muted;
+    vid.muted = nextMute;
+    setIsVideoMuted(nextMute);
+  };
+
+  const handleRestartVideo = () => {
+    const vid = videoRef.current;
+    if (!vid) return;
+    vid.currentTime = 0;
+    vid.muted = false;
+    setIsVideoMuted(false);
+    vid.play().catch(console.warn);
+  };
+
+  const handleSwitchVideo = (type: "flagship" | "encore") => {
+    setSelectedVideo(type);
+    setIsVideoPlaying(false);
+    setTimeout(() => {
+      if (videoRef.current) {
+        videoRef.current.load();
+      }
+    }, 50);
+  };
 
   const handleSendChat = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
@@ -185,18 +226,18 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   };
 
   return (
-    <div className="min-h-screen w-full flex flex-col justify-between relative z-10 px-4 sm:px-8 py-6 max-w-6xl mx-auto">
-      {/* Minimal Clean Top Header */}
-      <header className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-[#C5A880]/15">
+    <div className="min-h-screen w-full bg-white text-slate-900 flex flex-col justify-between relative z-10 px-4 sm:px-8 py-6 max-w-6xl mx-auto">
+      {/* Minimal Clean Top Header on White Background */}
+      <header className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-[#FFD700] to-[#C5A880] flex items-center justify-center text-black font-bold shadow-[0_0_20px_rgba(255,215,0,0.25)]">
+          <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 font-bold shadow-md">
             <Music size={20} />
           </div>
           <div>
-            <span className="font-display text-lg font-bold tracking-wide text-[#FAF9F6] block leading-none">
+            <span className="font-display text-lg font-bold tracking-wide text-slate-900 block leading-none">
               mygiftsong.ai
             </span>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-[#C5A880]">
+            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-700 font-semibold">
               Haddi the Street Minstrel
             </span>
           </div>
@@ -207,16 +248,16 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
           <button
             type="button"
             onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-            className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FFD700]/10 border border-[#FFD700]/30 text-[#FFD700] text-xs font-mono hover:bg-[#FFD700]/20 transition-all cursor-pointer"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-amber-50 border border-amber-300 text-amber-900 text-xs font-mono font-semibold hover:bg-amber-100 transition-all cursor-pointer"
           >
-            <Gift size={13} />
+            <Gift size={14} className="text-amber-600" />
             <span>{freeSongsRemaining} of 5 Free Songs Left</span>
           </button>
 
           <button
             type="button"
             onClick={() => onInitiateSystem({ initialSection: "studio" })}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FAF9F6]/10 hover:bg-[#FFD700] text-[#FAF9F6] hover:text-black border border-[#C5A880]/30 text-xs font-mono font-semibold uppercase tracking-wider transition-all cursor-pointer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 text-xs font-mono font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
           >
             <span>Enter Full Studio</span>
             <ArrowRight size={14} />
@@ -224,191 +265,223 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
         </div>
       </header>
 
-      {/* Main Clutter-Free Center Stage: Haddi Media Player + Welcome Chat Window */}
-      <main className="my-auto py-8 md:py-12">
+      {/* Main Clutter-Free Center Stage: Haddi Video Player + Welcome Chat Window */}
+      <main className="my-auto py-8 md:py-10">
         <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <p className="text-xs font-mono uppercase tracking-[0.25em] text-[#FFD700]">
+          <p className="text-xs font-mono uppercase tracking-[0.25em] text-amber-700 font-bold">
             Custom Acoustic & Studio Gift Songs
           </p>
-          <h1 className="text-3xl sm:text-5xl font-display font-bold text-[#FAF9F6] tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-5xl font-display font-bold text-slate-900 tracking-tight leading-tight">
             Turn Your Heartfelt Story Into a{" "}
-            <span className="text-[#FFD700] italic font-serif">Playable Gift Song</span>
+            <span className="text-amber-600 italic font-serif">Playable Gift Song</span>
           </h1>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* LEFT COLUMN: HADDI MEDIA PLAYER (5 cols) */}
+          {/* LEFT COLUMN: HADDI VIDEO MEDIA PLAYER (5 cols) */}
           <motion.div
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
-            className="lg:col-span-5 bg-[#120e0c]/90 border border-[#C5A880]/30 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-md"
+            className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-slate-200/70"
           >
-            <div className="space-y-5">
+            <div className="space-y-4">
               {/* Top Media Header */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#FFD700] animate-pulse" />
-                  <span className="text-[11px] font-mono uppercase tracking-widest text-[#C5A880] font-semibold">
-                    Haddi Media Player
+                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-xs font-mono uppercase tracking-widest text-slate-800 font-bold">
+                    Haddi Video Player
                   </span>
                 </div>
-                <span className="text-[10px] font-mono text-[#FFD700] bg-[#FFD700]/10 border border-[#FFD700]/30 px-2.5 py-0.5 rounded">
-                  Lyria 3 + Acoustic Voice
+                <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md flex items-center gap-1">
+                  <Video size={11} className="text-amber-600" />
+                  Haddi Playing Song
                 </span>
               </div>
 
-              {/* Haddi Visual Portrait & Acoustic Vinyl Showcase */}
-              <div className="relative rounded-xl overflow-hidden border border-[#C5A880]/25 bg-gradient-to-b from-[#1f1814] to-[#0d0a08] p-6 text-center">
-                <div className="relative mx-auto w-28 h-28 rounded-full border-2 border-[#FFD700]/70 overflow-hidden shadow-[0_0_30px_rgba(255,215,0,0.2)] mb-4">
-                  <img
-                    src="/haddi-portrait.jpg"
-                    alt="Haddi the Street Minstrel"
-                    onError={(e) => {
-                      e.currentTarget.style.display = "none";
-                    }}
-                    className="w-full h-full object-cover"
-                  />
-                  <div className=" inset-0 flex items-center justify-center bg-[#1c1510] -z-10">
-                    <Disc
-                      size={44}
-                      className={`text-[#FFD700] ${isPlayingDemo ? "animate-spin" : ""}`}
-                    />
-                  </div>
+              {/* Video Performance Switcher Tabs */}
+              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
+                <button
+                  type="button"
+                  onClick={() => handleSwitchVideo("flagship")}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                    selectedVideo === "flagship"
+                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/80"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  🎬 Haddi Flagship Song
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSwitchVideo("encore")}
+                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
+                    selectedVideo === "encore"
+                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/80"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  🎸 Encore Song Video
+                </button>
+              </div>
+
+              {/* Haddi Video Player Showcase */}
+              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-950 shadow-md aspect-video group">
+                <video
+                  ref={videoRef}
+                  src={videoSources[selectedVideo].src}
+                  poster="/images/guiter-rescaled-9music.png"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  onPlay={() => setIsVideoPlaying(true)}
+                  onPause={() => setIsVideoPlaying(false)}
+                  onEnded={() => setIsVideoPlaying(false)}
+                  className="w-full h-full object-cover"
+                />
+
+                {/* Play Overlay Button when Paused */}
+                {!isVideoPlaying && (
+                  <button
+                    type="button"
+                    onClick={handleToggleVideoPlay}
+                    className="absolute inset-0 bg-black/35 hover:bg-black/25 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
+                    title="Watch & Listen to Haddi Playing Song"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-transform hover:scale-105 active:scale-95">
+                      <Play size={28} fill="currentColor" className="ml-1" />
+                    </div>
+                    <span className="px-3 py-1 rounded-full bg-black/75 text-amber-300 font-mono text-[11px] font-bold uppercase tracking-wider border border-amber-400/40">
+                      Watch Haddi Play Song
+                    </span>
+                  </button>
+                )}
+              </div>
+
+              {/* Video Title & Quick Controls Bar */}
+              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="font-display text-sm font-bold text-slate-900 truncate">
+                    {videoSources[selectedVideo].title}
+                  </h2>
+                  <p className="text-[11px] text-slate-500 font-sans truncate">
+                    {videoSources[selectedVideo].subtitle}
+                  </p>
                 </div>
 
-                <h2 className="font-display text-lg font-bold text-[#FAF9F6]">
-                  {audioSource ? "Your Custom Gift Song" : "The Sound of Honor & Covenant"}
-                </h2>
-                <p className="text-xs text-[#C5A880] font-sans mt-0.5">
-                  {audioSource
-                    ? "Rendered in Studio • Ready to Share"
-                    : "Sample Serenade • Performed by Haddi"}
-                </p>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <button
+                    type="button"
+                    onClick={handleToggleVideoPlay}
+                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+                  >
+                    {isVideoPlaying ? (
+                      <>
+                        <Pause size={13} fill="currentColor" />
+                        <span>Pause</span>
+                      </>
+                    ) : (
+                      <>
+                        <Play size={13} fill="currentColor" />
+                        <span>Play</span>
+                      </>
+                    )}
+                  </button>
 
-                {/* Animated Audio Waveform Bars */}
-                <div className="flex items-end justify-center gap-1.5 h-8 mt-4">
-                  {[40, 75, 55, 95, 65, 85, 50, 90, 60, 80, 45, 70].map((height, idx) => (
-                    <div
-                      key={idx}
-                      className={`w-1 rounded-full transition-all duration-300 ${
-                        isPlayingDemo ? "bg-[#FFD700] visualizer-pillar" : "bg-[#C5A880]/30"
-                      }`}
-                      style={{
-                        height: isPlayingDemo ? `${height}%` : "25%",
-                        animationDelay: `${idx * 0.08}s`,
-                      }}
-                    />
-                  ))}
+                  <button
+                    type="button"
+                    onClick={handleToggleVideoMute}
+                    className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                    title={isVideoMuted ? "Unmute Video" : "Mute Video"}
+                  >
+                    {isVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRestartVideo}
+                    className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
+                    title="Restart Video"
+                  >
+                    <RotateCcw size={15} />
+                  </button>
                 </div>
               </div>
 
-              {/* Dual Engine Mode Switcher if both tracks exist */}
-              {(lyriaAudioUrl || narrationAudioUrl) && (
-                <div className="grid grid-cols-2 gap-2 bg-black/50 p-1 rounded-xl border border-[#C5A880]/20">
-                  <button
-                    type="button"
-                    onClick={() => onSelectTrackType("lyria")}
-                    disabled={!lyriaAudioUrl}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                      activeTrackType === "lyria"
-                        ? "bg-[#FFD700] text-black"
-                        : "text-white/70 hover:text-white disabled:opacity-40"
-                    }`}
-                  >
-                    🎸 Lyria 3 Sung Song
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onSelectTrackType("narration")}
-                    disabled={!narrationAudioUrl}
-                    className={`py-1.5 px-2 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                      activeTrackType === "narration"
-                        ? "bg-[#FFD700] text-black"
-                        : "text-white/70 hover:text-white disabled:opacity-40"
-                    }`}
-                  >
-                    🎙️ Haddi Voice
-                  </button>
-                </div>
-              )}
+              {/* Official Minstrel Quote Banner */}
+              <div className="bg-amber-50/90 border border-amber-200 rounded-xl px-3.5 py-2.5 text-center">
+                <p className="text-[11px] text-amber-900 font-mono font-bold uppercase tracking-wide leading-relaxed">
+                  "There is no greater gift than a song... it is worth more than a thousand words!"
+                </p>
+              </div>
 
-              {/* Audio Player Controls */}
-              {audioSource ? (
-                <div className="bg-black/60 rounded-xl p-3 border border-[#C5A880]/20">
-                  <audio
-                    ref={audioRef}
-                    controls
-                    src={audioSource}
-                    className="w-full h-10 accent-[#FFD700]"
-                  />
-                </div>
-              ) : (
-                <div className="bg-black/60 rounded-xl p-4 border border-[#C5A880]/20 space-y-3">
-                  <div className="flex items-center justify-between gap-4">
-                    <button
-                      type="button"
-                      onClick={onToggleDemoPlayback}
-                      className="w-12 h-12 rounded-full bg-[#FFD700] hover:brightness-110 text-black flex items-center justify-center shadow-lg transition-transform active:scale-95 cursor-pointer shrink-0"
-                      title={isPlayingDemo ? "Pause Sample" : "Play Haddi Acoustic Sample"}
-                    >
-                      {isPlayingDemo ? (
-                        <Pause size={20} fill="black" />
-                      ) : (
-                        <Play size={20} fill="black" className="ml-0.5" />
-                      )}
-                    </button>
-
-                    <div className="flex-1 space-y-1.5">
-                      <div className="flex justify-between text-[11px] font-mono text-[#C5A880]">
-                        <span>{isPlayingDemo ? "Strumming Silver Strings..." : "Listen to Haddi's Guitar"}</span>
-                        <span>78 BPM</span>
+              {/* Custom Generated Audio Player (Only appears if a user has already rendered a custom track) */}
+              {audioSource && (
+                <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200 space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-900">
+                      Your Rendered Gift Song Audio
+                    </span>
+                    {(lyriaAudioUrl || narrationAudioUrl) && (
+                      <div className="flex gap-1">
+                        <button
+                          type="button"
+                          onClick={() => onSelectTrackType("lyria")}
+                          disabled={!lyriaAudioUrl}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer ${
+                            activeTrackType === "lyria"
+                              ? "bg-amber-500 text-slate-950"
+                              : "bg-white text-slate-600 border border-slate-200 disabled:opacity-40"
+                          }`}
+                        >
+                          Lyria 3 Song
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => onSelectTrackType("narration")}
+                          disabled={!narrationAudioUrl}
+                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer ${
+                            activeTrackType === "narration"
+                              ? "bg-amber-500 text-slate-950"
+                              : "bg-white text-slate-600 border border-slate-200 disabled:opacity-40"
+                          }`}
+                        >
+                          Haddi Voice
+                        </button>
                       </div>
-                      <div className="w-full h-1.5 bg-neutral-800 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-[#FFD700] transition-all duration-300"
-                          style={{ width: `${isPlayingDemo ? Math.max(15, demoProgress) : 0}%` }}
-                        />
-                      </div>
-                    </div>
-
-                    <button
-                      type="button"
-                      onClick={() => setMuted(!muted)}
-                      className="text-[#C5A880] hover:text-white transition-colors cursor-pointer"
-                    >
-                      {muted || volume === 0 ? <VolumeX size={16} /> : <Volume2 size={16} />}
-                    </button>
+                    )}
                   </div>
+                  <audio controls src={audioSource} className="w-full h-9 accent-amber-500" />
                 </div>
               )}
             </div>
 
             {/* Subtle Program Highlights Footer inside Player Card */}
-            <div className="pt-5 mt-5 border-t border-[#C5A880]/15 grid grid-cols-3 gap-2 text-center">
+            <div className="pt-4 mt-4 border-t border-slate-200 grid grid-cols-3 gap-2 text-center">
               <button
                 type="button"
                 onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-                className="p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-[#C5A880]/15 transition-colors cursor-pointer"
+                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
               >
-                <p className="text-xs font-bold text-[#FFD700]">5 Free Songs</p>
-                <p className="text-[10px] text-white/60">No card needed</p>
+                <p className="text-xs font-bold text-amber-700">5 Free Songs</p>
+                <p className="text-[10px] text-slate-600">No card needed</p>
               </button>
               <button
                 type="button"
                 onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
-                className="p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-[#C5A880]/15 transition-colors cursor-pointer"
+                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
               >
-                <p className="text-xs font-bold text-[#FFD700]">Lifetime Account</p>
-                <p className="text-[10px] text-white/60">10 $0.99 or 10 Premium</p>
+                <p className="text-xs font-bold text-amber-700">Lifetime Account</p>
+                <p className="text-[10px] text-slate-600">10 $0.99 or 10 Premium</p>
               </button>
               <button
                 type="button"
                 onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
-                className="p-2 rounded-lg bg-white/[0.02] hover:bg-white/[0.06] border border-[#C5A880]/15 transition-colors cursor-pointer"
+                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
               >
-                <p className="text-xs font-bold text-[#FFD700]">Affiliate Hub</p>
-                <p className="text-[10px] text-white/60">One-Time Premium Comm.</p>
+                <p className="text-xs font-bold text-amber-700">Affiliate Hub</p>
+                <p className="text-[10px] text-slate-600">One-Time Premium Comm.</p>
               </button>
             </div>
           </motion.div>
@@ -418,36 +491,36 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
             initial={{ opacity: 0, y: 12 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4, delay: 0.08 }}
-            className="lg:col-span-7 bg-[#120e0c]/90 border border-[#C5A880]/30 rounded-2xl p-6 flex flex-col justify-between shadow-2xl backdrop-blur-md"
+            className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-slate-200/70"
           >
             {/* Chat Window Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-[#C5A880]/20">
+            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-[#251e19] border border-[#FFD700] flex items-center justify-center text-[#FFD700] font-serif font-bold">
+                  <div className="w-10 h-10 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center text-amber-800 font-serif font-bold">
                     H
                   </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#120e0c]" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
                 </div>
                 <div>
-                  <h2 className="text-base font-display font-bold text-[#FAF9F6]">
+                  <h2 className="text-base font-display font-bold text-slate-900">
                     Welcome Chat • Create Your First Gift Song
                   </h2>
-                  <p className="text-xs text-[#C5A880]">
+                  <p className="text-xs text-slate-500">
                     Chat with Haddi to start your song — First 5 songs are free
                   </p>
                 </div>
               </div>
 
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono text-emerald-300 bg-emerald-950/60 border border-emerald-500/30 px-2.5 py-1 rounded-md">
-                <Sparkles size={12} /> {freeSongsRemaining}/5 Free Songs Available
+              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
+                <Sparkles size={12} className="text-emerald-600" /> {freeSongsRemaining}/5 Free Songs Available
               </span>
             </div>
 
             {/* Chat Conversation Feed */}
             <div
               ref={chatContainerRef}
-              className="my-4 space-y-3 max-h-[250px] min-h-[210px] overflow-y-auto pr-1"
+              className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 max-h-[260px] min-h-[220px] overflow-y-auto"
             >
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
@@ -458,10 +531,10 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                     className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
                         msg.sender === "user"
-                          ? "bg-[#FFD700] text-black font-medium rounded-br-xs"
-                          : "bg-[#1e1814] text-[#FAF9F6] border border-[#C5A880]/25 rounded-bl-xs"
+                          ? "bg-amber-500 text-slate-950 font-medium rounded-br-xs"
+                          : "bg-white text-slate-800 border border-slate-200 rounded-bl-xs"
                       }`}
                     >
                       <p>{msg.text}</p>
@@ -474,7 +547,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
             {/* Quick Idea Starters */}
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-[#C5A880]/70 mr-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold mr-1">
                   Quick Starters:
                 </span>
                 <button
@@ -486,7 +559,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       "Acoustic Folk"
                     )
                   }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-black/50 hover:bg-[#FFD700]/15 text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/20 transition-colors cursor-pointer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
                 >
                   💐 For Mom
                 </button>
@@ -499,7 +572,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       "Indie Pop"
                     )
                   }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-black/50 hover:bg-[#FFD700]/15 text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/20 transition-colors cursor-pointer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
                 >
                   💍 Anniversary Gift
                 </button>
@@ -512,7 +585,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       "Modern Worship"
                     )
                   }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-black/50 hover:bg-[#FFD700]/15 text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/20 transition-colors cursor-pointer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
                 >
                   👶 New Baby Blessing
                 </button>
@@ -525,7 +598,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       "Bluegrass"
                     )
                   }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-black/50 hover:bg-[#FFD700]/15 text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/20 transition-colors cursor-pointer"
+                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
                 >
                   🎂 Best Friend Birthday
                 </button>
@@ -542,11 +615,11 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       ? "Type who the gift song is for (e.g. Sarah)..."
                       : "Type a special memory, occasion, or blessing..."
                   }
-                  className="flex-1 bg-black/70 border border-[#C5A880]/35 focus:border-[#FFD700] rounded-xl px-4 py-3 text-sm text-white placeholder-white/40 focus:outline-none transition-colors"
+                  className="flex-1 bg-white border border-slate-300 focus:border-amber-500 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-3 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
                 >
                   <span>Reply</span>
                   <Send size={14} />
@@ -571,7 +644,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       initialSection: "studio",
                     });
                   }}
-                  className="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-[#FFD700] via-[#FCE068] to-[#FFD700] hover:brightness-110 text-black font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-[0_0_25px_rgba(255,215,0,0.25)] flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Sparkles size={16} />
                   <span>
@@ -587,27 +660,27 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
       </main>
 
       {/* Clean Minimal Footer with Direct Links to Separate System Sections */}
-      <footer className="pt-4 border-t border-[#C5A880]/15 flex flex-wrap items-center justify-between gap-4 text-xs text-[#C5A880]/70 font-mono">
+      <footer className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 font-mono">
         <span>© 2026 mygiftsong.ai • Haddi the Street Minstrel</span>
         <div className="flex flex-wrap items-center gap-4">
           <button
             type="button"
             onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-            className="hover:text-[#FFD700] transition-colors cursor-pointer"
+            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
           >
             🎁 First 5 Songs Free
           </button>
           <button
             type="button"
             onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
-            className="hover:text-[#FFD700] transition-colors cursor-pointer"
+            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
           >
             👑 Invite 10 = Lifetime License
           </button>
           <button
             type="button"
             onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
-            className="hover:text-[#FFD700] transition-colors cursor-pointer"
+            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
           >
             🤝 Affiliate Program
           </button>
