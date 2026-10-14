@@ -11,10 +11,14 @@ import {
   ArrowRight,
   Video,
   RotateCcw,
-  ShieldCheck
+  ShieldCheck,
+  Globe,
+  Smile
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PWAInstallButton } from "./PWAInstallButton";
+import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./YosiaChildrenSection";
+import { SongData } from "../types";
 
 interface ChatMessage {
   id: string;
@@ -27,6 +31,7 @@ interface LandingExperienceProps {
   freeSongsRemaining: number;
   referralCount: number;
   adminEmail?: string;
+  oneTimeRedoUsed?: boolean;
   onResetFreeSongs?: () => void;
   audioSource: string | null;
   lyriaAudioUrl: string | null;
@@ -39,15 +44,18 @@ interface LandingExperienceProps {
     target?: string;
     context?: string;
     genre?: string;
+    language?: string;
+    artistPersona?: "haddi" | "yosia";
+    preloadedSong?: SongData;
     autoGenerate?: boolean;
-    initialSection?: "studio" | "free-songs" | "lifetime" | "affiliate" | "admin";
+    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin";
   }) => void;
 }
 
 export const LandingExperience: React.FC<LandingExperienceProps> = ({
   freeSongsRemaining,
   adminEmail,
-  onResetFreeSongs,
+  oneTimeRedoUsed = false,
   audioSource,
   lyriaAudioUrl,
   narrationAudioUrl,
@@ -55,6 +63,11 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   onSelectTrackType,
   onInitiateSystem,
 }) => {
+  // Separate Page View State:
+  // "haddi-main" = Original main focus on Haddi
+  // "yosia-children" = Separate page for Children's Songs with Haddi's little brother Yosia
+  const [activeLandingPage, setActiveLandingPage] = useState<"haddi-main" | "yosia-children">("haddi-main");
+
   // 3-Step Chat & Song Builder state:
   // Step 1: Who the song is for (recipient)
   // Step 2: What's the occasion (occasion)
@@ -63,6 +76,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   const [occasionInput, setOccasionInput] = useState("");
   const [storyInput, setStoryInput] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("Acoustic Folk");
+  const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [selectedPersona, setSelectedPersona] = useState<"haddi" | "yosia">("haddi");
   const [chatStep, setChatStep] = useState<"recipient" | "occasion" | "lyrics" | "ready">("recipient");
   const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
@@ -266,30 +281,42 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     }
   };
 
-  const handleQuickPrompt = (recipient: string, occasion: string, lyricsWords: string, genre: string) => {
+  const handleQuickPrompt = (
+    recipient: string,
+    occasion: string,
+    lyricsWords: string,
+    genre: string,
+    language: string = "English",
+    persona: "haddi" | "yosia" = "haddi"
+  ) => {
     setRecipientInput(recipient);
     setOccasionInput(occasion);
     setStoryInput(lyricsWords);
     setSelectedGenre(genre);
+    setSelectedLanguage(language);
+    setSelectedPersona(persona);
     setChatStep("ready");
     setChatInput("");
     setMessages([
       {
         id: "welcome-1",
         sender: "haddi",
-        text: "Selamat datang, my friend! Welcome to mygiftsong.org — your AI assisted song generator.",
+        text:
+          persona === "yosia"
+            ? "Halo! I'm Yosia, Haddi's little brother! Let's play our guitar and make people happy!"
+            : "Selamat datang, my friend! Welcome to mygiftsong.org — your AI assisted song generator.",
         timestamp: "Just now",
       },
       {
         id: `user-quick-${Date.now()}`,
         sender: "user",
-        text: `Step 1 (Who): ${recipient} • Step 2 (Occasion): ${occasion} • Step 3 (Lyrics/Words): "${lyricsWords}"`,
+        text: `Step 1 (Who): ${recipient} • Step 2 (Occasion): ${occasion} • Step 3 (Lyrics/Words): "${lyricsWords}" • Language: ${language}`,
         timestamp: "Just now",
       },
       {
         id: `haddi-quick-${Date.now() + 1}`,
         sender: "haddi",
-        text: `All 3 steps are filled in for ${recipient}! Click "Create the Song Now" below to generate your song right away, or "Go Into Full Studio for More Options" to customize genres and settings.`,
+        text: `All 3 steps are filled in for ${recipient} (${language})! Click "Create the Song Now" below to generate your song right away, or "Go Into Full Studio for More Options"!`,
         timestamp: "Just now",
       },
     ]);
@@ -353,22 +380,40 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
               type="button"
               onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
               className="inline-flex items-center gap-1.5 px-3 py-2 text-amber-900 text-xs font-mono font-semibold hover:bg-amber-100 transition-all cursor-pointer"
+              title="You get 5 free songs + 1 single redo option across your 5 songs"
             >
               <Gift size={14} className="text-amber-600" />
               <span>{freeSongsRemaining} of 5 Free Songs Left</span>
+              <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 text-[10px] font-bold">
+                {oneTimeRedoUsed ? "1 Redo Used" : "+ 1 Redo Option"}
+              </span>
             </button>
-            {freeSongsRemaining < 5 && onResetFreeSongs && (
-              <button
-                type="button"
-                onClick={onResetFreeSongs}
-                className="px-2.5 py-2 bg-amber-200/80 hover:bg-amber-300 text-amber-950 text-[11px] font-mono font-bold border-l border-amber-300 flex items-center gap-1 cursor-pointer transition-colors"
-                title="Reset Free Song Pass back to 5/5"
-              >
-                <RotateCcw size={12} />
-                <span>Reset 5/5</span>
-              </button>
-            )}
           </div>
+
+          {activeLandingPage === "haddi-main" ? (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveLandingPage("yosia-children");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-mono font-bold transition-all cursor-pointer"
+            >
+              <Smile size={14} className="text-amber-600" />
+              <span>👦🎸 Children&apos;s Song Page (Yosia)</span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setActiveLandingPage("haddi-main");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-xs font-mono font-bold transition-all cursor-pointer"
+            >
+              <span>🎸 Back to Haddi&apos;s Main Page</span>
+            </button>
+          )}
 
           <button
             type="button"
@@ -381,7 +426,32 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
         </div>
       </header>
 
-      {/* Main Clutter-Free Center Stage: Haddi Video Player + Welcome Chat Window */}
+      {/* SEPARATE PAGE FOR YOSIA (CHILDREN'S SONGS) VS. HADDI'S MAIN PAGE */}
+      {activeLandingPage === "yosia-children" ? (
+        <main className="my-auto py-8">
+          <YosiaChildrenSection
+            variant="light"
+            freeSongsRemaining={freeSongsRemaining}
+            onBackToMainPage={() => {
+              setActiveLandingPage("haddi-main");
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }}
+            onGenerateYosiaSong={(params) => {
+              onInitiateSystem({
+                target: params.target,
+                context: params.context,
+                genre: params.genre,
+                language: params.language,
+                artistPersona: params.artistPersona,
+                preloadedSong: params.preloadedSong,
+                autoGenerate: params.autoGenerate,
+                initialSection: "studio",
+              });
+            }}
+          />
+        </main>
+      ) : (
+      /* Main Clutter-Free Center Stage: Haddi Video Player + Welcome Chat Window */
       <main className="my-auto py-8 md:py-10">
         <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
           <p className="text-xs font-mono uppercase tracking-[0.22em] text-amber-700 font-bold">
@@ -796,68 +866,105 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Quick Idea Starters + Guided Step Input */}
+            {/* Quick Idea Starters + Guided Step Input (Focused on Haddi) */}
             <div className="space-y-2.5">
-              <div className="flex flex-wrap items-center gap-1.5">
-                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold mr-1">
-                  1-Click Fill All 3 Steps:
-                </span>
+              {/* QUESTION FOR GUESTS: IS THIS SONG FOR A CHILD? WE HAVE A SEPARATE PAGE FOR CHILDREN! */}
+              <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-300 flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-base">👦🎸</span>
+                  <div>
+                    <p className="text-xs font-bold text-slate-900 leading-tight">
+                      Is this song for a child? We have a separate page for children!
+                    </p>
+                    <p className="text-[11px] text-amber-900">
+                      Meet Haddi&apos;s little brother, <strong>Yosia</strong> — he plays guitar too and loves making children happy!
+                    </p>
+                  </div>
+                </div>
                 <button
                   type="button"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      "Mom",
-                      "Mother's Day & Gratitude Blessing",
-                      "Thank you for your endless prayers, warm hugs, and guiding light through every season.",
-                      "Acoustic Folk"
-                    )
-                  }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
+                  onClick={() => {
+                    setActiveLandingPage("yosia-children");
+                    window.scrollTo({ top: 0, behavior: "smooth" });
+                  }}
+                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-mono text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-xs"
                 >
-                  💐 For Mom
+                  <span>Open Children&apos;s Page</span>
+                  <ArrowRight size={12} />
                 </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      "My Beloved Partner",
-                      "Wedding Anniversary",
-                      "Celebrating our anniversary, every laugh we share, and walking hand in hand forever.",
-                      "Indie Pop"
-                    )
-                  }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                >
-                  💍 Anniversary Gift
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      "Baby Grace",
-                      "New Baby Welcome Blessing",
-                      "Welcome to the world little miracle, may your life be filled with joy, peace, and wonder.",
-                      "Modern Worship"
-                    )
-                  }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                >
-                  👶 New Baby Blessing
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    handleQuickPrompt(
-                      "David",
-                      "Best Friend Birthday Celebration",
-                      "Happy birthday brother! Grateful for decades of loyalty, courage, and unforgettable memories.",
-                      "Bluegrass"
-                    )
-                  }
-                  className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                >
-                  🎂 Best Friend Birthday
-                </button>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold mr-1">
+                    1-Click Fill All 3 Steps:
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickPrompt(
+                        "Mom",
+                        "Mother's Day & Gratitude Blessing",
+                        "Thank you for your endless prayers, warm hugs, and guiding light through every season.",
+                        "Acoustic Folk",
+                        selectedLanguage,
+                        "haddi"
+                      )
+                    }
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
+                  >
+                    💐 For Mom
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickPrompt(
+                        "My Beloved Partner",
+                        "Wedding Anniversary",
+                        "Celebrating our anniversary, every laugh we share, and walking hand in hand forever.",
+                        "Indie Pop",
+                        selectedLanguage,
+                        "haddi"
+                      )
+                    }
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
+                  >
+                    💍 Anniversary Gift
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      handleQuickPrompt(
+                        "Pak Sonni (Mr. Sonni)",
+                        "Membawa Senyum & Kebahagiaan (Making People Happy)",
+                        "Terima kasih Pak Sonni atas senyum hangat, kebaikan hati, dan semangat yang memberkati semua orang.",
+                        "Acoustic Folk",
+                        "Bahasa Indonesia",
+                        "haddi"
+                      )
+                    }
+                    className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold border border-amber-300 transition-colors cursor-pointer"
+                  >
+                    🇮🇩 Mr. Sonni (Bahasa Indonesia)
+                  </button>
+                </div>
+
+                {/* Language Selector Bar inside Haddi's Builder */}
+                <div className="flex items-center gap-1.5">
+                  <Globe size={13} className="text-amber-600" />
+                  <span className="text-[10px] font-mono uppercase font-bold text-slate-600">Language:</span>
+                  <select
+                    value={selectedLanguage}
+                    onChange={(e) => setSelectedLanguage(e.target.value)}
+                    className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 focus:outline-none focus:border-amber-500"
+                  >
+                    {SUPPORTED_SONG_LANGUAGES.map((lang) => (
+                      <option key={lang.code} value={lang.code}>
+                        {lang.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Active Step Prompt Label Above Input */}
@@ -892,9 +999,9 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder={
                     chatStep === "recipient"
-                      ? "Step 1: Type who the song is for (e.g., Sarah, Mom & Dad)..."
+                      ? "Step 1: Type who the song is for (e.g., Sarah, Mom, Mr. Sonni)..."
                       : chatStep === "occasion"
-                      ? "Step 2: Type the occasion (e.g., Birthday, Anniversary, Graduation)..."
+                      ? "Step 2: Type the occasion (e.g., Birthday, Anniversary, Thank You)..."
                       : chatStep === "lyrics"
                       ? "Step 3: Type the words, memories, or lyrics you want in the song..."
                       : "Optional: Type any extra lyrics or words to include..."
@@ -930,6 +1037,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       target: finalRecipient,
                       context: finalContext,
                       genre: selectedGenre,
+                      language: selectedLanguage,
+                      artistPersona: "haddi",
                       autoGenerate: true,
                       initialSection: "studio",
                     });
@@ -939,8 +1048,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   <Sparkles size={16} />
                   <span>
                     {recipientInput
-                      ? `Create ${recipientInput}'s Song Now (Free)`
-                      : "Create the Song Now (Free)"}
+                      ? `Create ${recipientInput}'s Song (${selectedLanguage.split(" ")[0]})`
+                      : `Create the Song Now (${selectedLanguage.split(" ")[0]})`}
                   </span>
                 </button>
 
@@ -952,6 +1061,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       target: hasUserContent ? finalRecipient : undefined,
                       context: hasUserContent ? finalContext : undefined,
                       genre: selectedGenre,
+                      language: selectedLanguage,
+                      artistPersona: "haddi",
                       autoGenerate: false,
                       initialSection: "studio",
                     });
@@ -960,13 +1071,19 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                 >
                   <Music size={15} className="text-amber-400" />
                   <span>Go Into Full Studio for More Options</span>
-                  <ArrowRight size={14} className="text-amber-400" />
+                  <ArrowRight size={14} />
                 </button>
               </div>
+
+              {/* 1-TIME REDO POLICY REMINDER FOR GUESTS */}
+              <p className="text-[11px] font-mono text-slate-500 text-center pt-1">
+                🎁 <strong>5 Free Songs Policy:</strong> You get <strong>1 option to redo a song</strong> if it&apos;s not good. Once you use your 1 redo option, whatever song is generated is the one you keep for the other 4 songs.
+              </p>
             </div>
           </motion.div>
         </div>
       </main>
+      )}
 
       {/* Clean Minimal Footer with Direct Links to Separate System Sections */}
       <footer className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 font-mono">

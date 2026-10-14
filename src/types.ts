@@ -19,6 +19,8 @@ export interface SongData {
   lyricSections: LyricSection[];
   totalDurationSeconds: number; // e.g. 60 or 120
   introAudioBase64?: string; // Optional real-time generated TTS intro
+  language?: string; // e.g., "English", "Bahasa Indonesia", "Bilingual (English & Bahasa Indonesia)"
+  artistPersona?: "haddi" | "yosia"; // Haddi or his little brother Yosia
 }
 
 export interface CreateSongRequest {
@@ -26,6 +28,8 @@ export interface CreateSongRequest {
   context: string;
   setType: SetType;
   genre?: string;
+  language?: string;
+  artistPersona?: "haddi" | "yosia";
 }
 
 export interface CreateSongResponse {
@@ -33,3 +37,4 @@ export interface CreateSongResponse {
   song: SongData;
   variations?: SongData[]; // If extended is selected
 }
+

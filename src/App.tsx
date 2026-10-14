@@ -9,7 +9,7 @@ import {
   Music, Sparkles, Share2, Play, Pause, Volume2, VolumeX, 
   RefreshCw, Download, User, Calendar, Sliders, ChevronRight,
   Disc, Star, Phone, Instagram, Send, Info, Check, Copy, X, Clock,
-  Gift, Crown, Users, TrendingUp, ArrowLeft, ShieldCheck, RotateCcw
+  Gift, Crown, Users, TrendingUp, ArrowLeft, ShieldCheck, RotateCcw, Globe, Smile
 } from "lucide-react";
 import { SongData, SetType, LyricSection } from "./types";
 import { LyricCanvas } from "./components/LyricCanvas";
@@ -19,6 +19,7 @@ import { LandingExperience } from "./components/LandingExperience";
 import { RewardsAndAffiliateSections, ReferralEntry } from "./components/RewardsAndAffiliateSections";
 import { PWAInstallButton, OfflineIndicator } from "./components/PWAInstallButton";
 import { AdminAccountDashboard, AdminUser, MASTER_ADMIN_EMAIL } from "./components/AdminAccountDashboard";
+import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./components/YosiaChildrenSection";
 
 const FREE_SONGS_RESET_VERSION = "mygiftsong_free_reset_v2_2026_10";
 
@@ -61,6 +62,10 @@ export default function App() {
   };
   const [setType, setSetType] = useState<SetType>("quick");
   const [customGenre, setCustomGenre] = useState("Acoustic Folk");
+  const [songLanguage, setSongLanguage] = useState("English");
+  const [artistPersona, setArtistPersona] = useState<"haddi" | "yosia">("haddi");
+  const [originalLyricSections, setOriginalLyricSections] = useState<LyricSection[]>([]);
+  const [isTranslatingSong, setIsTranslatingSong] = useState(false);
   const [gifterEmail, setGifterEmail] = useState(MASTER_ADMIN_EMAIL);
   const [recipientEmail, setRecipientEmail] = useState("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
@@ -108,7 +113,7 @@ export default function App() {
       params.has("session_id")
     );
   });
-  const [activeSystemTab, setActiveSystemTab] = useState<"studio" | "free-songs" | "lifetime" | "affiliate" | "admin">(() => {
+  const [activeSystemTab, setActiveSystemTab] = useState<"studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin">(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "true" || window.location.hash === "#admin") {
       return "admin";
@@ -146,6 +151,10 @@ export default function App() {
     }
   });
 
+  const [oneTimeRedoUsed, setOneTimeRedoUsed] = useState<boolean>(() => {
+    return localStorage.getItem("mygiftsong_one_time_redo_used_v1") === "true";
+  });
+
   const basic099ReferralCount = referrals.filter((r) => (r.tier || "basic_099") === "basic_099").length;
   const premiumReferralCount = referrals.filter((r) => r.tier === "premium").length;
   const isLifetimeUnlocked =
@@ -156,12 +165,21 @@ export default function App() {
   const handleResetFreeSongs = () => {
     setFreeSongsRemaining(5);
     setFreeSongsUsedHistory([]);
+    setOneTimeRedoUsed(false);
     localStorage.setItem("mygiftsong_free_remaining", "5");
     localStorage.setItem("mygiftsong_free_history", JSON.stringify([]));
+    localStorage.setItem("mygiftsong_one_time_redo_used_v1", "false");
     localStorage.setItem(FREE_SONGS_RESET_VERSION, "done");
   };
 
   const handleRefundSongSlot = (index: number) => {
+    // Guests only get 1 single redo across their 5 free songs
+    if (oneTimeRedoUsed && activeSystemTab !== "admin") {
+      return;
+    }
+    setOneTimeRedoUsed(true);
+    localStorage.setItem("mygiftsong_one_time_redo_used_v1", "true");
+
     setFreeSongsUsedHistory((prev) => {
       const next = prev.filter((_, i) => i !== index);
       localStorage.setItem("mygiftsong_free_history", JSON.stringify(next));
@@ -660,14 +678,16 @@ export default function App() {
     targetVal: string,
     contextVal: string,
     setTypeVal: SetType,
-    customGenreVal: string
+    customGenreVal: string,
+    languageVal: string = songLanguage,
+    personaVal: "haddi" | "yosia" = artistPersona,
+    preloadedSong?: SongData
   ) => {
     setError("");
     setIsRendering(true);
     setStage(2); // Jump to Avatar loader Screen
     setLoadingStep(0);
 
-    // Simulated staggered loading visual increments while calling backend
     const interval = setInterval(() => {
       setLoadingStep((prev) => {
         if (prev < 4) return prev + 1;
@@ -677,37 +697,49 @@ export default function App() {
     }, 1500);
 
     try {
-      // 1. Submit Request to the Full-Stack server API
-      const res = await fetch("/api/generate-song", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          target: targetVal.trim(),
-          context: contextVal.trim(),
-          setType: setTypeVal,
-          customGenre: customGenreVal
-        })
-      });
+      let returnedSong: SongData;
 
-      const data = await res.json();
-      if (!data.success || !data.song) {
-        throw new Error(data.error || "Internal generation failed.");
-      }
-
-      const returnedSong: SongData = data.song;
-      
-      // Determine if variations list was populated via Extended Encore, Premium, or Legacy selection
-      if ((setTypeVal === "extended" || setTypeVal === "premium" || setTypeVal === "legacy") && data.variations) {
-        setAllVariations(data.variations);
-        setActiveVariationIdx(0);
-        setCurrentSong(data.variations[0]);
-      } else {
+      if (preloadedSong) {
+        returnedSong = preloadedSong;
         setAllVariations([returnedSong]);
         setActiveVariationIdx(0);
         setCurrentSong(returnedSong);
+        setOriginalLyricSections(returnedSong.lyricSections);
+      } else {
+        // 1. Submit Request to the Full-Stack server API
+        const res = await fetch("/api/generate-song", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target: targetVal.trim(),
+            context: contextVal.trim(),
+            setType: setTypeVal,
+            customGenre: customGenreVal,
+            language: languageVal,
+            artistPersona: personaVal,
+          })
+        });
+
+        const data = await res.json();
+        if (!data.success || !data.song) {
+          throw new Error(data.error || "Internal generation failed.");
+        }
+
+        returnedSong = data.song;
+        setOriginalLyricSections(returnedSong.lyricSections);
+
+        if ((setTypeVal === "extended" || setTypeVal === "premium" || setTypeVal === "legacy") && data.variations) {
+          setAllVariations(data.variations);
+          setActiveVariationIdx(0);
+          setCurrentSong(data.variations[0]);
+        } else {
+          setAllVariations([returnedSong]);
+          setActiveVariationIdx(0);
+          setCurrentSong(returnedSong);
+        }
       }
 
-      // 2. Generate Real AI Audio Track (Lyria 3 Sung Song, Haddi Narration, or Both)
+      // 2. Generate Real AI Audio Track (Lyria 3 Sung Song, Haddi/Yosia Narration, or Both)
       const compiledLyrics = returnedSong.lyricSections
         ?.filter(s => s.sectionName !== "Intro")
         .flatMap(s => s.lines)
@@ -724,6 +756,8 @@ export default function App() {
             customGenre: customGenreVal,
             setType: setTypeVal,
             lyrics: compiledLyrics,
+            language: languageVal,
+            artistPersona: personaVal,
             imageDataUrl: uploadedImages[0] || undefined,
           }),
         });
@@ -739,7 +773,6 @@ export default function App() {
         console.warn("AI audio track generation warning:", audioGenErr);
       }
 
-      // Transition smoothly into Stage 3 Playing Screen with the complete AI song ready to play!
       luteEngineInstance.stopLutePlayback();
       recordFreeSongUsage(returnedSong.title, returnedSong.target);
       clearInterval(interval);
@@ -754,14 +787,84 @@ export default function App() {
     }
   };
 
+  // Live Song Language Translator handler for Stage 3 LyricCanvas
+  const handleTranslateActiveSong = async (targetLanguage: string) => {
+    if (!currentSong) return;
+    setSongLanguage(targetLanguage);
+    setIsTranslatingSong(true);
+
+    try {
+      const res = await fetch("/api/translate-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          song: {
+            ...currentSong,
+            lyricSections:
+              originalLyricSections.length > 0 ? originalLyricSections : currentSong.lyricSections,
+          },
+          targetLanguage,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.song) {
+        setCurrentSong(data.song);
+      }
+    } catch (err) {
+      console.warn("Song translation error:", err);
+    } finally {
+      setIsTranslatingSong(false);
+    }
+  };
+
+  // Re-generate audio in the translated language so the user can hear it sung/narrated in Bahasa Indonesia or chosen language!
+  const handleResingActiveSongInLanguage = async (targetLanguage: string) => {
+    if (!currentSong) return;
+    setIsTranslatingSong(true);
+    try {
+      const compiledLyrics =
+        currentSong.lyricSections
+          ?.filter((s) => s.sectionName !== "Intro")
+          .flatMap((s) => s.lines)
+          .join("\n") || currentSong.context;
+
+      const audioRes = await fetch("/api/generate-haddi-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: `Sing and narrate this song in ${targetLanguage} for ${currentSong.target}: ${currentSong.title}`,
+          mode: audioGenerationMode,
+          target: currentSong.target,
+          customGenre: currentSong.genre || customGenre,
+          setType: currentSong.setType || setType,
+          lyrics: compiledLyrics,
+          language: targetLanguage,
+          artistPersona: currentSong.artistPersona || artistPersona,
+        }),
+      });
+      const audioData = await audioRes.json();
+      if (audioData.audioUrl) {
+        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
+        if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
+        setAudioSource(audioData.audioUrl);
+      }
+    } catch (err) {
+      console.warn("Re-sing audio error:", err);
+    } finally {
+      setIsTranslatingSong(false);
+    }
+  };
+
   const handleInitiateSystem = (prefill?: {
     target?: string;
     context?: string;
     genre?: string;
+    language?: string;
+    artistPersona?: "haddi" | "yosia";
+    preloadedSong?: SongData;
     autoGenerate?: boolean;
-    initialSection?: "studio" | "free-songs" | "lifetime" | "affiliate" | "admin";
+    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin";
   }) => {
-    // Stop demo lute if playing on landing page
     if (isPlaying) {
       luteEngineInstance.stopLutePlayback();
       setIsPlaying(false);
@@ -770,6 +873,9 @@ export default function App() {
     if (prefill?.target) setTarget(prefill.target);
     if (prefill?.context) setContext(prefill.context);
     if (prefill?.genre) setCustomGenre(prefill.genre);
+    if (prefill?.language) setSongLanguage(prefill.language);
+    if (prefill?.artistPersona) setArtistPersona(prefill.artistPersona);
+
     if (prefill?.initialSection) {
       if (prefill.initialSection === "admin") {
         setIsAdminMenuVisible(true);
@@ -789,7 +895,10 @@ export default function App() {
         prefill.target,
         storyText,
         setType,
-        prefill.genre || customGenre
+        prefill.genre || customGenre,
+        prefill.language || songLanguage,
+        prefill.artistPersona || artistPersona,
+        prefill.preloadedSong
       );
     }
   };
@@ -849,6 +958,8 @@ export default function App() {
           context: context.trim(),
           setType,
           customGenre,
+          language: songLanguage,
+          artistPersona,
           gifterEmail: gifterEmail.trim(),
           recipientEmail: recipientEmail.trim()
         })
@@ -861,6 +972,7 @@ export default function App() {
 
       const returnedSong: SongData = data.song;
       setCurrentSong(returnedSong);
+      setOriginalLyricSections(returnedSong.lyricSections);
 
       if ((setType === "extended" || setType === "premium" || setType === "legacy") && data.variations) {
         setAllVariations(data.variations);
@@ -870,7 +982,7 @@ export default function App() {
         setActiveVariationIdx(0);
       }
 
-      // 2. Generate Real AI Audio via Google AI Studio (Lyria 3 Sung Studio Song, Haddi Narration, or Both!)
+      // 2. Generate Real AI Audio via Google AI Studio (Lyria 3 Sung Studio Song, Haddi/Yosia Narration, or Both!)
       const compiledLyrics = returnedSong.lyricSections
         ?.filter(s => s.sectionName !== "Intro")
         .flatMap(s => s.lines)
@@ -886,6 +998,8 @@ export default function App() {
           customGenre,
           setType,
           lyrics: compiledLyrics,
+          language: songLanguage,
+          artistPersona,
           imageDataUrl: uploadedImages[0] || undefined,
         }),
       });
@@ -1029,6 +1143,7 @@ export default function App() {
           freeSongsRemaining={freeSongsRemaining}
           referralCount={referrals.length}
           adminEmail={adminUser.isAuthenticated ? adminUser.email : undefined}
+          oneTimeRedoUsed={oneTimeRedoUsed}
           onResetFreeSongs={handleResetFreeSongs}
           audioSource={audioSource}
           lyriaAudioUrl={lyriaAudioUrl}
@@ -1080,7 +1195,20 @@ export default function App() {
                   }`}
                 >
                   <Music size={13} />
-                  <span>Song Studio</span>
+                  <span>Haddi Studio</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSystemTab("yosia-kids")}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeSystemTab === "yosia-kids"
+                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                  }`}
+                >
+                  <Smile size={13} />
+                  <span>👦🎸 Children&apos;s Page (Yosia)</span>
                 </button>
 
                 <button
@@ -1185,11 +1313,30 @@ export default function App() {
                   }, 150);
                 }}
               />
+            ) : activeSystemTab === "yosia-kids" ? (
+              <YosiaChildrenSection
+                variant="dark"
+                freeSongsRemaining={freeSongsRemaining}
+                onBackToMainPage={() => setActiveSystemTab("studio")}
+                onGenerateYosiaSong={(params) => {
+                  handleInitiateSystem({
+                    target: params.target,
+                    context: params.context,
+                    genre: params.genre,
+                    language: params.language,
+                    artistPersona: params.artistPersona,
+                    preloadedSong: params.preloadedSong,
+                    autoGenerate: params.autoGenerate,
+                    initialSection: "studio",
+                  });
+                }}
+              />
             ) : activeSystemTab !== "studio" ? (
               <RewardsAndAffiliateSections
                 activeSubPage={activeSystemTab}
                 freeSongsRemaining={freeSongsRemaining}
                 freeSongsUsedHistory={freeSongsUsedHistory}
+                oneTimeRedoUsed={oneTimeRedoUsed}
                 referrals={referrals}
                 onAddReferral={handleAddReferral}
                 onResetFreeSongs={handleResetFreeSongs}
@@ -1797,6 +1944,53 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* [QUESTION FOR GUESTS: IS THIS SONG FOR A CHILD? SEPARATE PAGE FOR CHILDREN] */}
+                    <div className="p-3 rounded-xl bg-amber-950/40 border border-[#FFD700]/40 flex flex-wrap items-center justify-between gap-2">
+                      <div className="space-y-0.5">
+                        <p className="text-xs font-bold text-[#FFD700] flex items-center gap-1.5">
+                          <span>👦🎸</span>
+                          <span>Is this song for a child? We have a separate page for children!</span>
+                        </p>
+                        <p className="text-[10px] text-white/75 font-mono">
+                          Meet Haddi&apos;s little brother, Yosia — open our dedicated Children&apos;s Song Page!
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setActiveSystemTab("yosia-kids");
+                          window.scrollTo({ top: 0, behavior: "smooth" });
+                        }}
+                        className="px-3 py-1.5 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 cursor-pointer shrink-0"
+                      >
+                        <span>Open Children&apos;s Page</span>
+                        <ChevronRight size={12} />
+                      </button>
+                    </div>
+
+                    {/* [LANGUAGE TRANSLATOR SELECTOR] */}
+                    <div className="p-3 rounded-xl bg-black/50 border border-[#C5A880]/30 space-y-2">
+                      <label className="text-[11px] font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-1.5 font-bold">
+                        <Globe size={14} /> Song Language & Translator (e.g. Bahasa Indonesia):
+                      </label>
+                      <div className="flex flex-wrap gap-1.5">
+                        {SUPPORTED_SONG_LANGUAGES.slice(0, 6).map((lang) => (
+                          <button
+                            key={lang.code}
+                            type="button"
+                            onClick={() => setSongLanguage(lang.code)}
+                            className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
+                              songLanguage === lang.code
+                                ? "bg-[#FFD700] text-black border border-[#FFD700] shadow"
+                                : "bg-black/60 text-white/75 border border-[#C5A880]/30 hover:border-[#FFD700]/50"
+                            }`}
+                          >
+                            <span>{lang.short}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
                     {/* [AI AUDIO GENERATION ENGINE SELECTOR: BOTH OPTIONS] */}
                     <div className="space-y-2">
                       <label className="text-xs font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-bold">
@@ -1894,33 +2088,31 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* FREE PASS STATUS BANNER ABOVE SUBMIT */}
-                    <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex flex-wrap items-center justify-between gap-2 text-xs font-mono text-emerald-300">
-                      <span className="flex items-center gap-1.5 font-bold">
-                        <Gift size={14} className="text-[#FFD700]" />
-                        {adminUser.isAuthenticated && adminUser.unlimitedBypass
-                          ? `🛡️ Admin Unlimited Mode (${adminUser.email})`
-                          : premiumReferralCount >= 10
-                          ? "👑 Lifetime Premium Account Active — Unlimited Free Songs"
-                          : basic099ReferralCount >= 10
-                          ? "👑 Lifetime $0.99 Account Active — Unlimited Free Songs"
-                          : `🎁 First 5 Songs Free Pass: ${freeSongsRemaining} of 5 Remaining`}
-                      </span>
-                      <div className="flex items-center gap-2">
-                        {freeSongsRemaining < 5 && (
-                          <button
-                            type="button"
-                            onClick={handleResetFreeSongs}
-                            className="px-2 py-0.5 rounded bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 text-[10px] font-bold flex items-center gap-1 cursor-pointer"
-                            title="Reset Free Song Counter back to 5/5"
-                          >
-                            <RotateCcw size={10} /> Reset 5/5
-                          </button>
-                        )}
-                        <span className="bg-[#FFD700] text-black px-2 py-0.5 rounded font-extrabold text-[10px]">
-                          $0.00 FREE
+                    {/* FREE PASS STATUS BANNER ABOVE SUBMIT (WITH 1-TIME REDO POLICY) */}
+                    <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 space-y-1.5 text-xs font-mono text-emerald-300">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="flex items-center gap-1.5 font-bold">
+                          <Gift size={14} className="text-[#FFD700]" />
+                          {adminUser.isAuthenticated && adminUser.unlimitedBypass
+                            ? `🛡️ Admin Unlimited Mode (${adminUser.email})`
+                            : premiumReferralCount >= 10
+                            ? "👑 Lifetime Premium Account Active — Unlimited Free Songs"
+                            : basic099ReferralCount >= 10
+                            ? "👑 Lifetime $0.99 Account Active — Unlimited Free Songs"
+                            : `🎁 First 5 Songs Free Pass: ${freeSongsRemaining} of 5 Remaining`}
                         </span>
+                        <div className="flex items-center gap-2">
+                          <span className="px-2 py-0.5 rounded bg-black/50 text-[#FFD700] border border-[#FFD700]/40 text-[10px] font-bold">
+                            {oneTimeRedoUsed ? "1-Time Redo Used" : "1-Time Redo Available"}
+                          </span>
+                          <span className="bg-[#FFD700] text-black px-2 py-0.5 rounded font-extrabold text-[10px]">
+                            $0.00 FREE
+                          </span>
+                        </div>
                       </div>
+                      <p className="text-[10px] text-emerald-200/80 leading-relaxed">
+                        <strong>1-Time Redo Rule:</strong> You get an option to redo <strong>1 song</strong> if it is not good. Once you use that option, whatever song is generated is the one you keep for the other 4 songs.
+                      </p>
                     </div>
 
                     {/* STRUM THE STRINGS / SUBMIT */}
@@ -2028,31 +2220,37 @@ export default function App() {
                   </div>
                 </div>
                 <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[9px] font-mono font-bold tracking-widest px-3 py-1 rounded-full uppercase">
-                  HADDI THE MINSTREL
+                  {artistPersona === "yosia" ? "YOSIA • LITTLE GUITAR BROTHER" : "HADDI THE MINSTREL"}
                 </div>
               </div>
 
               <div className="space-y-1">
-                <h2 className="text-xl font-display font-extrabold tracking-wider text-[#FFD700]">Haddi</h2>
-                <p className="text-[11px] text-white/60 font-mono uppercase tracking-widest">Sumatran Soul • Jakarta Street Musician</p>
+                <h2 className="text-xl font-display font-extrabold tracking-wider text-[#FFD700]">
+                  {artistPersona === "yosia" ? "Yosia (Haddi's Little Brother)" : "Haddi"}
+                </h2>
+                <p className="text-[11px] text-white/60 font-mono uppercase tracking-widest">
+                  {artistPersona === "yosia"
+                    ? `Joyful Children's Guitar Star • Singing in ${songLanguage}`
+                    : `Sumatran Soul • Jakarta Street Musician (${songLanguage})`}
+                </p>
               </div>
 
               {/* Status information detailing what step is taking place */}
               <div className="space-y-4">
                 <h3 className="text-xl font-display font-semibold text-white tracking-wide flex items-center justify-center gap-2">
                   <span className="w-2 h-2 rounded-full bg-[#FFD700] animate-ping"></span>
-                  Plucking {target || "Audrey"}'s song frequency...
+                  Plucking {target || "Mr. Sonni"}'s song frequency ({songLanguage})...
                 </h3>
 
                 {/* Highly descriptive dialog bubble displaying what the bard sees */}
                 <div className="bg-black/90 border-2 border-[#C5A880] rounded-2xl p-6 text-left relative max-w-md mx-auto backdrop-blur-md">
                   <div className="absolute -top-[10px] left-[50%] -translate-x-1/2 w-4 h-4 bg-black border-t-2 border-l-2 border-[#C5A880] transform rotate-45"></div>
                   <p className="text-[#FAF9F6]/95 text-sm italic font-sans leading-relaxed text-center font-medium">
-                    "{loadingStep === 0 && "Selamat datang! Haddi is tuning the acoustic guitar..."}
-                     {loadingStep === 1 && "Aligning chords on the silver strings for Jakarta's warm breeze..."}
-                     {loadingStep === 2 && "Reciting your special story with Sumatran soul and Jakarta energy..."}
-                     {loadingStep === 3 && "Setting up my digital musician street corner vocals..."}
-                     {loadingStep >= 4 && "Ada lagu! The silver strings are ready to sing your blessing..."}"
+                    "{loadingStep === 0 && (artistPersona === "yosia" ? "Halo teman-teman! Yosia is tuning his happy acoustic guitar by the fireplace..." : "Selamat datang! Haddi is tuning the acoustic guitar...")}
+                     {loadingStep === 1 && "Aligning joyful chords on the silver strings for a warm smile..."}
+                     {loadingStep === 2 && `Composing your special song lyrics in ${songLanguage}...`}
+                     {loadingStep === 3 && (artistPersona === "yosia" ? "Yosia is warming up his cheerful voice to make everyone happy!" : "Setting up my digital musician street corner vocals...")}
+                     {loadingStep >= 4 && "Ada lagu! The guitar strings are ready to sing your blessing..."}"
                   </p>
                 </div>
               </div>
@@ -2320,36 +2518,57 @@ export default function App() {
                     recipientName={currentSong.target}
                   />
 
-                  {/* Back & Redo / Restore Slot buttons */}
-                  <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (freeSongsUsedHistory.length > 0) {
-                          handleRefundSongSlot(freeSongsUsedHistory.length - 1);
-                        } else {
-                          handleResetFreeSongs();
-                        }
-                        luteEngineInstance.stopLutePlayback();
-                        if (audioRef.current) audioRef.current.pause();
-                        setIsAudioPlaying(false);
-                        setIsPlaying(false);
-                        setStage(1);
-                      }}
-                      className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 text-xs font-mono font-bold cursor-pointer transition-all"
-                      title="Song not good? Restore your free song credit and redo!"
-                    >
-                      <RotateCcw size={13} />
-                      <span>Song Not Good? Redo & Restore Free Slot ({Math.min(5, freeSongsRemaining + 1)}/5)</span>
-                    </button>
+                  {/* Back & Strict 1-Time Redo Policy Controls */}
+                  <div className="space-y-2 pt-2">
+                    <div className="flex flex-wrap items-center justify-center gap-3">
+                      {!oneTimeRedoUsed ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (freeSongsUsedHistory.length > 0) {
+                              handleRefundSongSlot(freeSongsUsedHistory.length - 1);
+                            } else {
+                              setOneTimeRedoUsed(true);
+                              localStorage.setItem("mygiftsong_one_time_redo_used_v1", "true");
+                              setFreeSongsRemaining((prev) => {
+                                const next = Math.min(5, prev + 1);
+                                localStorage.setItem("mygiftsong_free_remaining", String(next));
+                                return next;
+                              });
+                            }
+                            luteEngineInstance.stopLutePlayback();
+                            if (audioRef.current) audioRef.current.pause();
+                            setIsAudioPlaying(false);
+                            setIsPlaying(false);
+                            setStage(1);
+                          }}
+                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 text-xs font-mono font-bold cursor-pointer transition-all"
+                          title="You get 1 opportunity to redo a song across your 5 free songs."
+                        >
+                          <RotateCcw size={13} />
+                          <span>Song Not Good? Use Your 1-Time Redo (1 of 1 Left)</span>
+                        </button>
+                      ) : (
+                        <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/60 border border-white/15 text-[11px] font-mono font-semibold">
+                          <Check size={13} className="text-emerald-400" />
+                          <span>1-Time Redo Used — This Song Is Kept ({freeSongsRemaining}/5 Free Left)</span>
+                        </div>
+                      )}
 
-                    <button
-                      type="button"
-                      onClick={handleReset}
-                      className="inline-flex items-center justify-center gap-1 text-xs text-[#C5A880]/70 hover:text-[#FFD700] font-mono cursor-pointer"
-                    >
-                      Strum a New Dedication <ChevronRight size={12} />
-                    </button>
+                      <button
+                        type="button"
+                        onClick={handleReset}
+                        className="inline-flex items-center justify-center gap-1 text-xs text-[#C5A880]/70 hover:text-[#FFD700] font-mono cursor-pointer"
+                      >
+                        Strum a New Dedication <ChevronRight size={12} />
+                      </button>
+                    </div>
+
+                    <p className="text-[10px] font-mono text-center text-[#C5A880]/80 max-w-md mx-auto leading-relaxed">
+                      {!oneTimeRedoUsed
+                        ? "Note: You get an option to redo ONE song. Once you use that option, whatever song is generated is the one you keep for the other 4 songs."
+                        : "You have already used your 1-time song redo option. Whatever song is generated is the one you keep for the remaining 4 songs."}
+                    </p>
                   </div>
 
                 </div>
@@ -2358,8 +2577,13 @@ export default function App() {
                 <div className="lg:col-span-7">
                   <LyricCanvas
                     lyricSections={currentSong.lyricSections}
+                    originalLyricSections={originalLyricSections}
                     currentTimeSeconds={currentTime}
                     onLineClick={(stamp) => handleSeek(stamp)}
+                    currentLanguage={currentSong.language || songLanguage}
+                    isTranslating={isTranslatingSong}
+                    onSelectLanguage={(lang) => handleTranslateCurrentSong(lang, false)}
+                    onReSingInLanguage={(lang) => handleTranslateCurrentSong(lang, true)}
                   />
                 </div>
 

@@ -31,6 +31,7 @@ interface RewardsAndAffiliateProps {
   activeSubPage: "free-songs" | "lifetime" | "affiliate";
   freeSongsRemaining: number;
   freeSongsUsedHistory: { title: string; recipient: string; date: string }[];
+  oneTimeRedoUsed: boolean;
   referrals: ReferralEntry[];
   onAddReferral: (name: string, email: string, tier: "basic_099" | "premium") => void;
   onResetFreeSongs: () => void;
@@ -42,9 +43,9 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   activeSubPage,
   freeSongsRemaining,
   freeSongsUsedHistory,
+  oneTimeRedoUsed,
   referrals,
   onAddReferral,
-  onResetFreeSongs,
   onRefundSongSlot,
   onStartSongInStudio,
 }) => {
@@ -108,7 +109,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   return (
     <div className="max-w-5xl mx-auto w-full space-y-8 py-4">
       {/* =====================================================================
-          SECTION 1: FIRST 5 SONGS ARE FREE
+          SECTION 1: FIRST 5 SONGS ARE FREE (WITH STRICT 1-TIME REDO POLICY)
       ===================================================================== */}
       {activeSubPage === "free-songs" && (
         <div className="space-y-8">
@@ -128,10 +129,15 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   <strong>Haddi's Acoustic Spoken Blessings</strong>, plus downloadable WAV audio and
                   shareable digital gift cards.
                 </p>
+                {/* 1-TIME REDO RULE EXPLANATION */}
+                <div className="mt-3 p-3 rounded-xl bg-amber-950/60 border border-[#FFD700]/40 text-xs text-[#FAF9F6]/90 leading-relaxed">
+                  <strong className="text-[#FFD700] font-mono uppercase">1-Time Redo Policy:</strong>{" "}
+                  If a song is not good, you get an option to <strong>redo ONE song</strong>. Once you use that 1 redo option, whatever song is generated is the one you keep for the other 4 songs.
+                </div>
               </div>
 
-              {/* Counter Card + Reset Button */}
-              <div className="bg-black/80 border border-[#FFD700]/40 rounded-2xl p-6 text-center min-w-[225px] shrink-0 space-y-2">
+              {/* Counter Card + 1-Time Redo Status */}
+              <div className="bg-black/80 border border-[#FFD700]/40 rounded-2xl p-6 text-center min-w-[235px] shrink-0 space-y-2">
                 <p className="text-[11px] font-mono uppercase tracking-widest text-[#C5A880]">
                   Free Songs Remaining
                 </p>
@@ -147,20 +153,17 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     ? `$0.00 • Ready to Redeem`
                     : "All 5 Free Songs Used"}
                 </p>
-                {freeSongsRemaining < 5 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onResetFreeSongs();
-                      setResetNotice("Your 5-Song Free Pass has been reset back to 5 / 5!");
-                      setTimeout(() => setResetNotice(null), 3500);
-                    }}
-                    className="mt-2 w-full py-2 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[11px] font-bold uppercase flex items-center justify-center gap-1.5 cursor-pointer transition-all"
-                  >
-                    <RotateCcw size={12} />
-                    <span>Reset to 5/5 Free</span>
-                  </button>
-                )}
+                <div
+                  className={`mt-2 py-1.5 px-3 rounded-lg font-mono text-[10px] font-bold uppercase border ${
+                    oneTimeRedoUsed
+                      ? "bg-white/5 text-white/60 border-white/15"
+                      : "bg-[#251e19] text-[#FFD700] border-[#FFD700]/40"
+                  }`}
+                >
+                  {oneTimeRedoUsed
+                    ? "✓ 1-Time Redo Option Used (0 Left)"
+                    : "↺ 1-Time Song Redo Available (1 of 1)"}
+                </div>
               </div>
             </div>
 
@@ -235,20 +238,29 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                         <span>Use Free Slot</span>
                         <ArrowRight size={12} />
                       </button>
-                    ) : (
+                    ) : !oneTimeRedoUsed ? (
                       <button
                         type="button"
                         onClick={() => {
                           onRefundSongSlot(slotIdx);
-                          setResetNotice(`Gift Pass #${slotIdx + 1} restored! You can re-create this song for free.`);
-                          setTimeout(() => setResetNotice(null), 3500);
+                          setResetNotice(
+                            `1-Time Redo used on Gift Pass #${slotIdx + 1}! You have used your 1 redo option — whatever song is generated next is the one you keep for the other 4 songs.`
+                          );
+                          setTimeout(() => setResetNotice(null), 5000);
                         }}
-                        className="mt-4 w-full py-2 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
-                        title="Song not good? Restore this free slot!"
+                        className="mt-4 w-full py-2 px-2.5 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                        title="Use your 1-Time Redo on this song (only 1 redo allowed across all 5 free songs)"
                       >
                         <RotateCcw size={11} />
-                        <span>Redo / Reset Slot</span>
+                        <span>Use 1-Time Redo</span>
                       </button>
+                    ) : (
+                      <div
+                        className="mt-4 w-full py-2 px-2 rounded-lg bg-white/5 text-white/50 border border-white/10 font-mono text-[9px] font-semibold uppercase tracking-wider text-center"
+                        title="Your 1-time redo option has already been used. Remaining songs are kept as generated."
+                      >
+                        ✓ Song Kept (1 Redo Used)
+                      </div>
                     )}
                   </div>
                 );
@@ -267,20 +279,6 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
-                {freeSongsRemaining < 5 && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      onResetFreeSongs();
-                      setResetNotice("All 5 Free Song slots have been restored (5/5)!");
-                      setTimeout(() => setResetNotice(null), 3500);
-                    }}
-                    className="px-4 py-3 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <RotateCcw size={14} />
-                    <span>Reset All 5 Free Songs</span>
-                  </button>
-                )}
                 <button
                   type="button"
                   onClick={() => onStartSongInStudio()}

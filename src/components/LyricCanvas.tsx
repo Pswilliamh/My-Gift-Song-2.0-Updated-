@@ -1,19 +1,32 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { Globe, Sparkles, Volume2 } from "lucide-react";
 import { LyricSection } from "../types";
+import { SUPPORTED_SONG_LANGUAGES } from "./YosiaChildrenSection";
 
 interface LyricCanvasProps {
   lyricSections: LyricSection[];
+  originalLyricSections?: LyricSection[];
   currentTimeSeconds: number;
+  currentLanguage?: string;
+  isTranslating?: boolean;
+  onTranslateLanguage?: (targetLanguage: string) => void;
+  onResingInLanguage?: (targetLanguage: string) => void;
   onLineClick?: (timestamp: number) => void;
 }
 
 export const LyricCanvas: React.FC<LyricCanvasProps> = ({
   lyricSections,
+  originalLyricSections,
   currentTimeSeconds,
+  currentLanguage = "English",
+  isTranslating = false,
+  onTranslateLanguage,
+  onResingInLanguage,
   onLineClick,
 }) => {
   const activeLineRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const [showBilingualCompare, setShowBilingualCompare] = useState(true);
 
   // Automatically scroll to active lyrics as song progresses (karaoke-style visual focus)
   useEffect(() => {
@@ -39,17 +52,13 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
     globalTimestamps: number[]
   ) => {
     const elapsed = currentTimeSeconds;
-    // Map section index + line index back to flattened chronological indices across all lines
     const lineStart = globalTimestamps[lineIdx];
     
-    // Find absolute next global timestamp to set active time boundary
     let nextStart = 9999;
     
-    // Scan later lines in same section
     if (lineIdx < globalTimestamps.length - 1) {
       nextStart = globalTimestamps[lineIdx + 1];
     } else {
-      // Look at starting timestamp of subsequent sections
       let foundNext = false;
       for (let s = sectionIdx + 1; s < lyricSections.length; s++) {
         if (lyricSections[s].timestamps && lyricSections[s].timestamps.length > 0) {
@@ -59,12 +68,16 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
         }
       }
       if (!foundNext) {
-        nextStart = lineStart + 8; // Default 8 second duration for last line
+        nextStart = lineStart + 8;
       }
     }
     
     return elapsed >= lineStart && elapsed < nextStart;
   };
+
+  const hasOriginalForCompare =
+    Boolean(originalLyricSections && originalLyricSections.length > 0) &&
+    currentLanguage !== "English";
 
   return (
     <div
@@ -79,16 +92,78 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
       <div className="absolute bottom-2 right-2 w-4 h-4 border-b-2 border-r-2 border-[#C5A880]/40 rounded-br pointer-events-none"></div>
 
       {/* Header of lyric container */}
-      <div className="border-b border-[#C5A880]/20 bg-[#251e19] px-6 py-3.5 flex justify-between items-center">
+      <div className="border-b border-[#C5A880]/20 bg-[#251e19] px-6 py-3.5 flex flex-wrap justify-between items-center gap-2">
         <div className="flex items-center gap-2">
-          <span className="text-[#C5A880] text-sm font-mono tracking-widest uppercase">📜 Lyric Canvas</span>
+          <span className="text-[#C5A880] text-sm font-mono tracking-widest uppercase">
+            📜 Lyric Canvas ({currentLanguage})
+          </span>
         </div>
-        <div className="flex gap-1.5">
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]/40"></span>
-          <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]/10"></span>
+        <div className="flex items-center gap-2">
+          {hasOriginalForCompare && (
+            <button
+              type="button"
+              onClick={() => setShowBilingualCompare(!showBilingualCompare)}
+              className="px-2.5 py-1 rounded text-[10px] font-mono font-bold bg-black/50 text-[#FFD700] border border-[#FFD700]/40 hover:bg-black cursor-pointer"
+            >
+              {showBilingualCompare ? "✓ Side-by-Side Lyrics" : "Show Original Below"}
+            </button>
+          )}
+          <div className="flex gap-1.5">
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]/40"></span>
+            <span className="w-1.5 h-1.5 rounded-full bg-[#C5A880]/10"></span>
+          </div>
         </div>
       </div>
+
+      {/* Integrated Language Translator Bar */}
+      {onTranslateLanguage && (
+        <div className="bg-[#14100d] border-b border-[#C5A880]/20 px-5 py-3 space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span className="text-[11px] font-mono font-bold text-[#FFD700] uppercase tracking-wider flex items-center gap-1.5">
+              <Globe size={13} />
+              <span>Song Language Translator:</span>
+            </span>
+
+            {onResingInLanguage && (
+              <button
+                type="button"
+                onClick={() => onResingInLanguage(currentLanguage)}
+                disabled={isTranslating}
+                className="px-3 py-1 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 cursor-pointer shadow-xs disabled:opacity-50"
+              >
+                <Volume2 size={12} />
+                <span>Sing &amp; Narrate Audio in {currentLanguage}</span>
+              </button>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5">
+            {SUPPORTED_SONG_LANGUAGES.map((lang) => (
+              <button
+                key={lang.code}
+                type="button"
+                disabled={isTranslating}
+                onClick={() => onTranslateLanguage(lang.code)}
+                className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer disabled:opacity-50 ${
+                  currentLanguage === lang.code
+                    ? "bg-[#FFD700] text-black shadow-xs"
+                    : "bg-[#251e19] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                }`}
+              >
+                {lang.short}
+              </button>
+            ))}
+          </div>
+
+          {isTranslating && (
+            <div className="flex items-center gap-1.5 text-[11px] font-mono text-[#FFD700] animate-pulse">
+              <Sparkles size={12} />
+              <span>Translating lyrics &amp; rhythm into {currentLanguage}...</span>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Main scrollable body */}
       <div
@@ -112,6 +187,7 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
                   const stamp = section.timestamps[lIdx] ?? 0;
                   const active = isLineActive(sIdx, lIdx, section.timestamps);
                   const chord = section.chords[lIdx] || "";
+                  const origLine = originalLyricSections?.[sIdx]?.lines?.[lIdx];
 
                   return (
                     <div
@@ -119,10 +195,10 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
                       ref={active ? activeLineRef : null}
                       id={`lyric-line-${sIdx}-${lIdx}`}
                       onClick={() => onLineClick && onLineClick(stamp)}
-                      className={`group relative py-1 px-3 rounded-lg cursor-pointer transition-all duration-300 ${
+                      className={`group relative py-1.5 px-3 rounded-lg cursor-pointer transition-all duration-300 ${
                         active
-                          ? "bg-[#2d2218] border-l-2 border-[#D4AF37] shadow-lg scale-[1.02]"
-                          : "hover:bg-[#1f1915]/50 border-l-2 border-transparent"
+                          ? "bg-[#2d2218] border border-[#D4AF37]/60 shadow-lg scale-[1.01]"
+                          : "hover:bg-[#1f1915]/50 border border-transparent"
                       }`}
                     >
                       {/* Guitar Chord Indicator sits elegant above the current line lyrics */}
@@ -145,11 +221,18 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
                         className={`font-sans leading-relaxed tracking-wide transition-all duration-300 text-sm md:text-base ${
                           active
                             ? "text-white font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)]"
-                            : "text-[#ffffff]/60 group-hover:text-[#ffffff]/85"
+                            : "text-[#ffffff]/80 group-hover:text-white"
                         }`}
                       >
                         {line}
                       </p>
+
+                      {/* Subtitle Original English Reference Line when Translated */}
+                      {hasOriginalForCompare && showBilingualCompare && origLine && origLine !== line && (
+                        <p className="text-xs text-[#C5A880]/70 italic mt-0.5 font-sans">
+                          {origLine}
+                        </p>
+                      )}
 
                       {/* Small hover hint for timeline jump */}
                       <span className="absolute right-3 bottom-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 text-[10px] font-mono text-[#C5A880]/40">
@@ -171,8 +254,9 @@ export const LyricCanvas: React.FC<LyricCanvasProps> = ({
       {/* Footer statistics context decoration */}
       <div className="bg-[#15110e] px-6 py-2 border-t border-[#C5A880]/10 flex justify-between items-center text-[10px] font-mono text-[#C5A880]/40">
         <span>TUNING: STANDARD EADGBE</span>
-        <span>ACID: ACTIVE FREQUENCY</span>
+        <span>LANGUAGE: {currentLanguage.toUpperCase()}</span>
       </div>
     </div>
   );
 };
+

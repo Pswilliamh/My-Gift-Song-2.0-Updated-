@@ -57,88 +57,178 @@ app.use(express.json({ limit: "10mb" }));
 const PORT = 3000;
 
 // Subconscious default mock songs for robust offline or missing API key fallback
-const getDummySong = (target: string, context: string, setType: string, index: number = 0, customGenre?: string): any => {
-  const titles = [
-    `Covenant Blessing and Favor for ${target}`,
-    `Anointing and Grace upon ${target}`,
-    `Breath of Life and Praise for ${target}`
-  ];
-  const genres = ["Jakarta Christian Acoustic Folk", "Sumatran Sacred Ballad", "Soulful Jakarta Cathedral Worship Strum"];
-  const tempos = ["Peaceful Plucking (78 BPM)", "Reverent Worship Strum (84 BPM)", "Heartfelt Praise Strum (92 BPM)"];
-  
-  const intros = [
-    `Shalom! Haddi here at my digital musician street corner. My heart has walked from Sumatra to Jakarta today to sing a Covenant Blessing of Divine Purpose for ${target}. There is no greater gift than a song... let this pure song of Grace touch your spirit guide.`,
-    `Halo kawanku, Shalom! Welcome to my digital street corner. I've tuned the silver strings to release the Breath of Life and holy Anointing upon ${target}. Let His Faithfulness and Favor surround you today.`,
-    `Oh, the aged wood of my guitar is ready, and my heart bursts with Praise! For ${target}'s divine journey, Haddi is singing a song of holy Sanctuary. Hear the silver strings ring out with His Grace!`
-  ];
+const getDummySong = (
+  target: string,
+  context: string,
+  setType: string,
+  index: number = 0,
+  customGenre?: string,
+  language: string = "English",
+  artistPersona: "haddi" | "yosia" = "haddi"
+): any => {
+  const isIndonesian = language.toLowerCase().includes("indonesia");
+  const isYosia = artistPersona === "yosia" || (customGenre || "").toLowerCase().includes("children");
+
+  const titles = isIndonesian
+    ? [
+        `Lagu Berkat & Sukacita untuk ${target}`,
+        `Senyum Bahagia & Kasih Karunia bagi ${target}`,
+        `Nyanyian Harapan & Berkat untuk ${target}`
+      ]
+    : isYosia
+    ? [
+        `Yosia's Happy Guitar Blessing for ${target}`,
+        `Shine Bright & Smile Big, ${target}!`,
+        `A Joyful Song of Happiness for ${target}`
+      ]
+    : [
+        `Covenant Blessing and Favor for ${target}`,
+        `Anointing and Grace upon ${target}`,
+        `Breath of Life and Praise for ${target}`
+      ];
+
+  const genres = isYosia
+    ? ["Joyful Kids Acoustic Sing-Along", "Cheerful Sunshine Guitar Strum", "Warm Fireside Children's Folk"]
+    : ["Jakarta Christian Acoustic Folk", "Sumatran Sacred Ballad", "Soulful Jakarta Cathedral Worship Strum"];
+  const tempos = isYosia
+    ? ["Happy Bouncy Strum (104 BPM)", "Joyful Sing-Along Beat (108 BPM)", "Warm Fireside Plucking (92 BPM)"]
+    : ["Peaceful Plucking (78 BPM)", "Reverent Worship Strum (84 BPM)", "Heartfelt Praise Strum (92 BPM)"];
+
+  const intros = isIndonesian
+    ? [
+        `Halo semuanya! Salam sukacita dari Jakarta! ${isYosia ? "Aku Yosia, adik kecil Bang Haddi! Aku suka sekali bermain gitar untuk membuat hati semua orang gembira!" : "Saya Haddi di sudut jalan musik digital kita."} Hari ini petikan gitar akustik ini khusus untuk ${target}. Tidak ada hadiah yang lebih indah daripada sebuah lagu!`,
+        `Selamat datang kawanku! ${isYosia ? "Yosia dan Bang Haddi di sini!" : "Haddi di sini!"} Kami memetik senar perak penuh Berkat dan Kasih Karunia untuk ${target}. Mari bernyanyi bersama dengan hati yang gembira!`,
+        `Shalom dan salam bahagia! Gitar kayu hangat ini siap menyanyikan lagu sukacita dan berkat khusus untuk ${target}!`
+      ]
+    : isYosia
+    ? [
+        `Halo! Hi my friend! I'm Yosia, Haddi's little brother! I play acoustic guitar too, and my favorite thing in the whole world is helping make people happy! Big brother Haddi and I tuned up our strings by the warm fireplace just for ${target}!`,
+        `Selamat datang! Yosia here with my acoustic guitar and a big smile! Nothing makes me happier than singing a joyful blessing song for ${target}. Let's clap and sing along together!`,
+        `Yay! Ready to smile? I'm Yosia, Haddi's little brother! Let's strum a cheerful song of Blessing, Grace, and pure happiness for ${target}!`
+      ]
+    : [
+        `Shalom! Haddi here at my digital musician street corner. My heart has walked from Sumatra to Jakarta today to sing a Covenant Blessing of Divine Purpose for ${target}. There is no greater gift than a song... let this pure song of Grace touch your spirit guide.`,
+        `Halo kawanku, Shalom! Welcome to my digital street corner. I've tuned the silver strings to release the Breath of Life and holy Anointing upon ${target}. Let His Faithfulness and Favor surround you today.`,
+        `Oh, the aged wood of my guitar is ready, and my heart bursts with Praise! For ${target}'s divine journey, Haddi is singing a song of holy Sanctuary. Hear the silver strings ring out with His Grace!`
+      ];
 
   const duration = setType === "quick" ? 60 : 120;
-  
-  const lyricSections = [
-    {
-      sectionName: "Intro",
-      lines: ["[Acoustic Reverent Strumming Intro]", "[Soft hums of holiness and sanctuary resonance]"],
-      chords: ["G", "C"],
-      timestamps: [0, 4]
-    },
-    {
-      sectionName: "Verse 1",
-      lines: [
-        `Your Breath of Life is a holy spark so bright,`,
-        `Clad in Divine Purpose, walking in His light.`,
-        `Under His holy Covenant, your Favor is secure,`,
-        `An Inheritance of Grace that will forever endure.`
-      ],
-      chords: ["G", "D", "Em", "C"],
-      timestamps: [8, 14, 20, 26]
-    },
-    {
-      sectionName: "Chorus",
-      lines: [
-        `So Haddi strumming Praise for His Faithfulness to raise,`,
-        `An Anointing of sweet mercy to cover all your days!`,
-        `In the quiet Sanctuary where your spirit will arise,`,
-        `Releasing heavy Blessings sent down from the skies!`
-      ],
-      chords: ["G", "C", "D", "C"],
-      timestamps: [32, 38, 44, 50]
-    }
-  ];
+
+  const lyricSections = isIndonesian
+    ? [
+        {
+          sectionName: "Intro",
+          lines: [
+            "[Petikan Gitar Akustik Hangat oleh Yosia & Haddi]",
+            "[Senyum sukacita dan nada penuh berkat]"
+          ],
+          chords: ["G", "C"],
+          timestamps: [0, 4]
+        },
+        {
+          sectionName: "Verse 1",
+          lines: [
+            `Hari ini mentari bersinar cerah untuk ${target},`,
+            `Membawa Berkat dan Kasih Karunia yang tak pernah pudar.`,
+            `Setiap langkahmu dipenuhi Tujuan Ilahi yang indah,`,
+            `Senyummu membawa terang dan sukacita di setiap rumah.`
+          ],
+          chords: ["G", "D", "Em", "C"],
+          timestamps: [8, 14, 20, 26]
+        },
+        {
+          sectionName: "Chorus",
+          lines: [
+            `Petik gitar bersama Yosia dan Haddi bernyanyi gembira,`,
+            `Memuji Kesetiaan Tuhan yang menjaga sepanjang masa!`,
+            `Di dalam tempat kudus-Nya hatimu bersukaria,`,
+            `Berkat melimpah turun atas hidup ${target} selamanya!`
+          ],
+          chords: ["G", "C", "D", "C"],
+          timestamps: [32, 38, 44, 50]
+        }
+      ]
+    : [
+        {
+          sectionName: "Intro",
+          lines: [
+            isYosia ? "[Yosia & Haddi Joyful Acoustic Guitar Intro]" : "[Acoustic Reverent Strumming Intro]",
+            isYosia ? "[Warm fireside strumming and happy hums]" : "[Soft hums of holiness and sanctuary resonance]"
+          ],
+          chords: ["G", "C"],
+          timestamps: [0, 4]
+        },
+        {
+          sectionName: "Verse 1",
+          lines: [
+            `Your Breath of Life is a holy spark so bright,`,
+            `Clad in Divine Purpose, walking in His light.`,
+            `Under His holy Covenant, your Favor is secure,`,
+            `An Inheritance of Grace that will forever endure.`
+          ],
+          chords: ["G", "D", "Em", "C"],
+          timestamps: [8, 14, 20, 26]
+        },
+        {
+          sectionName: "Chorus",
+          lines: [
+            `So ${isYosia ? "Yosia and Haddi" : "Haddi"} strumming Praise for His Faithfulness to raise,`,
+            `An Anointing of sweet mercy to cover all your days!`,
+            `In the quiet Sanctuary where your spirit will arise,`,
+            `Releasing heavy Blessings sent down from the skies!`
+          ],
+          chords: ["G", "C", "D", "C"],
+          timestamps: [32, 38, 44, 50]
+        }
+      ];
 
   if (setType !== "quick") {
     lyricSections.push(
-      {
-        sectionName: "Verse 2",
-        lines: [
-          `By His amazing Faithfulness, you are preserved through the night,`,
-          `Bathed in His rich and boundless Favor, walking in the light.`,
-          `This Anointing of high joy makes the silver strings resound,`,
-          `As we enter into His sanctuary, where true Grace is found.`
-        ],
-        chords: ["Em", "G", "C", "D"],
-        timestamps: [56, 62, 68, 74]
-      },
-      {
-        sectionName: "Chorus",
-        lines: [
-          `So Haddi strumming Praise for His Faithfulness to raise,`,
-          `An Anointing of sweet mercy to cover all your days!`,
-          `In the quiet Sanctuary where your spirit will arise,`,
-          `Releasing heavy Blessings sent down from the skies!`
-        ],
-        chords: ["G", "C", "D", "C"],
-        timestamps: [80, 86, 92, 98]
-      },
-      {
-        sectionName: "Outro",
-        lines: [
-          `Yeah, the silver chords are fading sweet,`,
-          `A song of beautiful Praise is now complete.`,
-          `Covenant Favor and Blessings rest on your divine pathway of light!`
-        ],
-        chords: ["G", "C", "G"],
-        timestamps: [104, 110, 115]
-      }
+      isIndonesian
+        ? {
+            sectionName: "Verse 2",
+            lines: [
+              `Oleh Kesetiaan-Nya yang ajaib, hidupmu selalu dijaga,`,
+              `Dilingkupi Kemurahan dan Kasih sayang-Nya yang sempurna.`,
+              `Urapan sukacita membuat senar gitar ini berbunyi indah,`,
+              `Menyebarkan kebahagiaan dan senyuman yang penuh berkah.`
+            ],
+            chords: ["Em", "G", "C", "D"],
+            timestamps: [56, 62, 68, 74]
+          }
+        : {
+            sectionName: "Verse 2",
+            lines: [
+              `By His amazing Faithfulness, you are preserved through the night,`,
+              `Bathed in His rich and boundless Favor, walking in the light.`,
+              `This Anointing of high joy makes the silver strings resound,`,
+              `As we enter into His sanctuary, where true Grace is found.`
+            ],
+            chords: ["Em", "G", "C", "D"],
+            timestamps: [56, 62, 68, 74]
+          },
+      lyricSections[2],
+      isIndonesian
+        ? {
+            sectionName: "Outro",
+            lines: [
+              `Kord gitar hangat perlahan mengalun manis,`,
+              `Lagu pujian dan kebahagiaan kini tertulis.`,
+              `Berkat dan Kasih Karunia menyertai langkah ${target} selalu!`
+            ],
+            chords: ["G", "C", "G"],
+            timestamps: [104, 110, 115]
+          }
+        : {
+            sectionName: "Outro",
+            lines: [
+              `Yeah, the silver chords are fading sweet,`,
+              `A song of beautiful Praise is now complete.`,
+              `Covenant Favor and Blessings rest on your divine pathway of light!`
+            ],
+            chords: ["G", "C", "G"],
+            timestamps: [104, 110, 115]
+          }
     );
   }
 
@@ -152,7 +242,9 @@ const getDummySong = (target: string, context: string, setType: string, index: n
     genre: customGenre || genres[index % genres.length],
     artistIntro: intros[index % intros.length],
     lyricSections,
-    totalDurationSeconds: duration
+    totalDurationSeconds: duration,
+    language,
+    artistPersona: isYosia ? "yosia" : "haddi"
   };
 };
 
@@ -167,15 +259,15 @@ const getSongSchema = () => {
       },
       artistIntro: {
         type: Type.STRING,
-        description: "A highly personal, warm, humble spoken introduction from Haddi the Minstrel. Greet the recipient/user with friendly greetings like 'Selamat datang' or 'Halo kawanku', mention that this is your digital musician street corner in Jakarta and that you are originally from Sumatra. Talk about plucking the 'silver strings' to bring them honor and blessing, operating under the law that 'There is no greater gift than a song... it is worth more than a thousand words!'. Greet them with sincere respect and soul, custom tailored to the name and storytelling context.",
+        description: "A warm, personal spoken introduction from Haddi the Minstrel (or his joyful little brother Yosia if performing a Children's Song). Greet the recipient warmly, mention playing the acoustic guitar to bring them happiness, honor, and blessing, operating under the law that 'There is no greater gift than a song... it is worth more than a thousand words!'.",
       },
       tempo: {
         type: Type.STRING,
-        description: "Speed description with BPM suitable for street guitar, e.g., 'Soulful Kampung Strum (85 BPM)' or 'Lively Street Beat (105 BPM)'",
+        description: "Speed description with BPM suitable for acoustic guitar, e.g., 'Soulful Kampung Strum (85 BPM)' or 'Joyful Kids Sing-Along Beat (105 BPM)'",
       },
       genre: {
         type: Type.STRING,
-        description: "The specific folk acoustic style, e.g., 'Jakarta Street Folk', 'Sumatran Acoustic Ballad', 'Soulful Kampung Strum'",
+        description: "The specific folk acoustic style, e.g., 'Jakarta Street Folk', 'Children's Joyful Acoustic Sing-Along', 'Sumatran Acoustic Ballad'",
       },
       lyricSections: {
         type: Type.ARRAY,
@@ -213,7 +305,7 @@ const getSongSchema = () => {
 
 // 1. Core Custom Song Generator Endpoint using gemini-3.8-flash
 app.post("/api/generate-song", async (req, res) => {
-  const { target, context, setType, customGenre } = req.body;
+  const { target, context, setType, customGenre, language = "English", artistPersona = "haddi" } = req.body;
   
   if (!target) {
     return res.status(400).json({ error: "Target (recipient name or brand) is required." });
@@ -223,22 +315,27 @@ app.post("/api/generate-song", async (req, res) => {
   const cleanContext = (context || "").trim();
   const cleanSetType = setType || "quick";
   const cleanCustomGenre = (customGenre || "Acoustic Folk").trim();
+  const cleanLanguage = (language || "English").trim();
+  const cleanPersona: "haddi" | "yosia" =
+    artistPersona === "yosia" || cleanCustomGenre.toLowerCase().includes("children") || cleanCustomGenre.toLowerCase().includes("kids")
+      ? "yosia"
+      : "haddi";
 
   // Check if API client can be used, otherwise return simulated high-quality data
   const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
   if (!hasValidApiKey()) {
     console.log("No API Key configured. Returning robust simulated song data.");
     if (isExtendedType) {
-      const primary = getDummySong(cleanTarget, cleanContext, "full", 0, cleanCustomGenre);
-      const var1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre);
-      const var2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre);
+      const primary = getDummySong(cleanTarget, cleanContext, "full", 0, cleanCustomGenre, cleanLanguage, cleanPersona);
+      const var1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona);
+      const var2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona);
       return res.json({
         success: true,
         song: primary,
         variations: [primary, var1, var2]
       });
     } else {
-      const song = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre);
+      const song = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona);
       return res.json({ success: true, song });
     }
   }
@@ -248,43 +345,37 @@ app.post("/api/generate-song", async (req, res) => {
     const isExtended = isExtendedType;
     const duration = cleanSetType === "quick" ? 60 : 120;
 
-    // Tailored prompts depending on selection
-    let systemInstruction = `You are Haddi, an incredibly talented, humble, and soulful street musician originally from Sumatra, now living and performing on the ground within the communities of Jakarta. This application is your digital musician street corner!
-You write beautiful, poetic, heart-warming, respectful, and authentic acoustic folk song lyrics based on a target recipient and their storytelling context, grounded in the frequency of honor and blessing.
+    const personaInstruction =
+      cleanPersona === "yosia"
+        ? `You are Yosia, Haddi's cheerful, big-hearted little brother! You are a joyful young Indonesian boy who wears a colorful woven cap, a bright golden hoodie under a denim jacket, and yellow socks, strumming your acoustic guitar by a warm studio fireplace. You LOVE helping make people happy, especially children, families, teachers, and friends like Mr. Sonni! Your big brother Haddi plays guitar alongside you.`
+        : `You are Haddi, an incredibly talented, humble, and soulful street musician originally from Sumatra, now living and performing on the ground within the communities of Jakarta. This application is your digital musician street corner!`;
 
-CRITICAL LYRICAL STYLE REQUIREMENT: 
+    const languageInstruction =
+      cleanLanguage.toLowerCase() !== "english"
+        ? `\nCRITICAL LANGUAGE REQUIREMENT: Write the song title, artistIntro, and all sung lyric lines in **${cleanLanguage}**! Make sure the lyrics in ${cleanLanguage} rhyme naturally, flow rhythmically with acoustic guitar strumming, and preserve warm themes of Blessing (Berkat), Grace (Kasih Karunia), Favor (Kemurahan), Joy (Sukacita), and Faithfulness (Kesetiaan).`
+        : `\nCRITICAL LYRICAL STYLE REQUIREMENT:
 You must entirely reject generic, secular, or purely metaphysical/spiritualist language. The lyrics you generate MUST be woven with deep Christian-based terminology, scripture-resonant themes, and covenant blessings. Every song must speak life, identity, and divine destiny over the recipient, transforming the prose into a powerful, living prayer of honor.
-You MUST systematically integrate these exact terms from our Mandatory Vocabulary Matrix throughout the song's lyric sections:
-* Blessing
-* Covenant
-* Grace
-* Favor
-* Inheritance
-* Divine Purpose
-* Anointing
-* Breath of Life
-* Faithfulness
-* Sanctuary
-* Praise
+Integrate warm blessing terms throughout the song's lyric sections: Blessing, Covenant, Grace, Favor, Inheritance, Divine Purpose, Anointing, Breath of Life, Faithfulness, Sanctuary, and Praise.`;
 
-In your spoken introductions ('artistIntro'), greet the user and recipient warmly as Haddi, welcome them to your digital street corner in Jakarta, and talk like an authentic, soulful street musician from Indonesia (using words like 'Selamat datang' or 'Halo kawanku', and friendly, humble, respectful English). Mention plucking 'the silver strings' of your guitar to bless them.
+    let systemInstruction = `${personaInstruction}
+You write beautiful, poetic, heart-warming, respectful, and authentic acoustic folk song lyrics based on a target recipient and their storytelling context, grounded in the frequency of honor, happiness, and blessing.
+${languageInstruction}
 Your underlying law is: "There is no greater gift than a song... it is worth more than a thousand words!"
-Your compositions must be memorable, incorporating clever folk hooks and specific storytelling nods to the user's story.
-Chords should utilize basic folk keys (such as G, C, D, Em, Am, F) to sound organic when played on custom physical-modeled strings.
+Chords should utilize basic folk keys (such as G, C, D, Em, Am, F) to sound organic when played on acoustic guitar strings.
 Ensure timestamps occur chronologically within the total duration of ${duration} seconds.
 Lines must align with chord rhythms. Minimum of 2 lines for Intro and Outro, and 4 lines for Verse and Chorus.`;
 
     let userPrompt = `Create a personalized ${duration}-second acoustic song for:
 - TARGET NAME: "${cleanTarget}"
 - CONTEXT/STORY: "${cleanContext || "A general happy dedication filled with warm acoustic folk spirit"}"
-- MUSICAL STYLE/THEME SELECT: "${cleanCustomGenre}" (Write the song structure, chords, tempo, and genre fitting this style/mood)
+- MUSICAL STYLE/THEME SELECT: "${cleanCustomGenre}"
+- PERFORMER PERSONA: "${cleanPersona === "yosia" ? "Yosia (Haddi's joyful little brother who plays guitar and loves helping make people happy)" : "Haddi the Street Minstrel"}"
+- TARGET LANGUAGE: "${cleanLanguage}"
 - SET SELECTION: ${cleanSetType === "quick" ? "THE QUICK STRUM (60s fast-tempo verse & chorus)" : "THE FULL SET (120s extensive ballad with deep lyrics)"}
 
-Write brilliant, highly specific verses detailing their context. Avoid generic or secular tropes. Speak divine destiny, identity, and life over them with Christian scripture-resonant themes.
-You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Grace, Favor, Inheritance, Divine Purpose, Anointing, Breath of Life, Faithfulness, Sanctuary, and Praise. Make it sound genuine and heartwarming.`;
+Write brilliant, highly specific verses detailing their context in ${cleanLanguage}. Make it sound genuine, singable, and heartwarming.`;
 
     if (isExtended) {
-      // In extended mode, we want three distinct variations
       const responseSchema = {
         type: Type.OBJECT,
         properties: {
@@ -297,7 +388,7 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
 
       const response = await client.models.generateContent({
         model: "gemini-3.8-flash",
-        contents: userPrompt + "\nGenerate 3 completely unique, distinct acoustic folk variations (different genres like bluegrass, gentle arpeggio, or high-tempo stomp, with unique custom lyrics and melodies) so the user can choose their perfect match.",
+        contents: userPrompt + `\nGenerate 3 completely unique, distinct acoustic folk variations in ${cleanLanguage} so the user can choose their perfect match.`,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
@@ -312,9 +403,9 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
       }
 
       const parsed = JSON.parse(resultText);
-      const song1 = { ...parsed.song1, id: `song-${Date.now()}-1`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120 };
-      const song2 = { ...parsed.song2, id: `song-${Date.now()}-2`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120 };
-      const song3 = { ...parsed.song3, id: `song-${Date.now()}-3`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120 };
+      const song1 = { ...parsed.song1, id: `song-${Date.now()}-1`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
+      const song2 = { ...parsed.song2, id: `song-${Date.now()}-2`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
+      const song3 = { ...parsed.song3, id: `song-${Date.now()}-3`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
 
       return res.json({
         success: true,
@@ -322,7 +413,6 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
         variations: [song1, song2, song3]
       });
     } else {
-      // Single song generation
       const responseSchema = getSongSchema();
       const response = await client.models.generateContent({
         model: "gemini-3.8-flash",
@@ -347,7 +437,9 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
         target: cleanTarget,
         context: cleanContext,
         setType: cleanSetType,
-        totalDurationSeconds: duration
+        totalDurationSeconds: duration,
+        language: cleanLanguage,
+        artistPersona: cleanPersona
       };
 
       return res.json({
@@ -358,12 +450,11 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
 
   } catch (error: any) {
     console.error("Gemini song generation error:", error);
-    // Graceful fallback to simulated content so the client never crashes
-    const fallbackSong = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre);
+    const fallbackSong = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona);
     const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
     if (isExtendedType) {
-      const fallbackVar1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre);
-      const fallbackVar2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre);
+      const fallbackVar1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona);
+      const fallbackVar2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona);
       return res.json({
         success: true,
         song: fallbackSong,
@@ -378,6 +469,222 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
     });
   }
 });
+
+// 1B. AI Song & Lyric Language Translator Endpoint (e.g., Translate Mr. Sonni Song or any song into Bahasa Indonesia, etc.)
+app.post("/api/translate-song", async (req, res) => {
+  const { song, targetLanguage = "Bahasa Indonesia" } = req.body;
+
+  if (!song || !song.lyricSections) {
+    return res.status(400).json({ error: "Valid song object with lyricSections is required for translation." });
+  }
+
+  const cleanLang = targetLanguage.trim();
+
+  // Built-in poetic fallback translator for offline or missing API key
+  const buildFallbackTranslation = () => {
+    const isIndo = cleanLang.toLowerCase().includes("indonesia") || cleanLang.toLowerCase().includes("melayu");
+    const isMrSonni = (song.target || "").toLowerCase().includes("sonni") || (song.title || "").toLowerCase().includes("sonni");
+
+    if (isIndo && isMrSonni) {
+      return {
+        ...song,
+        title: "Lagu Bahagia Pak Sonni (Membawa Senyum & Berkat)",
+        artistIntro:
+          "Halo semuanya! Aku Yosia, adik kecil Bang Haddi! Aku suka sekali bermain gitar dan membuat hati orang-orang gembira! Lagu dalam Bahasa Indonesia ini khusus kami nyanyikan untuk Pak Sonni (Mr. Sonni) yang baik hati!",
+        language: cleanLang,
+        lyricSections: [
+          {
+            sectionName: "Intro",
+            lines: [
+              "[Petikan Gitar Ceria Yosia & Bang Haddi di Depan Perapian]",
+              "[Senandung hangat penuh sukacita: La-la-la, terima kasih Pak Sonni!]"
+            ],
+            chords: song.lyricSections[0]?.chords || ["G", "C"],
+            timestamps: song.lyricSections[0]?.timestamps || [0, 4]
+          },
+          {
+            sectionName: "Verse 1",
+            lines: [
+              "Selamat pagi Pak Sonni, mentari bersinar cerah,",
+              "Senyummu yang ramah membuat hati kami gembira!",
+              "Dengan hati yang tulus dan semangat yang luar biasa,",
+              "Engkau menabur kebaikan dan berkat bagi sesama."
+            ],
+            chords: song.lyricSections[1]?.chords || ["G", "D", "Em", "C"],
+            timestamps: song.lyricSections[1]?.timestamps || [8, 14, 20, 26]
+          },
+          {
+            sectionName: "Chorus",
+            lines: [
+              "Oh Pak Sonni, terima kasih atas hati yang mulia,",
+              "Yosia dan Haddi memetik gitar bernyanyi gembira!",
+              "Kiranya Berkat, Kasih Karunia, dan Kemurahan Tuhan,",
+              "Menjaga langkah Pak Sonni dalam damai dan kebahagiaan!"
+            ],
+            chords: song.lyricSections[2]?.chords || ["C", "G", "D", "G"],
+            timestamps: song.lyricSections[2]?.timestamps || [32, 38, 44, 50]
+          },
+          ...(song.lyricSections.length > 3
+            ? [
+                {
+                  sectionName: "Verse 2",
+                  lines: [
+                    "Dari Jakarta hingga ke seluruh penjuru dunia,",
+                    "Setiap kebaikan kecil membawa terang surga.",
+                    "Senar gitar kami berdenting dengan penuh rasa syukur,",
+                    "Doa kami bagi Pak Sonni takkan pernah luntur!"
+                  ],
+                  chords: song.lyricSections[3]?.chords || ["Em", "C", "G", "D"],
+                  timestamps: song.lyricSections[3]?.timestamps || [56, 62, 68, 74]
+                },
+                {
+                  sectionName: "Outro",
+                  lines: [
+                    "Terima kasih Pak Sonni, tetaplah bersinar terang,",
+                    "Tuhan memberkati hidupmu hari ini dan selamanya!"
+                  ],
+                  chords: song.lyricSections[4]?.chords || ["C", "G"],
+                  timestamps: song.lyricSections[4]?.timestamps || [80, 86]
+                }
+              ]
+            : [])
+        ]
+      };
+    }
+
+    if (isIndo) {
+      return {
+        ...song,
+        title: `Lagu Berkat & Sukacita untuk ${song.target}`,
+        artistIntro: `Halo kawanku! Selamat datang di mygiftsong.org! Berikut adalah terjemahan lagu spesial untuk ${song.target} dalam ${cleanLang}, dinyanyikan dengan penuh sukacita oleh Yosia & Haddi!`,
+        language: cleanLang,
+        lyricSections: song.lyricSections.map((sec: any, idx: number) => ({
+          ...sec,
+          lines:
+            idx === 0
+              ? ["[Petikan Gitar Akustik Hangat]", "[Alunan nada penuh berkat dan sukacita]"]
+              : sec.lines.map((line: string, lIdx: number) => {
+                  const indoLines = [
+                    `Kasih dan Berkat Tuhan bersinar terang atas ${song.target},`,
+                    `Melangkah dalam Tujuan Ilahi dan Kemurahan yang nyata.`,
+                    `Petikan gitar sukacita menyanyikan syukur dan pujian,`,
+                    `Kiranya damai sejahtera dan kebahagiaan selalu menyertaimu!`
+                  ];
+                  return indoLines[lIdx % indoLines.length] || line;
+                })
+        }))
+      };
+    }
+
+    return {
+      ...song,
+      title: `${song.title} (${cleanLang})`,
+      language: cleanLang
+    };
+  };
+
+  if (!hasValidApiKey()) {
+    return res.json({
+      success: true,
+      song: buildFallbackTranslation()
+    });
+  }
+
+  try {
+    const client = getAiClient();
+    const translationSchema = {
+      type: Type.OBJECT,
+      properties: {
+        title: {
+          type: Type.STRING,
+          description: `The song title translated poetically into ${cleanLang}.`
+        },
+        artistIntro: {
+          type: Type.STRING,
+          description: `The spoken artist introduction translated warmly into ${cleanLang}.`
+        },
+        lyricSections: {
+          type: Type.ARRAY,
+          items: {
+            type: Type.OBJECT,
+            properties: {
+              sectionName: { type: Type.STRING },
+              lines: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+                description: `The lyric lines translated into natural, singable, rhyming ${cleanLang} lyrics matching the exact number of lines in the original section.`
+              }
+            },
+            required: ["sectionName", "lines"]
+          }
+        }
+      },
+      required: ["title", "artistIntro", "lyricSections"]
+    };
+
+    const prompt = `Translate and adapt the following acoustic gift song into singable, poetic, rhythmic **${cleanLang}**.
+Keep the exact same number of sections and the exact same number of lines per section so that the guitar chords and timestamps align 1-to-1.
+Make the lyrics sound natural, warm, joyful, and genuinely singable in ${cleanLang} (for example, if translating into Bahasa Indonesia, use warm, heartfelt, rhythmic Indonesian phrasing that flows naturally with an acoustic guitar melody).
+
+Original Song Title: "${song.title}"
+Recipient: "${song.target}"
+Original Artist Intro: "${song.artistIntro}"
+Original Sections:
+${JSON.stringify(
+  song.lyricSections.map((s: any) => ({
+    sectionName: s.sectionName,
+    lines: s.lines
+  })),
+  null,
+  2
+)}`;
+
+    const response = await client.models.generateContent({
+      model: "gemini-3.8-flash",
+      contents: prompt,
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: translationSchema,
+        temperature: 0.7
+      }
+    });
+
+    const text = response.text;
+    if (!text) throw new Error("Empty translation response");
+    const parsed = JSON.parse(text);
+
+    const mergedSections = song.lyricSections.map((origSec: any, idx: number) => {
+      const translatedSec = parsed.lyricSections?.[idx];
+      return {
+        sectionName: translatedSec?.sectionName || origSec.sectionName,
+        lines:
+          Array.isArray(translatedSec?.lines) && translatedSec.lines.length > 0
+            ? translatedSec.lines
+            : origSec.lines,
+        chords: origSec.chords,
+        timestamps: origSec.timestamps
+      };
+    });
+
+    return res.json({
+      success: true,
+      song: {
+        ...song,
+        title: parsed.title || song.title,
+        artistIntro: parsed.artistIntro || song.artistIntro,
+        lyricSections: mergedSections,
+        language: cleanLang
+      }
+    });
+  } catch (err) {
+    console.warn("Song translation error, using poetic fallback:", err);
+    return res.json({
+      success: true,
+      song: buildFallbackTranslation()
+    });
+  }
+});
+
 
 // Added Live Suno / Lyria generation API proxy route
 app.post(["/api/generate-suno", "/api/generate"], async (req, res) => {
@@ -517,11 +824,15 @@ async function generateLyriaSongAudio(
     lyrics?: string;
     useClipModel?: boolean;
     imageDataUrl?: string;
+    language?: string;
+    artistPersona?: "haddi" | "yosia";
   } = {}
 ): Promise<{ audioUrl: string; lyrics: string; modelUsed: string }> {
   const ai = getAiClient();
   const recipient = options.target || "Someone Special";
   const genre = options.genre || "Acoustic Folk";
+  const language = options.language || "English";
+  const isYosia = options.artistPersona === "yosia" || genre.toLowerCase().includes("children");
   const preferredModel = options.useClipModel ? "lyria-3-clip-preview" : "lyria-3-pro-preview";
   const fallbackModel = options.useClipModel ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
 
@@ -533,9 +844,13 @@ async function generateLyriaSongAudio(
         .join("\n")
     : "";
 
+  const vocalDesc = isYosia
+    ? `cheerful, joyful, warm children's sing-along acoustic vocals by Yosia and Haddi in ${language}`
+    : `expressive, warm lead vocals in ${language}, rich acoustic guitar, and full band arrangement`;
+
   const musicPrompt = trimmedLyrics
-    ? `Generate a complete, warm, studio-quality sung ${genre} song with expressive lead vocals, rich acoustic guitar, and full band arrangement dedicated to ${recipient}. Occasion: ${storyPrompt.substring(0, 220)}. Lyrics to sing:\n${trimmedLyrics}`
-    : `Generate a complete, warm, studio-quality sung ${genre} blessing song with expressive lead vocals, acoustic guitar, and uplifting melody dedicated to ${recipient}. Weave Christian covenant themes of Blessing, Grace, Favor, and Faithfulness into the sung lyrics based on this story: "${storyPrompt.substring(0, 300)}"`;
+    ? `Generate a complete, warm, studio-quality sung ${genre} song with ${vocalDesc} dedicated to ${recipient} (Language: ${language}). Occasion: ${storyPrompt.substring(0, 220)}. Lyrics to sing:\n${trimmedLyrics}`
+    : `Generate a complete, warm, studio-quality sung ${genre} blessing song with ${vocalDesc} dedicated to ${recipient} in ${language}. Weave joyful themes of Blessing, Grace, Favor, and Happiness into the sung lyrics based on this story: "${storyPrompt.substring(0, 300)}"`;
 
   const buildContents = () => {
     if (options.imageDataUrl && options.imageDataUrl.startsWith("data:image/")) {
@@ -607,10 +922,19 @@ async function generateLyriaSongAudio(
   }
 }
 
-// Option 2: Haddi Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts)
-async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
+// Option 2: Haddi / Yosia Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts)
+async function generateHaddiSongAudio(
+  storyPrompt: string,
+  language: string = "English",
+  artistPersona: "haddi" | "yosia" = "haddi"
+): Promise<Buffer> {
   const ai = getAiClient();
-  const narrationPrompt = `Create a warm, acoustic-style musical narrative blessing spoken by Haddi the Street Minstrel from Jakarta based on this user story: "${storyPrompt}"`;
+  const isIndo = language.toLowerCase().includes("indonesia");
+  const ttsLangCode = isIndo ? "id-ID" : "en-US";
+  const narrationPrompt =
+    artistPersona === "yosia"
+      ? `Create a cheerful, joyful children's acoustic musical blessing spoken in ${language} by Yosia (Haddi's happy little brother who plays guitar and loves making people smile) based on this story: "${storyPrompt}"`
+      : `Create a warm, acoustic-style musical narrative blessing spoken in ${language} by Haddi the Street Minstrel from Jakarta based on this user story: "${storyPrompt}"`;
 
   try {
     // 1. Try Google AI Studio Interactions API with gemini-3.8-flash-lite-tts
@@ -623,7 +947,10 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
           annotations: [
             {
               type: "speech_metadata",
-              style: "Warm, soulful, humble Indonesian street minstrel storyteller",
+              style:
+                artistPersona === "yosia"
+                  ? "Cheerful, warm, enthusiastic young guitarist Yosia bringing joy and smiles"
+                  : "Warm, soulful, humble Indonesian street minstrel storyteller",
             },
           ],
         },
@@ -631,7 +958,7 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
       response_format: { type: "audio" },
       generation_config: {
         speech_config: [
-          { language: "en-US", voice: "Kore" }
+          { language: ttsLangCode, voice: artistPersona === "yosia" ? "Puck" : "Kore" }
         ]
       }
     });
@@ -668,7 +995,10 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
             {
               text: narrationPrompt,
               speechMetadata: {
-                style: "Warm, soulful Indonesian street minstrel storyteller",
+                style:
+                  artistPersona === "yosia"
+                    ? "Cheerful, warm young guitarist Yosia"
+                    : "Warm, soulful Indonesian street minstrel storyteller",
               },
             } as any,
           ],
@@ -678,7 +1008,7 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
         responseModalities: ["AUDIO"],
         speechConfig: {
           voiceConfig: {
-            prebuiltVoiceConfig: { voiceName: "Kore" }
+            prebuiltVoiceConfig: { voiceName: artistPersona === "yosia" ? "Puck" : "Kore" }
           }
         }
       }
@@ -704,6 +1034,8 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
     setType,
     lyrics,
     imageDataUrl,
+    language = "English",
+    artistPersona = "haddi",
   } = req.body;
 
   const inputPrompt = (storyPrompt || prompt || "").trim();
@@ -729,6 +1061,8 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
           lyrics,
           useClipModel,
           imageDataUrl,
+          language,
+          artistPersona,
         });
         lyriaAudioUrl = lyriaResult.audioUrl;
         if (lyriaResult.lyrics && !generatedLyrics) {
@@ -741,21 +1075,22 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
       }
     }
 
-    // 2. Generate Haddi Spoken Acoustic Narration if mode is "narration", "both", or if "lyria" failed
+    // 2. Generate Haddi / Yosia Spoken Acoustic Narration if mode is "narration", "both", or if "lyria" failed
     if (mode === "narration" || mode === "both" || !lyriaAudioUrl) {
       try {
-        const narrationBuffer = await generateHaddiSongAudio(inputPrompt);
+        const narrationBuffer = await generateHaddiSongAudio(inputPrompt, language, artistPersona);
         narrationAudioUrl = `data:audio/wav;base64,${narrationBuffer.toString("base64")}`;
         if (!modelSource) {
-          modelSource = "Google AI Studio TTS (Haddi Minstrel Narration)";
+          modelSource = "Google AI Studio TTS (Minstrel Narration)";
         } else {
-          modelSource += " + Haddi TTS Narration";
+          modelSource += " + Minstrel TTS Narration";
         }
       } catch (ttsError: any) {
         console.error("Haddi TTS narration generation failed:", ttsError);
         warnings.push(`Haddi TTS notice: ${ttsError?.message || "Unavailable"}`);
       }
     }
+
 
     const primaryAudioUrl =
       mode === "narration"
@@ -968,7 +1303,7 @@ async function bootstrap() {
   if (!isProduction) {
     const { createServer: createViteServer } = await import("vite");
     const vite = await createViteServer({
-      server: { middlewareMode: true, hmr: false },
+      server: { middlewareMode: true, hmr: false, ws: false },
       appType: "spa",
     });
     app.use(vite.middlewares);

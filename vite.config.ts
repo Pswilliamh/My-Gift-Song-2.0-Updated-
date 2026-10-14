@@ -107,8 +107,9 @@ export default defineConfig(({ mode }) => {
       },
     },
     server: {
-      // HMR is disabled in AI Studio environment.
+      // HMR and WebSocket are disabled in AI Studio environment.
       hmr: false,
+      ws: false,
       watch: process.env.DISABLE_HMR === 'true' ? null : {},
     },
   };

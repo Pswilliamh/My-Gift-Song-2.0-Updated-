@@ -3,6 +3,32 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script>
+      // Prevent benign Vite HMR WebSocket errors in the preview container from triggering uncaught error overlays
+      window.addEventListener(
+        "unhandledrejection",
+        function (event) {
+          var reason = event && event.reason;
+          var msg = reason && (reason.message || String(reason));
+          if (msg && (msg.indexOf("WebSocket closed without opened") !== -1 || msg.indexOf("failed to connect to websocket") !== -1)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        },
+        true
+      );
+      window.addEventListener(
+        "error",
+        function (event) {
+          var msg = event && (event.message || (event.error && event.error.message) || "");
+          if (msg && (msg.indexOf("WebSocket closed without opened") !== -1 || msg.indexOf("failed to connect to websocket") !== -1)) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+          }
+        },
+        true
+      );
+    </script>
     <title>mygiftsong.org — AI Assisted Song Generator</title>
     <meta
       name="description"
