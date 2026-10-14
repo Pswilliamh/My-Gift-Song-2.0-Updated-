@@ -1,30 +1,66 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 
 interface GiftSongCardProps {
   audioUrl: string | null;
   lyrics: string;
   recipientName?: string;
   songTitle?: string;
+  lyriaAudioUrl?: string | null;
+  narrationAudioUrl?: string | null;
+  activeTrackType?: "lyria" | "narration";
+  onSelectTrackType?: (type: "lyria" | "narration") => void;
 }
 
 export const GiftSongCard: React.FC<GiftSongCardProps> = ({ 
   audioUrl, 
   lyrics, 
   recipientName = "Someone Special",
-  songTitle = "The Sound of Honor & Covenant"
+  songTitle = "The Sound of Honor & Covenant",
+  lyriaAudioUrl,
+  narrationAudioUrl,
+  activeTrackType = "lyria",
+  onSelectTrackType,
 }) => {
   const [isPlaying, setIsPlaying] = useState(false);
+  const [selectedTrack, setSelectedTrack] = useState<"lyria" | "narration">(activeTrackType);
+  const [copiedFeedback, setCopiedFeedback] = useState(false);
 
-  // Fallback if no URL is present yet, but let's make sure it handles the real url cleanly
-  const activeAudioSource = audioUrl || "";
+  useEffect(() => {
+    setSelectedTrack(activeTrackType);
+  }, [activeTrackType]);
+
+  // Determine active audio source based on selected track or fallback to audioUrl
+  const resolvedAudioSource =
+    selectedTrack === "narration" && narrationAudioUrl
+      ? narrationAudioUrl
+      : selectedTrack === "lyria" && lyriaAudioUrl
+      ? lyriaAudioUrl
+      : audioUrl || lyriaAudioUrl || narrationAudioUrl || "";
+
+  const handleTrackSwitch = (type: "lyria" | "narration") => {
+    setSelectedTrack(type);
+    if (onSelectTrackType) {
+      onSelectTrackType(type);
+    }
+  };
 
   // Construct a direct mailto link to send the gift card via email
   const handleEmailShare = () => {
+    const shareableLink =
+      resolvedAudioSource.startsWith("data:")
+        ? window.location.origin
+        : resolvedAudioSource;
     const subject = encodeURIComponent(`A Special Custom Song for You: ${songTitle}`);
     const body = encodeURIComponent(
-      `Hello ${recipientName},\n\nHaddi the Street Minstrel created a custom gift song just for you!\n\nListen to your song here: ${audioUrl}\n\nLyrics:\n${lyrics}\n\nSent with love!`
+      `Hello ${recipientName},\n\nHaddi the Street Minstrel created a custom gift song just for you!\n\nListen to your song here: ${shareableLink}\n\nLyrics:\n${lyrics}\n\nSent with love!`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
+  };
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(resolvedAudioSource || window.location.href);
+    setCopiedFeedback(true);
+    setTimeout(() => setCopiedFeedback(false), 2500);
   };
 
   return (
@@ -37,16 +73,56 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         <p className="text-xs text-amber-400">Dedicated to {recipientName}</p>
       </div>
 
+      {/* Dual Option Switcher: Option 1 (Lyria 3 Sung Song) & Option 2 (Haddi Spoken Narration) */}
+      {(lyriaAudioUrl || narrationAudioUrl) && (
+        <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-950/60 p-1.5 rounded-xl border border-amber-500/20">
+          <button
+            type="button"
+            onClick={() => handleTrackSwitch("lyria")}
+            disabled={!lyriaAudioUrl}
+            className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
+              selectedTrack === "lyria" && lyriaAudioUrl
+                ? "bg-amber-500 text-slate-950 shadow"
+                : "text-amber-200/80 hover:text-amber-100"
+            }`}
+          >
+            <span>🎸 Sung Song (Lyria 3)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => handleTrackSwitch("narration")}
+            disabled={!narrationAudioUrl}
+            className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
+              selectedTrack === "narration" && narrationAudioUrl
+                ? "bg-amber-500 text-slate-950 shadow"
+                : "text-amber-200/80 hover:text-amber-100"
+            }`}
+          >
+            <span>🎙️ Haddi Narration</span>
+          </button>
+        </div>
+      )}
+
       {/* Embedded HTML5 Audio Player for the Real Generated Song */}
       <div className="bg-slate-900/80 rounded-xl p-4 shadow-inner mb-4 border border-amber-500/30">
-        {activeAudioSource ? (
-          <audio 
-            controls 
-            src={activeAudioSource} 
-            className="w-full accent-amber-500"
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-          />
+        {resolvedAudioSource ? (
+          <div className="space-y-2">
+            <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/80 uppercase tracking-wider">
+              <span>
+                {selectedTrack === "narration" && narrationAudioUrl
+                  ? "🎙️ Haddi Spoken Blessing Track"
+                  : "🎵 Lyria 3 Sung Studio Master"}
+              </span>
+              {isPlaying && <span className="text-emerald-400 animate-pulse">● PLAYING</span>}
+            </div>
+            <audio 
+              controls 
+              src={resolvedAudioSource} 
+              className="w-full accent-amber-500"
+              onPlay={() => setIsPlaying(true)}
+              onPause={() => setIsPlaying(false)}
+            />
+          </div>
         ) : (
           <p className="text-center text-xs text-amber-400/70 italic">Composing and rendering audio track...</p>
         )}
@@ -57,22 +133,31 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         <p className="whitespace-pre-line">{lyrics}</p>
       </div>
 
-      {/* Action Buttons: Copy Link & Send via Email */}
-      <div className="grid grid-cols-2 gap-3">
+      {/* Action Buttons: Copy Link, Download & Send via Email */}
+      <div className="grid grid-cols-3 gap-2">
         <button 
-          onClick={() => {
-            navigator.clipboard.writeText(audioUrl || "");
-            alert("Song link copied to clipboard!");
-          }}
-          className="bg-amber-800 hover:bg-amber-700 text-amber-100 font-semibold py-2.5 px-3 rounded-xl shadow transition duration-200 text-sm flex items-center justify-center space-x-1"
+          type="button"
+          onClick={handleCopyLink}
+          className="bg-amber-800 hover:bg-amber-700 text-amber-100 font-semibold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
         >
-          <span>📋 Copy Link</span>
+          <span>{copiedFeedback ? "✅ Copied!" : "📋 Copy Link"}</span>
         </button>
 
+        <a
+          href={resolvedAudioSource || "#"}
+          download={`${songTitle.replace(/\s+/g, "_")}_${selectedTrack}.wav`}
+          className={`bg-amber-700 hover:bg-amber-600 text-amber-100 font-semibold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 ${
+            !resolvedAudioSource ? "opacity-50 pointer-events-none" : ""
+          }`}
+        >
+          <span>⬇️ Save Track</span>
+        </a>
+
         <button 
+          type="button"
           onClick={handleEmailShare}
-          disabled={!audioUrl}
-          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold py-2.5 px-3 rounded-xl shadow transition duration-200 text-sm flex items-center justify-center space-x-1"
+          disabled={!resolvedAudioSource}
+          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
         >
           <span>✉️ Send Email</span>
         </button>
@@ -80,3 +165,4 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     </div>
   );
 };
+

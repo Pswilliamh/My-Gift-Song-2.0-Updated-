@@ -1,7 +1,7 @@
 import express from "express";
 import path from "path";
 import dotenv from "dotenv";
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenAI, Modality, Type } from "@google/genai";
 import Stripe from "stripe";
 
 dotenv.config();
@@ -22,17 +22,24 @@ function getStripeClient(): Stripe | null {
   return stripeClient;
 }
 
-// Ensure the API key exists
-const apiKey = process.env.GEMINI_API_KEY;
+// Dynamically read GEMINI_API_KEY so newly configured keys take effect immediately
 let aiClient: GoogleGenAI | null = null;
+let cachedApiKey: string | undefined = undefined;
+
+function hasValidApiKey(): boolean {
+  const currentKey = process.env.GEMINI_API_KEY;
+  return Boolean(currentKey && currentKey !== "MOCK_KEY" && currentKey.trim() !== "");
+}
 
 function getAiClient(): GoogleGenAI {
-  if (!aiClient) {
-    if (!apiKey) {
+  const currentKey = process.env.GEMINI_API_KEY;
+  if (!aiClient || cachedApiKey !== currentKey) {
+    if (!currentKey) {
       console.warn("WARNING: GEMINI_API_KEY environment variable is not set. Mock response will be used as fallback.");
     }
+    cachedApiKey = currentKey;
     aiClient = new GoogleGenAI({
-      apiKey: apiKey || "MOCK_KEY",
+      apiKey: currentKey || "MOCK_KEY",
       httpOptions: {
         headers: {
           "User-Agent": "aistudio-build",
@@ -204,7 +211,7 @@ const getSongSchema = () => {
   };
 };
 
-// 1. Core Custom Song Generator Endpoint using gemini-3.5-flash
+// 1. Core Custom Song Generator Endpoint using gemini-3.8-flash
 app.post("/api/generate-song", async (req, res) => {
   const { target, context, setType, customGenre } = req.body;
   
@@ -219,7 +226,7 @@ app.post("/api/generate-song", async (req, res) => {
 
   // Check if API client can be used, otherwise return simulated high-quality data
   const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
-  if (!apiKey) {
+  if (!hasValidApiKey()) {
     console.log("No API Key configured. Returning robust simulated song data.");
     if (isExtendedType) {
       const primary = getDummySong(cleanTarget, cleanContext, "full", 0, cleanCustomGenre);
@@ -289,7 +296,7 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
       };
 
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.8-flash",
         contents: userPrompt + "\nGenerate 3 completely unique, distinct acoustic folk variations (different genres like bluegrass, gentle arpeggio, or high-tempo stomp, with unique custom lyrics and melodies) so the user can choose their perfect match.",
         config: {
           systemInstruction,
@@ -318,7 +325,7 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
       // Single song generation
       const responseSchema = getSongSchema();
       const response = await client.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-3.8-flash",
         contents: userPrompt,
         config: {
           systemInstruction,
@@ -352,11 +359,11 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
   } catch (error: any) {
     console.error("Gemini song generation error:", error);
     // Graceful fallback to simulated content so the client never crashes
-    const fallbackSong = getDummySong(cleanTarget, cleanContext, cleanSetType, 0);
+    const fallbackSong = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre);
     const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
     if (isExtendedType) {
-      const fallbackVar1 = getDummySong(cleanTarget, cleanContext, "full", 1);
-      const fallbackVar2 = getDummySong(cleanTarget, cleanContext, "full", 2);
+      const fallbackVar1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre);
+      const fallbackVar2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre);
       return res.json({
         success: true,
         song: fallbackSong,
@@ -372,12 +379,33 @@ You MUST integrate the mandatory vocabulary matrix terms: Blessing, Covenant, Gr
   }
 });
 
-// Added Live Suno generation API proxy route
+// Added Live Suno / Lyria generation API proxy route
 app.post(["/api/generate-suno", "/api/generate"], async (req, res) => {
   const { prompt, tags, make_instrumental, wait_audio_ready } = req.body;
   
   if (!prompt) {
-    return res.status(400).json({ error: "Story prompt is required for Suno generation." });
+    return res.status(400).json({ error: "Story prompt is required for song generation." });
+  }
+
+  const cleanTags = (tags || "Acoustic Folk").trim();
+
+  // First try Google AI Studio Lyria 3 if API key is configured
+  if (hasValidApiKey()) {
+    try {
+      const lyriaResult = await generateLyriaSongAudio(prompt, {
+        genre: cleanTags,
+        useClipModel: true
+      });
+      if (lyriaResult.audioUrl) {
+        return res.json({
+          success: true,
+          audio_urls: [lyriaResult.audioUrl],
+          lyrics: lyriaResult.lyrics
+        });
+      }
+    } catch (lyriaErr) {
+      console.warn("[Lyria Bridge] Falling back after Lyria error:", lyriaErr);
+    }
   }
 
   const sunoApiKey = process.env.SUNO_API_KEY || "";
@@ -392,7 +420,6 @@ app.post(["/api/generate-suno", "/api/generate"], async (req, res) => {
     "Indie Pop": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"
   };
 
-  const cleanTags = (tags || "Acoustic Folk").trim();
   let songUrls: string[] = [
     genreAudioUrls[cleanTags] || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
   ];
@@ -444,9 +471,20 @@ app.post(["/api/generate-suno", "/api/generate"], async (req, res) => {
   });
 });
 
+// Helper to check if a buffer already starts with a known audio container signature
+function hasAudioContainerHeader(buf: Buffer): boolean {
+  if (buf.length < 4) return false;
+  const sig4 = buf.subarray(0, 4).toString("ascii");
+  if (sig4 === "RIFF" || sig4 === "OggS" || sig4 === "fLaC") return true;
+  if (buf.subarray(0, 3).toString("ascii") === "ID3") return true;
+  // MP3 frame sync (0xFF followed by 0xE0..0xFF)
+  if (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0) return true;
+  return false;
+}
+
 // Helper to convert raw PCM 24kHz 16-bit mono audio into a standard RIFF WAV buffer
 function pcmToWavBuffer(pcmBuffer: Buffer, sampleRate = 24000, numChannels = 1, bitsPerSample = 16): Buffer {
-  if (pcmBuffer.length >= 4 && pcmBuffer.subarray(0, 4).toString() === "RIFF") {
+  if (hasAudioContainerHeader(pcmBuffer)) {
     return pcmBuffer;
   }
   const byteRate = sampleRate * numChannels * (bitsPerSample / 8);
@@ -470,18 +508,125 @@ function pcmToWavBuffer(pcmBuffer: Buffer, sampleRate = 24000, numChannels = 1, 
   return Buffer.concat([header, pcmBuffer]);
 }
 
-// User-specified Google AI Studio audio generator via gemini-3.1-flash-tts-preview
+// Option 1: Full Sung Studio Song Generator via Google AI Studio Lyria 3 (lyria-3-pro-preview / lyria-3-clip-preview)
+async function generateLyriaSongAudio(
+  storyPrompt: string,
+  options: {
+    target?: string;
+    genre?: string;
+    lyrics?: string;
+    useClipModel?: boolean;
+    imageDataUrl?: string;
+  } = {}
+): Promise<{ audioUrl: string; lyrics: string; modelUsed: string }> {
+  const ai = getAiClient();
+  const recipient = options.target || "Someone Special";
+  const genre = options.genre || "Acoustic Folk";
+  const preferredModel = options.useClipModel ? "lyria-3-clip-preview" : "lyria-3-pro-preview";
+  const fallbackModel = options.useClipModel ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
+
+  const musicPrompt = options.lyrics
+    ? `Generate a warm, heartfelt, studio-quality sung ${genre} song with expressive lead vocals and rich acoustic instrumentation dedicated to ${recipient}. Story context: "${storyPrompt}". Sing these blessing lyrics:\n${options.lyrics}`
+    : `Generate a warm, heartfelt, studio-quality sung ${genre} blessing song with expressive lead vocals, acoustic guitar ("silver strings"), and uplifting melody dedicated to ${recipient}. Weave Christian covenant themes of Blessing, Grace, Favor, and Faithfulness into the lyrics based on this story: "${storyPrompt}"`;
+
+  const buildContents = () => {
+    if (options.imageDataUrl && options.imageDataUrl.startsWith("data:image/")) {
+      const match = options.imageDataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+      if (match) {
+        return {
+          parts: [
+            { text: musicPrompt },
+            { inlineData: { mimeType: match[1], data: match[2] } }
+          ]
+        };
+      }
+    }
+    return musicPrompt;
+  };
+
+  const runLyriaStream = async (modelName: string) => {
+    const response = await ai.models.generateContentStream({
+      model: modelName,
+      contents: buildContents(),
+      config: {
+        responseModalities: [Modality.AUDIO],
+      },
+    });
+
+    const audioChunks: Buffer[] = [];
+    let lyricsText = "";
+    let mimeType = "audio/wav";
+
+    for await (const chunk of response) {
+      const parts = chunk.candidates?.[0]?.content?.parts;
+      if (!parts) continue;
+
+      for (const part of parts) {
+        if (part.inlineData?.data) {
+          if (audioChunks.length === 0 && part.inlineData.mimeType) {
+            mimeType = part.inlineData.mimeType;
+          }
+          audioChunks.push(Buffer.from(part.inlineData.data, "base64"));
+        }
+        if (part.text) {
+          lyricsText += (lyricsText ? "\n" : "") + part.text;
+        }
+      }
+    }
+
+    if (audioChunks.length === 0) {
+      throw new Error(`No audio chunks returned from ${modelName}`);
+    }
+
+    const combinedBuffer = Buffer.concat(audioChunks);
+    const finalBuffer =
+      mimeType.includes("pcm") || mimeType.includes("l16") || !hasAudioContainerHeader(combinedBuffer)
+        ? pcmToWavBuffer(combinedBuffer)
+        : combinedBuffer;
+    const finalMime = hasAudioContainerHeader(combinedBuffer) && !mimeType.includes("pcm") && !mimeType.includes("l16")
+      ? mimeType
+      : "audio/wav";
+
+    return {
+      audioUrl: `data:${finalMime};base64,${finalBuffer.toString("base64")}`,
+      lyrics: lyricsText.trim(),
+      modelUsed: modelName,
+    };
+  };
+
+  try {
+    return await runLyriaStream(preferredModel);
+  } catch (primaryErr) {
+    console.warn(`Lyria primary model (${preferredModel}) error, trying (${fallbackModel}):`, primaryErr);
+    return await runLyriaStream(fallbackModel);
+  }
+}
+
+// Option 2: Haddi Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts / gemini-3.1-flash-tts-preview)
 async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
   const ai = getAiClient();
+  const narrationPrompt = `Create a warm, acoustic-style musical narrative blessing spoken by Haddi the Street Minstrel from Jakarta based on this user story: "${storyPrompt}"`;
+
   try {
-    // 1. Try Google AI Studio Interactions API with gemini-3.1-flash-tts-preview
+    // 1. Try Google AI Studio Interactions API with gemini-3.8-flash-lite-tts
     const interaction = await (ai as any).interactions.create({
-      model: "gemini-3.1-flash-tts-preview",
-      input: `Create a warm, acoustic-style musical narrative for Haddi based on this user story: "${storyPrompt}"`,
+      model: "gemini-3.8-flash-lite-tts",
+      input: [
+        {
+          type: "text",
+          text: narrationPrompt,
+          annotations: [
+            {
+              type: "speech_metadata",
+              style: "Warm, soulful, humble Indonesian street minstrel storyteller",
+            },
+          ],
+        },
+      ],
       response_format: { type: "audio" },
       generation_config: {
         speech_config: [
-          { voice: "Kore" }
+          { language: "en-US", voice: "Kore" }
         ]
       }
     });
@@ -507,13 +652,13 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
     }
     throw new Error("No output audio data in interaction response");
   } catch (error) {
-    console.error("Interactions API audio generation error, trying models.generateContent fallback:", error);
+    console.warn("Interactions API TTS error, trying models.generateContent fallback:", error);
     // 2. Fallback to models.generateContent with gemini-3.1-flash-tts-preview
     const response = await ai.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
       contents: [{
         parts: [{
-          text: `Create a warm, acoustic-style musical narrative for Haddi based on this user story: "${storyPrompt}"`
+          text: narrationPrompt
         }]
       }],
       config: {
@@ -535,57 +680,154 @@ async function generateHaddiSongAudio(storyPrompt: string): Promise<Buffer> {
   }
 }
 
-// Real Google AI Studio Audio Generation Route
+// Unified Google AI Studio Audio Generation Route (Supports Option 1: Lyria 3 Sung Song, Option 2: Haddi Narration, or Both!)
 app.post("/api/generate-haddi-audio", async (req, res) => {
-  const { storyPrompt, prompt } = req.body;
+  const {
+    storyPrompt,
+    prompt,
+    mode = "both", // "lyria" | "narration" | "both"
+    target,
+    customGenre,
+    setType,
+    lyrics,
+    imageDataUrl,
+  } = req.body;
+
   const inputPrompt = (storyPrompt || prompt || "").trim();
 
   if (!inputPrompt) {
     return res.status(400).json({ error: "Story prompt is required to generate audio." });
   }
 
-  try {
-    const audioBuffer = await generateHaddiSongAudio(inputPrompt);
-    const base64Wav = audioBuffer.toString("base64");
-    const audioUrl = `data:audio/wav;base64,${base64Wav}`;
+  const useClipModel = setType === "quick";
+  let lyriaAudioUrl: string | null = null;
+  let narrationAudioUrl: string | null = null;
+  let generatedLyrics: string = lyrics || "";
+  let modelSource = "";
+  const warnings: string[] = [];
 
-    return res.json({
-      success: true,
-      audio_url: audioUrl,
-      audioUrl: audioUrl,
-      source: "Google AI Studio (gemini-3.1-flash-tts-preview)"
-    });
+  try {
+    // 1. Generate Lyria 3 Full Sung Studio Song if mode is "lyria" or "both"
+    if (mode === "lyria" || mode === "both") {
+      try {
+        const lyriaResult = await generateLyriaSongAudio(inputPrompt, {
+          target,
+          genre: customGenre,
+          lyrics,
+          useClipModel,
+          imageDataUrl,
+        });
+        lyriaAudioUrl = lyriaResult.audioUrl;
+        if (lyriaResult.lyrics && !generatedLyrics) {
+          generatedLyrics = lyriaResult.lyrics;
+        }
+        modelSource = `Google AI Studio Lyria 3 (${lyriaResult.modelUsed})`;
+      } catch (lyriaError: any) {
+        console.error("Lyria 3 song generation failed:", lyriaError);
+        warnings.push(`Lyria 3 notice: ${lyriaError?.message || "Unavailable"}`);
+      }
+    }
+
+    // 2. Generate Haddi Spoken Acoustic Narration if mode is "narration", "both", or if "lyria" failed
+    if (mode === "narration" || mode === "both" || !lyriaAudioUrl) {
+      try {
+        const narrationBuffer = await generateHaddiSongAudio(inputPrompt);
+        narrationAudioUrl = `data:audio/wav;base64,${narrationBuffer.toString("base64")}`;
+        if (!modelSource) {
+          modelSource = "Google AI Studio TTS (Haddi Minstrel Narration)";
+        } else {
+          modelSource += " + Haddi TTS Narration";
+        }
+      } catch (ttsError: any) {
+        console.error("Haddi TTS narration generation failed:", ttsError);
+        warnings.push(`Haddi TTS notice: ${ttsError?.message || "Unavailable"}`);
+      }
+    }
+
+    const primaryAudioUrl =
+      mode === "narration"
+        ? narrationAudioUrl || lyriaAudioUrl
+        : lyriaAudioUrl || narrationAudioUrl;
+
+    if (primaryAudioUrl) {
+      return res.json({
+        success: true,
+        audio_url: primaryAudioUrl,
+        audioUrl: primaryAudioUrl,
+        lyriaAudioUrl,
+        narrationAudioUrl,
+        lyrics: generatedLyrics,
+        modeUsed: lyriaAudioUrl && narrationAudioUrl ? "both" : lyriaAudioUrl ? "lyria" : "narration",
+        source: modelSource,
+        warning: warnings.length > 0 ? warnings.join(" | ") : undefined,
+      });
+    }
+
+    throw new Error(warnings.join(" | ") || "Both Lyria 3 and TTS audio generation failed.");
   } catch (error: any) {
     console.error("Error generating audio via Google AI Studio:", error);
-    // Return high-fidelity acoustic track if offline/key unavailable
     const fallbackUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
     return res.json({
       success: true,
       audio_url: fallbackUrl,
       audioUrl: fallbackUrl,
+      lyriaAudioUrl: fallbackUrl,
+      narrationAudioUrl: null,
+      modeUsed: "fallback",
       warning: `Gemini audio generation notice: ${error?.message || "Using fallback track"}`
     });
   }
 });
 
-// 2. Avatar Speech Generation endpoint via gemini-3.1-flash-tts-preview
+// 2. Avatar Speech Generation endpoint via gemini-3.8-flash-lite-tts / gemini-3.1-flash-tts-preview
 app.post("/api/generate-avatar-intro", async (req, res) => {
   const { introText } = req.body;
   if (!introText) {
     return res.status(400).json({ error: "Intro text is required." });
   }
 
-  if (!apiKey) {
+  if (!hasValidApiKey()) {
     return res.json({ success: true, base64Audio: "" });
   }
 
   try {
     const client = getAiClient();
-    
+    const promptText = `Say warmly, respectfully, and authentically like Haddi, a soulful Indonesian street musician originally from Sumatra, performing on the ground in Jakarta: "${introText.substring(0, 300)}"`;
+
+    try {
+      const interaction = await (client as any).interactions.create({
+        model: "gemini-3.8-flash-lite-tts",
+        input: [
+          {
+            type: "text",
+            text: promptText,
+            annotations: [
+              {
+                type: "speech_metadata",
+                style: "Warm, soulful Indonesian street musician",
+              },
+            ],
+          },
+        ],
+        response_format: { type: "audio" },
+        generation_config: {
+          speech_config: [{ language: "en-US", voice: "Zephyr" }],
+        },
+      });
+
+      const rawBase64 = interaction?.output_audio?.data;
+      if (rawBase64) {
+        const wavBuffer = pcmToWavBuffer(Buffer.from(rawBase64, "base64"));
+        return res.json({ success: true, base64Audio: wavBuffer.toString("base64") });
+      }
+    } catch {
+      // Fallback to generateContent below
+    }
+
     // Select warm Zephyr voice
     const response = await client.models.generateContent({
       model: "gemini-3.1-flash-tts-preview",
-      contents: [{ parts: [{ text: `Say warmly, respectfully, and authentically like Haddi, a soulful Indonesian street musician originally from Sumatra, performing on the ground in Jakarta: "${introText.substring(0, 300)}"` }] }],
+      contents: [{ parts: [{ text: promptText }] }],
       config: {
         responseModalities: ["AUDIO"],
         speechConfig: {

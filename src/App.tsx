@@ -8,12 +8,15 @@ import { motion, AnimatePresence } from "motion/react";
 import { 
   Music, Sparkles, Share2, Play, Pause, Volume2, VolumeX, 
   RefreshCw, Download, User, Calendar, Sliders, ChevronRight,
-  Disc, Star, Phone, Instagram, Send, Info, Check, Copy, X, Clock
+  Disc, Star, Phone, Instagram, Send, Info, Check, Copy, X, Clock,
+  Gift, Crown, Users, TrendingUp, ArrowLeft
 } from "lucide-react";
 import { SongData, SetType, LyricSection } from "./types";
 import { LyricCanvas } from "./components/LyricCanvas";
 import { luteEngineInstance } from "./components/AudioEngine";
 import { GiftSongCard } from "./components/GiftSongCard";
+import { LandingExperience } from "./components/LandingExperience";
+import { RewardsAndAffiliateSections, ReferralEntry } from "./components/RewardsAndAffiliateSections";
 
 export default function App() {
   // --- Lifecycles & State Management ---
@@ -22,6 +25,10 @@ export default function App() {
   const mainVideoSrc = "https://drive.google.com/uc?export=download&id=1H7bdSkULkzoNQGqqno26_KJzAPsZUPL2";
   const previewVideoSrc = "https://drive.google.com/uc?export=download&id=1dvyq1PS79s4e3GZlcDxZ3tK2lGKktyiC";
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
+  const [lyriaAudioUrl, setLyriaAudioUrl] = useState<string | null>(null);
+  const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
+  const [audioGenerationMode, setAudioGenerationMode] = useState<"lyria" | "narration" | "both">("both");
+  const [activeTrackType, setActiveTrackType] = useState<"lyria" | "narration">("lyria");
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sunoStatus, setSunoStatus] = useState<"idle" | "generating" | "success" | "error">("idle");
@@ -40,12 +47,90 @@ export default function App() {
     }
     setIsAudioPlaying(true);
   };
+
+  const handleSelectTrackType = (type: "lyria" | "narration") => {
+    setActiveTrackType(type);
+    const nextUrl = type === "narration" ? (narrationAudioUrl || lyriaAudioUrl) : (lyriaAudioUrl || narrationAudioUrl);
+    if (nextUrl) {
+      setAudioSource(nextUrl);
+    }
+  };
   const [setType, setSetType] = useState<SetType>("quick");
   const [customGenre, setCustomGenre] = useState("Acoustic Folk");
   const [gifterEmail, setGifterEmail] = useState("");
   const [recipientEmail, setRecipientEmail] = useState("");
   const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const [isPurposeExpanded, setIsPurposeExpanded] = useState(false);
+
+  // --- Landing Page vs Initiated Full System State ---
+  const [isSystemInitiated, setIsSystemInitiated] = useState<boolean>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("test") === "true" || params.has("session_id");
+  });
+  const [activeSystemTab, setActiveSystemTab] = useState<"studio" | "free-songs" | "lifetime" | "affiliate">("studio");
+
+  // --- First 5 Songs Free & 10-Signup Lifetime License State ---
+  const [freeSongsRemaining, setFreeSongsRemaining] = useState<number>(() => {
+    const saved = localStorage.getItem("mygiftsong_free_remaining");
+    return saved !== null ? Math.max(0, parseInt(saved, 10)) : 5;
+  });
+
+  const [freeSongsUsedHistory, setFreeSongsUsedHistory] = useState<{ title: string; recipient: string; date: string }[]>(() => {
+    try {
+      const saved = localStorage.getItem("mygiftsong_free_history");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const [referrals, setReferrals] = useState<ReferralEntry[]>(() => {
+    try {
+      const saved = localStorage.getItem("mygiftsong_referrals");
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  const basic099ReferralCount = referrals.filter((r) => (r.tier || "basic_099") === "basic_099").length;
+  const premiumReferralCount = referrals.filter((r) => r.tier === "premium").length;
+  const isLifetimeUnlocked = basic099ReferralCount >= 10 || premiumReferralCount >= 10;
+
+  const recordFreeSongUsage = (songTitle: string, recipientName: string) => {
+    if (isLifetimeUnlocked) return; // Lifetime License unlocked = unlimited
+    setFreeSongsRemaining((prev) => {
+      const next = Math.max(0, prev - 1);
+      localStorage.setItem("mygiftsong_free_remaining", String(next));
+      return next;
+    });
+    setFreeSongsUsedHistory((prev) => {
+      const next = [
+        ...prev,
+        { title: songTitle, recipient: recipientName, date: new Date().toLocaleDateString() },
+      ];
+      localStorage.setItem("mygiftsong_free_history", JSON.stringify(next));
+      return next;
+    });
+  };
+
+  const handleAddReferral = (name: string, email: string, tier: "basic_099" | "premium" = "basic_099") => {
+    setReferrals((prev) => {
+      const next: ReferralEntry[] = [
+        ...prev,
+        {
+          id: `ref-${Date.now()}`,
+          name,
+          email,
+          date: new Date().toLocaleDateString(),
+          status: "Verified",
+          tier,
+        },
+      ];
+      localStorage.setItem("mygiftsong_referrals", JSON.stringify(next));
+      return next;
+    });
+  };
   
   // --- Stripe Live Session Variables ---
   const [paymentNotice, setPaymentNotice] = useState<string | null>(null);
@@ -256,12 +341,21 @@ export default function App() {
     }
   };
 
-  // Replace executeMockSongGeneration with this production handler
-  const handleGenerateLiveSong = async (storyPrompt: string) => {
+  // Production handler supporting Lyria 3 Full Sung Song, Haddi Narration, or Both
+  const handleGenerateLiveSong = async (storyPrompt: string, overrideMode?: "lyria" | "narration" | "both") => {
     if (!storyPrompt.trim()) return;
 
+    const selectedMode = overrideMode || audioGenerationMode;
+    const recipient = (document.getElementById('test-target-email') as HTMLInputElement | null)?.value.trim() || target || "Someone Special";
+
     setIsLoading(true);
-    setStatusMessage("Haddi is composing your custom song via Google AI Studio...");
+    setStatusMessage(
+      selectedMode === "lyria"
+        ? "Haddi is composing your full sung studio song via Google AI Studio Lyria 3..."
+        : selectedMode === "narration"
+        ? "Haddi is recording your spoken acoustic blessing via Google AI Studio..."
+        : "Haddi is composing both your Lyria 3 sung studio song & spoken blessing via Google AI Studio..."
+    );
 
     try {
       const response = await fetch('/api/generate-haddi-audio', {
@@ -269,7 +363,14 @@ export default function App() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: storyPrompt }),
+        body: JSON.stringify({
+          prompt: storyPrompt,
+          mode: selectedMode,
+          target: recipient,
+          customGenre,
+          setType,
+          imageDataUrl: uploadedImages[0] || undefined,
+        }),
       });
 
       if (!response.ok) {
@@ -278,33 +379,40 @@ export default function App() {
 
       const data = await response.json();
       
-      // Assuming your endpoint returns { audioUrl: "data:audio/wav;base64,..." }
       if (data.audioUrl) {
+        if (data.lyriaAudioUrl) setLyriaAudioUrl(data.lyriaAudioUrl);
+        if (data.narrationAudioUrl) setNarrationAudioUrl(data.narrationAudioUrl);
+        const initialTrackType = selectedMode === "narration" && data.narrationAudioUrl ? "narration" : data.lyriaAudioUrl ? "lyria" : "narration";
+        setActiveTrackType(initialTrackType);
         setAudioSource(data.audioUrl);
-        setStatusMessage("Song successfully generated! Ready to play.");
+        setStatusMessage(
+          data.lyriaAudioUrl && data.narrationAudioUrl
+            ? "Both Lyria 3 Sung Song & Haddi Spoken Blessing generated! Ready to play."
+            : data.lyriaAudioUrl
+            ? "Lyria 3 Sung Studio Song successfully generated! Ready to play."
+            : "Haddi Spoken Blessing successfully generated! Ready to play."
+        );
 
-        const recipient = (document.getElementById('test-target-email') as HTMLInputElement | null)?.value.trim() || target || "Someone Special";
-        if (!currentSong) {
-          setCurrentSong({
-            id: `haddi-${Date.now()}`,
-            title: `Acoustic Blessing for ${recipient}`,
-            target: recipient,
-            context: storyPrompt,
-            setType: "quick",
-            tempo: "Peaceful Plucking (78 BPM)",
-            genre: customGenre || "Modern Worship",
-            artistIntro: `Halo kawanku! Haddi here with a song for ${recipient}.`,
-            lyricSections: [
-              {
-                sectionName: "Blessing Verse",
-                lines: storyPrompt.split("\n").filter(l => l.trim().length > 0),
-                chords: ["G", "C", "D", "Em"],
-                timestamps: [0, 15]
-              }
-            ],
-            totalDurationSeconds: 120
-          });
-        }
+        const lyricText = data.lyrics || storyPrompt;
+        setCurrentSong(prev => prev || {
+          id: `haddi-${Date.now()}`,
+          title: `Acoustic Blessing for ${recipient}`,
+          target: recipient,
+          context: storyPrompt,
+          setType: "quick",
+          tempo: "Peaceful Plucking (78 BPM)",
+          genre: customGenre || "Modern Worship",
+          artistIntro: `Halo kawanku! Haddi here with a song for ${recipient}.`,
+          lyricSections: [
+            {
+              sectionName: "Blessing Verse",
+              lines: lyricText.split("\n").filter((l: string) => l.trim().length > 0),
+              chords: ["G", "C", "D", "Em"],
+              timestamps: [0, 15]
+            }
+          ],
+          totalDurationSeconds: 120
+        });
       } else {
         throw new Error('No audio track returned in response payload.');
       }
@@ -502,7 +610,39 @@ export default function App() {
         setCurrentSong(returnedSong);
       }
 
-      // 2. Play Audio Speech introduction from the Minstrel avatar!
+      // 2. Generate Real AI Audio Track (Lyria 3 Sung Song, Haddi Narration, or Both)
+      const compiledLyrics = returnedSong.lyricSections
+        ?.filter(s => s.sectionName !== "Intro")
+        .flatMap(s => s.lines)
+        .join("\n") || contextVal;
+
+      try {
+        const audioRes = await fetch("/api/generate-haddi-audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: contextVal.trim() || `A special ${customGenreVal} blessing song for ${targetVal.trim()}`,
+            mode: audioGenerationMode,
+            target: targetVal.trim(),
+            customGenre: customGenreVal,
+            setType: setTypeVal,
+            lyrics: compiledLyrics,
+            imageDataUrl: uploadedImages[0] || undefined,
+          }),
+        });
+        const audioData = await audioRes.json();
+        if (audioData.audioUrl) {
+          if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
+          if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
+          const initType = audioGenerationMode === "narration" && audioData.narrationAudioUrl ? "narration" : audioData.lyriaAudioUrl ? "lyria" : "narration";
+          setActiveTrackType(initType);
+          setAudioSource(audioData.audioUrl);
+        }
+      } catch (audioGenErr) {
+        console.warn("AI audio track generation warning:", audioGenErr);
+      }
+
+      // 3. Play Audio Speech introduction from the Minstrel avatar!
       try {
         const speechRes = await fetch("/api/generate-avatar-intro", {
           method: "POST",
@@ -522,6 +662,7 @@ export default function App() {
       }
 
       // Transition smoothly into Stage 3 Playing Screen!
+      recordFreeSongUsage(returnedSong.title, returnedSong.target);
       clearInterval(interval);
       setStage(3);
     } catch (err: any) {
@@ -533,23 +674,62 @@ export default function App() {
     }
   };
 
+  const handleInitiateSystem = (prefill?: {
+    target?: string;
+    context?: string;
+    genre?: string;
+    autoGenerate?: boolean;
+    initialSection?: "studio" | "free-songs" | "lifetime" | "affiliate";
+  }) => {
+    // Stop demo lute if playing on landing page
+    if (isPlaying) {
+      luteEngineInstance.stopLutePlayback();
+      setIsPlaying(false);
+    }
+
+    if (prefill?.target) setTarget(prefill.target);
+    if (prefill?.context) setContext(prefill.context);
+    if (prefill?.genre) setCustomGenre(prefill.genre);
+    if (prefill?.initialSection) {
+      setActiveSystemTab(prefill.initialSection);
+    } else {
+      setActiveSystemTab("studio");
+    }
+
+    setIsSystemInitiated(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+    if (prefill?.autoGenerate && prefill.target) {
+      const storyText =
+        prefill.context || `A heartfelt custom blessing song dedicated to ${prefill.target}.`;
+      triggerSongGeneration(
+        prefill.target,
+        storyText,
+        setType,
+        prefill.genre || customGenre
+      );
+    }
+  };
+
   const handleStrumSong = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     
     const valEmail = (email: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-    if (!gifterEmail.trim()) {
+    const hasFreePassOrLifetime = freeSongsRemaining > 0 || isLifetimeUnlocked;
+
+    if (!hasFreePassOrLifetime && !gifterEmail.trim()) {
       setError("Please specify Your Email (Gifter) - this is required so Haddi can deliver your digital keepsake!");
       return;
     }
-    if (!valEmail(gifterEmail)) {
+    if (gifterEmail.trim() && !valEmail(gifterEmail)) {
       setError("Please enter a valid Gifter Email format.");
       return;
     }
-    if (!recipientEmail.trim()) {
+    if (!hasFreePassOrLifetime && !recipientEmail.trim()) {
       setError("Please specify the Recipient's Email - this is required so Haddi can dedicate the song correctly!");
       return;
     }
-    if (!valEmail(recipientEmail)) {
+    if (recipientEmail.trim() && !valEmail(recipientEmail)) {
       setError("Please enter a valid Recipient Email format.");
       return;
     }
@@ -597,18 +777,34 @@ export default function App() {
         setActiveVariationIdx(0);
       }
 
-      // 2. Set theme-based high-fidelity Suno AI audio URL path
-      const genreAudioUrls: Record<string, string> = {
-        "Acoustic Folk": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-        "Bluegrass": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-        "Rustic Lute": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-        "Modern Worship": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-4.mp3",
-        "Lofi Acoustic": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-5.mp3",
-        "Indie Pop": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-6.mp3"
-      };
+      // 2. Generate Real AI Audio via Google AI Studio (Lyria 3 Sung Studio Song, Haddi Narration, or Both!)
+      const compiledLyrics = returnedSong.lyricSections
+        ?.filter(s => s.sectionName !== "Intro")
+        .flatMap(s => s.lines)
+        .join("\n") || context.trim();
 
-      const highFidelityTrack = genreAudioUrls[customGenre] || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
-      setAudioUrl(highFidelityTrack);
+      const audioRes = await fetch("/api/generate-haddi-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: context.trim() || `A heartfelt ${customGenre} blessing song dedicated to ${target.trim()}`,
+          mode: audioGenerationMode,
+          target: target.trim(),
+          customGenre,
+          setType,
+          lyrics: compiledLyrics,
+          imageDataUrl: uploadedImages[0] || undefined,
+        }),
+      });
+
+      const audioData = await audioRes.json();
+      if (audioData.audioUrl) {
+        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
+        if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
+        const initType = audioGenerationMode === "narration" && audioData.narrationAudioUrl ? "narration" : audioData.lyriaAudioUrl ? "lyria" : "narration";
+        setActiveTrackType(initType);
+        setAudioSource(audioData.audioUrl);
+      }
 
       // Play vocal speech introductory elements if active
       try {
@@ -625,6 +821,8 @@ export default function App() {
       } catch (speechErr) {
         console.warn("Minstrel avatar speech intro skipped:", speechErr);
       }
+
+      recordFreeSongUsage(returnedSong.title, returnedSong.target);
 
     } catch (err: any) {
       console.error(err);
@@ -712,41 +910,142 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- HEADER --- */}
-      <header className="border-b border-[#C5A880]/20 bg-[#0c0b0a]/90 backdrop-blur-lg sticky top-0 z-40 px-6 py-5">
-        <div className="max-w-6xl mx-auto flex justify-between items-center">
-          <div className="flex items-center gap-3 cursor-pointer" onClick={handleReset}>
-            <div className="relative flex items-center justify-center w-11 h-11 rounded-full border-2 border-[#FFD700] bg-gradient-to-br from-[#251e19] to-[#120e0a] text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.25)]">
-              <span className="font-display font-bold text-base tracking-tighter">5+3</span>
-            </div>
-            <div>
-              <h1 className="text-lg md:text-xl font-display font-bold tracking-wide text-white flex items-center gap-1.5">
-                mygiftsong.aiapps.com <span className="text-[#FFD700] text-xs font-mono font-semibold">STUDIO</span>
-              </h1>
-              <p className="text-[11px] text-[#FFD700]/80 tracking-widest uppercase font-mono font-medium">Haddi the Street Minstrel</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            {/* Kept completely clean in accordance with branding blueprint */}
-          </div>
-        </div>
-      </header>
+      {/* --- CLEAN CLUTTER-FREE LANDING PAGE (BEFORE SYSTEM INITIATION) --- */}
+      {!isSystemInitiated ? (
+        <LandingExperience
+          freeSongsRemaining={freeSongsRemaining}
+          referralCount={referrals.length}
+          audioSource={audioSource}
+          lyriaAudioUrl={lyriaAudioUrl}
+          narrationAudioUrl={narrationAudioUrl}
+          activeTrackType={activeTrackType}
+          onSelectTrackType={handleSelectTrackType}
+          isPlayingDemo={isPlaying}
+          onToggleDemoPlayback={togglePlayback}
+          onInitiateSystem={handleInitiateSystem}
+        />
+      ) : (
+        <>
+          {/* --- FULL SYSTEM HEADER (SHOWN AFTER USER INITIATES SYSTEM) --- */}
+          <header className="border-b border-[#C5A880]/20 bg-[#0c0b0a]/95 backdrop-blur-lg sticky top-0 z-40 px-4 sm:px-6 py-4">
+            <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4">
+              <div
+                className="flex items-center gap-3 cursor-pointer"
+                onClick={() => {
+                  setActiveSystemTab("studio");
+                  handleReset();
+                }}
+              >
+                <div className="relative flex items-center justify-center w-11 h-11 rounded-full border-2 border-[#FFD700] bg-gradient-to-br from-[#251e19] to-[#120e0a] text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.25)]">
+                  <span className="font-display font-bold text-base tracking-tighter">5+3</span>
+                </div>
+                <div>
+                  <h1 className="text-lg md:text-xl font-display font-bold tracking-wide text-white flex items-center gap-1.5">
+                    mygiftsong.aiapps.com <span className="text-[#FFD700] text-xs font-mono font-semibold">STUDIO</span>
+                  </h1>
+                  <p className="text-[11px] text-[#FFD700]/80 tracking-widest uppercase font-mono font-medium">
+                    Haddi the Street Minstrel
+                  </p>
+                </div>
+              </div>
 
-      {/* --- MAIN STAGES MATRIX --- */}
-      <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-12 flex flex-col justify-center">
-        
-        <AnimatePresence mode="wait">
+              {/* Navigation Tabs for All Full System Features */}
+              <nav className="flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => setActiveSystemTab("studio")}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeSystemTab === "studio"
+                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                  }`}
+                >
+                  <Music size={13} />
+                  <span>Song Studio</span>
+                </button>
 
-          {/* STAGE 1: THE STUDIO INPUT FORM */}
-          {stage === 1 && (
-            <motion.div
-              key="stage1"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              transition={{ duration: 0.4 }}
-              className="flex flex-col gap-6 w-full max-w-[1100px] mx-auto py-2 animate-fade-in"
-            >
+                <button
+                  type="button"
+                  onClick={() => setActiveSystemTab("free-songs")}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeSystemTab === "free-songs"
+                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                  }`}
+                >
+                  <Gift size={13} />
+                  <span>First 5 Free ({isLifetimeUnlocked ? "∞" : `${freeSongsRemaining}/5`})</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSystemTab("lifetime")}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeSystemTab === "lifetime"
+                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                  }`}
+                >
+                  <Crown size={13} />
+                  <span>10 Signups = Lifetime ({Math.min(10, basic099ReferralCount)}/10 • {Math.min(10, premiumReferralCount)}/10)</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setActiveSystemTab("affiliate")}
+                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    activeSystemTab === "affiliate"
+                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                  }`}
+                >
+                  <TrendingUp size={13} />
+                  <span>Affiliate Hub</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsSystemInitiated(false)}
+                  className="px-3 py-2 rounded-xl text-xs font-mono text-[#C5A880] hover:text-white bg-black/50 border border-[#C5A880]/20 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Return to Clean Welcome Landing Page"
+                >
+                  <ArrowLeft size={13} />
+                  <span className="hidden sm:inline">Welcome Page</span>
+                </button>
+              </nav>
+            </div>
+          </header>
+
+          {/* --- MAIN STAGES MATRIX & SEPARATE SYSTEM SECTIONS --- */}
+          <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-8 flex flex-col justify-center">
+            {activeSystemTab !== "studio" ? (
+              <RewardsAndAffiliateSections
+                activeSubPage={activeSystemTab}
+                freeSongsRemaining={freeSongsRemaining}
+                freeSongsUsedHistory={freeSongsUsedHistory}
+                referrals={referrals}
+                onAddReferral={handleAddReferral}
+                onStartSongInStudio={(preset) => {
+                  if (preset?.target) setTarget(preset.target);
+                  if (preset?.context) setContext(preset.context);
+                  if (preset?.genre) setCustomGenre(preset.genre);
+                  setActiveSystemTab("studio");
+                  setStage(1);
+                }}
+              />
+            ) : (
+              <AnimatePresence mode="wait">
+
+                {/* STAGE 1: THE STUDIO INPUT FORM */}
+                {stage === 1 && (
+                  <motion.div
+                    key="stage1"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    transition={{ duration: 0.4 }}
+                    className="flex flex-col gap-6 w-full max-w-[1100px] mx-auto py-2 animate-fade-in"
+                  >
               {paymentNotice && (
                 <div id="stripe-checkout-notice" className="bg-[#1c1815]/95 border-2 border-[#FFD700] rounded-2xl p-4 md:p-5 w-full flex items-center justify-between text-xs md:text-sm text-amber-200 font-medium tracking-wide shadow-[0_0_20px_rgba(255,215,0,0.25)] animate-pulse mb-2">
                   <div className="flex items-center gap-3">
@@ -915,7 +1214,9 @@ export default function App() {
                           <div className="absolute -inset-1 bg-[#FFD700]/10 blur-md rounded-full -z-10" />
                         </div>
                         <div className="text-left flex-1 min-w-0">
-                          <span className="text-[9px] font-mono text-[#FFD700] uppercase tracking-widest block font-bold">Suno AI Master Stream</span>
+                          <span className="text-[9px] font-mono text-[#FFD700] uppercase tracking-widest block font-bold">
+                            {activeTrackType === "narration" ? "Haddi Minstrel Spoken Blessing" : "Lyria 3 Sung Studio Master"}
+                          </span>
                           <h4 className="text-xs md:text-sm font-bold text-white truncate font-sans uppercase">
                             {currentSong?.title || "Bespoke Acoustic Masterpiece"}
                           </h4>
@@ -924,6 +1225,36 @@ export default function App() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Dual Option Track Switcher inside Main Studio Player */}
+                      {(lyriaAudioUrl || narrationAudioUrl) && (
+                        <div className="grid grid-cols-2 gap-2 w-full bg-black/60 p-1 rounded-lg border border-[#FFD700]/20">
+                          <button
+                            type="button"
+                            onClick={() => handleSelectTrackType("lyria")}
+                            disabled={!lyriaAudioUrl}
+                            className={`py-1 px-2 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
+                              activeTrackType === "lyria" && lyriaAudioUrl
+                                ? "bg-[#FFD700] text-black"
+                                : "text-white/70 hover:text-white"
+                            }`}
+                          >
+                            🎸 Sung Song (Lyria 3)
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleSelectTrackType("narration")}
+                            disabled={!narrationAudioUrl}
+                            className={`py-1 px-2 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
+                              activeTrackType === "narration" && narrationAudioUrl
+                                ? "bg-[#FFD700] text-black"
+                                : "text-white/70 hover:text-white"
+                            }`}
+                          >
+                            🎙️ Haddi Narration
+                          </button>
+                        </div>
+                      )}
 
                       {/* Active HTML5 Audio Player */}
                       <audio
@@ -1043,6 +1374,10 @@ export default function App() {
                     <div className="w-full mt-2">
                       <GiftSongCard
                         audioUrl={audioSource || audioUrl}
+                        lyriaAudioUrl={lyriaAudioUrl}
+                        narrationAudioUrl={narrationAudioUrl}
+                        activeTrackType={activeTrackType}
+                        onSelectTrackType={handleSelectTrackType}
                         songTitle={currentSong?.title || "The Sound of Honor & Covenant"}
                         lyrics={
                           currentSong?.lyricSections?.filter(s => s.sectionName !== "Intro").flatMap(s => s.lines).join("\n") ||
@@ -1279,6 +1614,54 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* [AI AUDIO GENERATION ENGINE SELECTOR: BOTH OPTIONS] */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-bold">
+                        <Music size={15} /> Select Song Generation Engine:
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setAudioGenerationMode("lyria")}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                            audioGenerationMode === "lyria"
+                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
+                          }`}
+                        >
+                          <span className="text-[10px] font-bold uppercase">🎸 Lyria 3 Song</span>
+                          <span className="text-[8px] text-white/50 font-mono">Full Sung Vocals</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setAudioGenerationMode("narration")}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
+                            audioGenerationMode === "narration"
+                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
+                          }`}
+                        >
+                          <span className="text-[10px] font-bold uppercase">🎙️ Haddi Voice</span>
+                          <span className="text-[8px] text-white/50 font-mono">Spoken + Chords</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => setAudioGenerationMode("both")}
+                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 relative ${
+                            audioGenerationMode === "both"
+                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
+                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
+                          }`}
+                        >
+                          <span className="absolute -top-1.5 -right-1 bg-[#FFD700] text-black text-[6px] font-mono font-bold px-1 rounded uppercase tracking-wider">DUAL</span>
+                          <span className="text-[10px] font-bold uppercase">✨ Both Options</span>
+                          <span className="text-[8px] text-white/50 font-mono">Sung + Narration</span>
+                        </button>
+                      </div>
+                    </div>
+
                     {/* [3. THE RUNTIME FREQUENCY SET] */}
                     <div className="space-y-2">
                       <label className="text-xs md:text-sm font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-semibold">
@@ -1328,6 +1711,23 @@ export default function App() {
                       </div>
                     </div>
 
+                    {/* FREE PASS STATUS BANNER ABOVE SUBMIT */}
+                    {(freeSongsRemaining > 0 || isLifetimeUnlocked) && (
+                      <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 flex items-center justify-between text-xs font-mono text-emerald-300">
+                        <span className="flex items-center gap-1.5 font-bold">
+                          <Gift size={14} className="text-[#FFD700]" />
+                          {premiumReferralCount >= 10
+                            ? "👑 Lifetime Premium Account Active — Unlimited Free Songs"
+                            : basic099ReferralCount >= 10
+                            ? "👑 Lifetime $0.99 Account Active — Unlimited Free Songs"
+                            : `🎁 First 5 Songs Free Pass: ${freeSongsRemaining} of 5 Remaining`}
+                        </span>
+                        <span className="bg-[#FFD700] text-black px-2 py-0.5 rounded font-extrabold text-[10px]">
+                          $0.00 FREE
+                        </span>
+                      </div>
+                    )}
+
                     {/* STRUM THE STRINGS / SUBMIT */}
                     <div className="pt-2">
                       <button
@@ -1336,13 +1736,78 @@ export default function App() {
                         onClick={handleStrumSong}
                         className="w-full text-black font-display font-extrabold rounded-xl text-center py-4 text-xs md:text-sm tracking-widest uppercase cursor-pointer bg-gradient-to-r from-[#FFD700] via-[#FCE068] to-[#FFD700] hover:brightness-110 active:scale-[0.99] transition-all duration-300 shadow-[0_0_20px_rgba(255,215,0,0.25)] flex items-center justify-center gap-2 border border-white/10"
                       >
-                        🎵 STRUM THE STRINGS & RENDER
+                        {freeSongsRemaining > 0 || isLifetimeUnlocked
+                          ? `🎵 STRUM & RENDER FREE SONG (${isLifetimeUnlocked ? "LIFETIME" : `${freeSongsRemaining}/5 FREE`})`
+                          : "🎵 STRUM THE STRINGS & RENDER"}
                       </button>
                     </div>
 
                   </div>
                 </div>
 
+              </div>
+
+              {/* Quick Access Feature Cards on the Full System Page */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                <div
+                  onClick={() => setActiveSystemTab("free-songs")}
+                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
+                      <Gift size={15} /> First 5 Songs Free
+                    </span>
+                    <span className="text-[11px] font-mono bg-[#FFD700]/15 text-[#FFD700] px-2.5 py-0.5 rounded-md font-bold">
+                      {freeSongsRemaining}/5 Left
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/75 leading-relaxed">
+                    View your 5 complimentary custom gift song slots. Includes Lyria 3 Sung Vocals & Haddi Narration.
+                  </p>
+                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
+                    Open Free Song Pass <ChevronRight size={13} />
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setActiveSystemTab("lifetime")}
+                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
+                      <Crown size={15} /> Lifetime License
+                    </span>
+                    <span className="text-[11px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-md font-bold">
+                      $0.99: {Math.min(10, basic099ReferralCount)}/10 • Prem: {Math.min(10, premiumReferralCount)}/10
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/75 leading-relaxed">
+                    Sign up 10 $0.99 cent users to get a Lifetime $0.99 Account, or sign up 10 Premium accounts to get a Lifetime Premium Account for free.
+                  </p>
+                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
+                    Invite Friends & Track Progress <ChevronRight size={13} />
+                  </span>
+                </div>
+
+                <div
+                  onClick={() => setActiveSystemTab("affiliate")}
+                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
+                      <TrendingUp size={15} /> Affiliate Partner Hub
+                    </span>
+                    <span className="text-[11px] font-mono bg-[#FFD700] text-black px-2.5 py-0.5 rounded-md font-extrabold">
+                      One-Time License
+                    </span>
+                  </div>
+                  <p className="text-xs text-white/75 leading-relaxed">
+                    One-time commission on Premium sign-ups and one-time Lifetime License rewards (10 $0.99 users or 10 Premium accounts).
+                  </p>
+                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
+                    Open Affiliate Dashboard <ChevronRight size={13} />
+                  </span>
+                </div>
               </div>
 
             </motion.div>
@@ -1603,6 +2068,23 @@ export default function App() {
                     </div>
                   )}
 
+                  {/* Gift Song Card with Dual Audio Player (Lyria 3 Sung Song & Haddi Narration) */}
+                  <GiftSongCard
+                    audioUrl={audioSource || audioUrl}
+                    lyriaAudioUrl={lyriaAudioUrl}
+                    narrationAudioUrl={narrationAudioUrl}
+                    activeTrackType={activeTrackType}
+                    onSelectTrackType={handleSelectTrackType}
+                    songTitle={currentSong.title}
+                    lyrics={
+                      currentSong.lyricSections
+                        .filter(s => s.sectionName !== "Intro")
+                        .flatMap(s => s.lines)
+                        .join("\n")
+                    }
+                    recipientName={currentSong.target}
+                  />
+
                   {/* Back button */}
                   <div className="text-center pt-2">
                     <button
@@ -1630,9 +2112,12 @@ export default function App() {
             </motion.div>
           )}
 
-        </AnimatePresence>
+                </AnimatePresence>
+            )}
 
-      </main>
+          </main>
+        </>
+      )}
 
       {/* --- KEEPSAKE MODAL --- */}
       {showKeepsake && currentSong && (
@@ -1872,6 +2357,48 @@ export default function App() {
                 </div>
             </div>
 
+            {/* Dual Option Selector inside Sandbox */}
+            <div style={{ marginBottom: "20px" }}>
+              <label style={{ color: "#FFD700", fontSize: "0.85rem", fontWeight: "bold", textTransform: "uppercase", letterSpacing: "1px", display: "block", marginBottom: "10px" }}>
+                Select Audio Generation Option:
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setAudioGenerationMode("lyria")}
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                    audioGenerationMode === "lyria"
+                      ? "bg-[#FFD700] text-black border-[#FFD700]"
+                      : "bg-[#14120f] text-white/80 border-white/20 hover:border-[#FFD700]/50"
+                  }`}
+                >
+                  🎸 Lyria 3 Sung Song
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudioGenerationMode("narration")}
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                    audioGenerationMode === "narration"
+                      ? "bg-[#FFD700] text-black border-[#FFD700]"
+                      : "bg-[#14120f] text-white/80 border-white/20 hover:border-[#FFD700]/50"
+                  }`}
+                >
+                  🎙️ Haddi Narration
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAudioGenerationMode("both")}
+                  className={`p-2.5 rounded-lg border text-xs font-bold transition-all cursor-pointer ${
+                    audioGenerationMode === "both"
+                      ? "bg-[#FFD700] text-black border-[#FFD700]"
+                      : "bg-[#14120f] text-white/80 border-white/20 hover:border-[#FFD700]/50"
+                  }`}
+                >
+                  ✨ Both Options
+                </button>
+              </div>
+            </div>
+
             <button 
               onClick={() => {
                 const story = (document.getElementById('test-story-context') as HTMLTextAreaElement | null)?.value.trim() || context || "";
@@ -1879,7 +2406,7 @@ export default function App() {
                   alert("Please enter a custom blessing note or story details.");
                   return;
                 }
-                handleGenerateLiveSong(story);
+                handleGenerateLiveSong(story, audioGenerationMode);
               }} 
               id="test-submit-btn" 
               disabled={isLoading}
@@ -1896,6 +2423,10 @@ export default function App() {
 
             <GiftSongCard
               audioUrl={audioSource || audioUrl}
+              lyriaAudioUrl={lyriaAudioUrl}
+              narrationAudioUrl={narrationAudioUrl}
+              activeTrackType={activeTrackType}
+              onSelectTrackType={handleSelectTrackType}
               songTitle={currentSong?.title || "The Sound of Honor & Covenant"}
               lyrics={
                 currentSong?.lyricSections?.filter(s => s.sectionName !== "Intro").flatMap(s => s.lines).join("\n") ||
@@ -1916,15 +2447,42 @@ export default function App() {
         </div>
       </div>
 
-      {/* --- FOOTER --- */}
-      <footer className="studio-footer">
-        <div className="footer-container">
-          <p className="footer-text">© 2026 mygiftsong.org | All Rights Reserved.</p>
-          <a href="https://inflow.com/your-partner-id" target="_blank" rel="noopener noreferrer" className="affiliate-link">
-            Powered by <span className="gold-text">Inflow</span> Network Architecture
-          </a>
-        </div>
-      </footer>
+      {/* --- FOOTER (SHOWN IN FULL SYSTEM VIEW) --- */}
+      {isSystemInitiated && (
+        <footer className="studio-footer">
+          <div className="footer-container">
+            <p className="footer-text">© 2026 mygiftsong.org | All Rights Reserved.</p>
+            <div className="flex flex-wrap items-center justify-center gap-4 my-2 text-xs font-mono text-[#C5A880]">
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("free-songs")}
+                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+              >
+                🎁 First 5 Songs Free
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("lifetime")}
+                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+              >
+                👑 Invite 10 = Lifetime License
+              </button>
+              <span>•</span>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("affiliate")}
+                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+              >
+                🤝 Affiliate Partner Hub
+              </button>
+            </div>
+            <a href="https://inflow.com/your-partner-id" target="_blank" rel="noopener noreferrer" className="affiliate-link">
+              Powered by <span className="gold-text">Inflow</span> Network Architecture
+            </a>
+          </div>
+        </footer>
+      )}
 
     </div>
   );
