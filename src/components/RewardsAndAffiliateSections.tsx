@@ -74,8 +74,8 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
 
   const usedCount = 5 - freeSongsRemaining;
 
-  const referralUrl = `${window.location.origin}/?invite=${encodeURIComponent(referralCode)}`;
-  const affiliateUrl = `${window.location.origin}/?partner=${encodeURIComponent(affiliateHandle)}`;
+  const referralUrl = `https://mygiftsong.org/?invite=${encodeURIComponent(referralCode)}`;
+  const affiliateUrl = `https://mygiftsong.org/?partner=${encodeURIComponent(affiliateHandle)}`;
 
   const handleCopyText = (text: string, setter: (val: boolean) => void) => {
     navigator.clipboard.writeText(text);
@@ -98,9 +98,9 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   };
 
   const handleEmailInvite = () => {
-    const subject = encodeURIComponent("Get Your First 5 Custom AI Gift Songs Free from Haddi!");
+    const subject = encodeURIComponent("Get Your First 5 Custom Gift Songs Free on mygiftsong.org!");
     const body = encodeURIComponent(
-      `Hey friend!\n\nI've been creating custom sung gift songs and acoustic blessings with Haddi the Street Minstrel on mygiftsong.ai.\n\nUse my invite link to get your first 5 custom gift songs completely FREE:\n${referralUrl}\n\nEnjoy making music!`
+      `Hey friend!\n\nI've been creating custom sung gift songs and acoustic blessings with Haddi the Street Minstrel on mygiftsong.org — the AI assisted song generator.\n\nUse my invite link to get your first 5 custom gift songs completely FREE:\n${referralUrl}\n\nEnjoy making music!`
     );
     window.location.href = `mailto:${friendEmail}?subject=${subject}&body=${body}`;
   };

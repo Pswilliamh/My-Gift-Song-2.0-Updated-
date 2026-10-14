@@ -23,10 +23,10 @@ export default defineConfig(({ mode }) => {
         ],
         manifest: {
           id: '/',
-          name: 'mygiftsong.ai — Haddi the Street Minstrel',
-          short_name: 'MyGiftSong',
+          name: 'mygiftsong.org — AI Assisted Song Generator',
+          short_name: 'mygiftsong.org',
           description:
-            'An interactive gold-themed boutique song-generation studio. Transform personalized names, stories, and dedication contexts into custom gift songs.',
+            'mygiftsong.org is an AI assisted song generator with Haddi the Street Minstrel. Create custom sung gift songs in 3 easy steps.',
           theme_color: '#d97706',
           background_color: '#ffffff',
           display: 'standalone',

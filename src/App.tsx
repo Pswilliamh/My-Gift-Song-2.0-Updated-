@@ -966,7 +966,7 @@ export default function App() {
   const handleShareWhatsApp = () => {
     if (!currentSong) return;
     const text = encodeURIComponent(
-      `🎵 I created a personalized song titled "${currentSong.title}" for ${currentSong.target} on mysong.ai!\n` +
+      `🎵 I created a personalized song titled "${currentSong.title}" for ${currentSong.target} on mygiftsong.org (AI Assisted Song Generator)!\n` +
       `Occasion: ${currentSong.context}\n` +
       `Check out this custom acoustic masterpiece! 🌟`
     );
@@ -1053,15 +1053,15 @@ export default function App() {
               >
                 <img
                   src="/pwa-192x192.png"
-                  alt="mygiftsong.ai App Icon"
+                  alt="mygiftsong.org App Icon"
                   className="w-11 h-11 rounded-2xl border-2 border-[#FFD700] object-cover shadow-[0_0_15px_rgba(255,215,0,0.25)]"
                 />
                 <div>
                   <h1 className="text-lg md:text-xl font-display font-bold tracking-wide text-white flex items-center gap-1.5">
-                    mygiftsong.aiapps.com <span className="text-[#FFD700] text-xs font-mono font-semibold">STUDIO</span>
+                    mygiftsong.org <span className="text-[#FFD700] text-xs font-mono font-semibold">STUDIO</span>
                   </h1>
                   <p className="text-[11px] text-[#FFD700]/80 tracking-widest uppercase font-mono font-medium">
-                    Haddi the Street Minstrel
+                    AI Assisted Song Generator • Haddi the Street Minstrel
                   </p>
                 </div>
               </div>
@@ -2428,8 +2428,8 @@ export default function App() {
 
               {/* Keepsake Footer signature info */}
               <div className="flex justify-between items-center pt-4 border-t border-[#C5A880]/30 text-[9px] font-mono text-[#C5A880]">
-                <span>MEMBER CERTIFICATION</span>
-                <span className="uppercase">mygiftsong.aiapps.com - {currentSong.genre}</span>
+                <span>AI ASSISTED SONG GENERATOR</span>
+                <span className="uppercase">mygiftsong.org - {currentSong.genre}</span>
               </div>
 
               {/* Action row at bottom */}
@@ -2721,7 +2721,7 @@ export default function App() {
                 }
               }}
             >
-              © 2026 mygiftsong.org | All Rights Reserved.
+              © 2026 mygiftsong.org • AI Assisted Song Generator | All Rights Reserved.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-4 my-2 text-xs font-mono text-[#C5A880]">
               <button

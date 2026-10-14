@@ -48,17 +48,21 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   const handleEmailShare = () => {
     const shareableLink =
       resolvedAudioSource.startsWith("data:")
-        ? window.location.origin
-        : resolvedAudioSource;
-    const subject = encodeURIComponent(`A Special Custom Song for You: ${songTitle}`);
+        ? "https://mygiftsong.org"
+        : resolvedAudioSource || "https://mygiftsong.org";
+    const subject = encodeURIComponent(`A Special Custom Song for You: ${songTitle} (mygiftsong.org)`);
     const body = encodeURIComponent(
-      `Hello ${recipientName},\n\nHaddi the Street Minstrel created a custom gift song just for you!\n\nListen to your song here: ${shareableLink}\n\nLyrics:\n${lyrics}\n\nSent with love!`
+      `Hello ${recipientName},\n\nHaddi the Street Minstrel created a custom gift song just for you on mygiftsong.org (AI Assisted Song Generator)!\n\nListen to your song here: ${shareableLink}\n\nLyrics:\n${lyrics}\n\nSent with love from mygiftsong.org!`
     );
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
   const handleCopyLink = () => {
-    navigator.clipboard.writeText(resolvedAudioSource || window.location.href);
+    const linkToCopy =
+      resolvedAudioSource && !resolvedAudioSource.startsWith("data:")
+        ? resolvedAudioSource
+        : "https://mygiftsong.org";
+    navigator.clipboard.writeText(linkToCopy);
     setCopiedFeedback(true);
     setTimeout(() => setCopiedFeedback(false), 2500);
   };

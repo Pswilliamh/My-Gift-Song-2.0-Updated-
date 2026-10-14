@@ -55,11 +55,15 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   onSelectTrackType,
   onInitiateSystem,
 }) => {
-  // Chat flow state for "Create Your First Gift Song"
+  // 3-Step Chat & Song Builder state:
+  // Step 1: Who the song is for (recipient)
+  // Step 2: What's the occasion (occasion)
+  // Step 3: What words / lyrics are wanted (lyricsWanted)
   const [recipientInput, setRecipientInput] = useState("");
+  const [occasionInput, setOccasionInput] = useState("");
   const [storyInput, setStoryInput] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("Acoustic Folk");
-  const [chatStep, setChatStep] = useState<"recipient" | "story" | "ready">("recipient");
+  const [chatStep, setChatStep] = useState<"recipient" | "occasion" | "lyrics" | "ready">("recipient");
   const [chatInput, setChatInput] = useState("");
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -73,7 +77,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     flagship: {
       src: "/video/song-gift.mp4",
       title: "Haddi Performing: The Gift of a Song",
-      subtitle: "Live Street Minstrel Performance • Jakarta Acoustic Corner",
+      subtitle: "mygiftsong.org • AI Assisted Song Generator Showcase",
     },
     encore: {
       src: "/video/premium-preview.mp4",
@@ -86,13 +90,13 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     {
       id: "welcome-1",
       sender: "haddi",
-      text: "Selamat datang, my friend! I'm Haddi the Street Minstrel. Welcome to my acoustic sanctuary.",
+      text: "Selamat datang, my friend! Welcome to mygiftsong.org — your AI assisted song generator with Haddi the Street Minstrel.",
       timestamp: "Just now",
     },
     {
       id: "welcome-2",
       sender: "haddi",
-      text: `Your first ${freeSongsRemaining} custom gift songs are 100% FREE. Who are we blessing with your first gift song today? (e.g., "My daughter Maya", "Mom & Dad", "Best friend David")`,
+      text: `Your first ${freeSongsRemaining} custom gift songs are 100% FREE! Follow the 3 easy steps below:\n• Step 1: Who is the song for?\n• Step 2: What is the occasion?\n• Step 3: What words or lyrics do you want in the song?\n\nLet's start with Step 1 — Who is this song for?`,
       timestamp: "Just now",
     },
   ]);
@@ -103,7 +107,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
         m.id === "welcome-2"
           ? {
               ...m,
-              text: `Your first ${freeSongsRemaining} custom gift songs are 100% FREE. Who are we blessing with your first gift song today? (e.g., "My daughter Maya", "Mom & Dad", "Best friend David")`,
+              text: `Your first ${freeSongsRemaining} custom gift songs are 100% FREE! Follow the 3 easy steps below:\n• Step 1: Who is the song for?\n• Step 2: What is the occasion?\n• Step 3: What words or lyrics do you want in the song?\n\nLet's start with Step 1 — Who is this song for?`,
             }
           : m
       )
@@ -170,6 +174,17 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     }
   };
 
+  const handleSelectStepManual = (step: "recipient" | "occasion" | "lyrics") => {
+    setChatStep(step);
+    if (step === "recipient") {
+      setChatInput(recipientInput);
+    } else if (step === "occasion") {
+      setChatInput(occasionInput);
+    } else if (step === "lyrics") {
+      setChatInput(storyInput);
+    }
+  };
+
   const handleSendChat = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     const trimmed = chatInput.trim();
@@ -195,19 +210,33 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
 
     if (chatStep === "recipient") {
       setRecipientInput(trimmed);
-      setChatStep("story");
+      setChatStep("occasion");
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             id: `haddi-${Date.now()}`,
             sender: "haddi",
-            text: `A song for ${trimmed}—what an honor! Tell me the occasion, a favorite memory, or the blessing you want me to sing for ${trimmed}.`,
+            text: `Step 1 complete! We are creating this song for ${trimmed}. Now for Step 2 of 3: What is the occasion? (e.g., "Birthday", "Anniversary", "Mother's Day", "Graduation", "Just Because")`,
             timestamp: "Just now",
           },
         ]);
-      }, 350);
-    } else if (chatStep === "story") {
+      }, 300);
+    } else if (chatStep === "occasion") {
+      setOccasionInput(trimmed);
+      setChatStep("lyrics");
+      setTimeout(() => {
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: `haddi-${Date.now()}`,
+            sender: "haddi",
+            text: `Step 2 complete! Occasion: "${trimmed}". Now for Step 3 of 3: What words, memories, or lyrics do you want in ${recipientInput || "their"}'s song?`,
+            timestamp: "Just now",
+          },
+        ]);
+      }, 300);
+    } else if (chatStep === "lyrics") {
       setStoryInput(trimmed);
       setChatStep("ready");
       setTimeout(() => {
@@ -216,53 +245,84 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
           {
             id: `haddi-${Date.now()}`,
             sender: "haddi",
-            text: `Beautiful! I have the silver strings tuned for ${recipientInput}. Click "Create My First Gift Song" below to initiate the full studio and render your track!`,
+            text: `All 3 steps complete! I have everything ready for ${recipientInput || "your loved one"} (${occasionInput || "Special Occasion"}). Click "Create the Song Now" below to produce your song immediately, or click "Go Into Full Studio for More Options"!`,
             timestamp: "Just now",
           },
         ]);
-      }, 350);
+      }, 300);
     } else {
-      setStoryInput((prev) => `${prev}. ${trimmed}`);
+      setStoryInput((prev) => (prev ? `${prev}. ${trimmed}` : trimmed));
       setTimeout(() => {
         setMessages((prev) => [
           ...prev,
           {
             id: `haddi-${Date.now()}`,
             sender: "haddi",
-            text: `I've woven that detail into the lyrics for ${recipientInput || "your loved one"}. Ready whenever you are!`,
+            text: `I've added those extra words into the lyrics for ${recipientInput || "your loved one"}. Click "Create the Song Now" or "Go Into Full Studio for More Options" below!`,
             timestamp: "Just now",
           },
         ]);
-      }, 350);
+      }, 300);
     }
   };
 
-  const handleQuickPrompt = (recipient: string, story: string, genre: string) => {
+  const handleQuickPrompt = (recipient: string, occasion: string, lyricsWords: string, genre: string) => {
     setRecipientInput(recipient);
-    setStoryInput(story);
+    setOccasionInput(occasion);
+    setStoryInput(lyricsWords);
     setSelectedGenre(genre);
     setChatStep("ready");
+    setChatInput("");
     setMessages([
       {
         id: "welcome-1",
         sender: "haddi",
-        text: "Selamat datang, my friend! I'm Haddi the Street Minstrel. Welcome to my acoustic sanctuary.",
+        text: "Selamat datang, my friend! Welcome to mygiftsong.org — your AI assisted song generator.",
         timestamp: "Just now",
       },
       {
         id: `user-quick-${Date.now()}`,
         sender: "user",
-        text: `I'd love a ${genre} song for ${recipient}: "${story}"`,
+        text: `Step 1 (Who): ${recipient} • Step 2 (Occasion): ${occasion} • Step 3 (Lyrics/Words): "${lyricsWords}"`,
         timestamp: "Just now",
       },
       {
         id: `haddi-quick-${Date.now() + 1}`,
         sender: "haddi",
-        text: `Wonderful choice! My guitar is tuned for ${recipient}. Click the golden button below to initiate the studio and create your free gift song!`,
+        text: `All 3 steps are filled in for ${recipient}! Click "Create the Song Now" below to generate your song right away, or "Go Into Full Studio for More Options" to customize genres and settings.`,
         timestamp: "Just now",
       },
     ]);
   };
+
+  const buildCombinedContext = () => {
+    const pendingTrimmed = chatInput.trim();
+    const finalRecipient =
+      recipientInput || (chatStep === "recipient" && pendingTrimmed ? pendingTrimmed : "") || "Someone Special";
+    const finalOccasion =
+      occasionInput || (chatStep === "occasion" && pendingTrimmed ? pendingTrimmed : "");
+    const finalLyrics =
+      storyInput || (chatStep === "lyrics" && pendingTrimmed ? pendingTrimmed : "");
+
+    const parts: string[] = [];
+    if (finalOccasion) {
+      parts.push(`Occasion: ${finalOccasion}.`);
+    }
+    if (finalLyrics) {
+      parts.push(`Desired Words & Lyrics: ${finalLyrics}`);
+    }
+    if (parts.length === 0) {
+      parts.push(`A heartfelt custom blessing song dedicated to ${finalRecipient}.`);
+    }
+    return {
+      finalRecipient,
+      finalContext: parts.join(" "),
+      hasUserContent: Boolean(recipientInput || occasionInput || storyInput || pendingTrimmed),
+    };
+  };
+
+  const currentStepNumber =
+    chatStep === "recipient" ? 1 : chatStep === "occasion" ? 2 : chatStep === "lyrics" ? 3 : 3;
 
   return (
     <div className="min-h-screen w-full bg-white text-slate-900 flex flex-col justify-between relative z-10 px-4 sm:px-8 py-6 max-w-6xl mx-auto">
@@ -271,15 +331,15 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
         <div className="flex items-center gap-3">
           <img
             src="/pwa-192x192.png"
-            alt="mygiftsong.ai App Icon"
+            alt="mygiftsong.org App Icon"
             className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
           />
           <div>
             <span className="font-display text-lg font-bold tracking-wide text-slate-900 block leading-none">
-              mygiftsong.ai
+              mygiftsong.org
             </span>
             <span className="font-mono text-[10px] uppercase tracking-widest text-amber-700 font-semibold">
-              Haddi the Street Minstrel
+              AI Assisted Song Generator • Haddi the Street Minstrel
             </span>
           </div>
         </div>
@@ -324,8 +384,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
       {/* Main Clutter-Free Center Stage: Haddi Video Player + Welcome Chat Window */}
       <main className="my-auto py-8 md:py-10">
         <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <p className="text-xs font-mono uppercase tracking-[0.25em] text-amber-700 font-bold">
-            Custom Acoustic & Studio Gift Songs
+          <p className="text-xs font-mono uppercase tracking-[0.22em] text-amber-700 font-bold">
+            mygiftsong.org • AI Assisted Song Generator
           </p>
           <h1 className="text-3xl sm:text-5xl font-display font-bold text-slate-900 tracking-tight leading-tight">
             Turn Your Heartfelt Story Into a{" "}
@@ -550,7 +610,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
             className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-slate-200/70"
           >
             {/* Chat Window Header */}
-            <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
               <div className="flex items-center gap-3">
                 <div className="relative">
                   <div className="w-10 h-10 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center text-amber-800 font-serif font-bold">
@@ -560,23 +620,159 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                 </div>
                 <div>
                   <h2 className="text-base font-display font-bold text-slate-900">
-                    Welcome Chat • Create Your First Gift Song
+                    Create Your First Gift Song in 3 Easy Steps
                   </h2>
                   <p className="text-xs text-slate-500">
-                    Chat with Haddi to start your song — First 5 songs are free
+                    mygiftsong.org • AI Assisted Song Generator — First 5 songs are free
                   </p>
                 </div>
               </div>
 
               <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-                <Sparkles size={12} className="text-emerald-600" /> {freeSongsRemaining}/5 Free Songs Available
+                <Sparkles size={12} className="text-emerald-600" /> {freeSongsRemaining}/5 Free Songs
               </span>
+            </div>
+
+            {/* CLEAR 3-STEP INDICATOR BAR (STEP 1, STEP 2, STEP 3) */}
+            <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
+              <div className="flex items-center justify-between mb-2 px-1">
+                <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-amber-800">
+                  {chatStep === "ready"
+                    ? "✅ All 3 Steps Complete — Ready to Create Song!"
+                    : `👉 Currently on Step ${currentStepNumber} of 3 (Click any step to edit)`}
+                </span>
+                {(recipientInput || occasionInput || storyInput) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setRecipientInput("");
+                      setOccasionInput("");
+                      setStoryInput("");
+                      setChatInput("");
+                      setChatStep("recipient");
+                    }}
+                    className="text-[10px] font-mono text-slate-500 hover:text-amber-700 underline cursor-pointer"
+                  >
+                    Start Over
+                  </button>
+                )}
+              </div>
+
+              <div className="grid grid-cols-3 gap-2">
+                {/* STEP 1 PILL: WHO THE SONG IS FOR */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectStepManual("recipient")}
+                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
+                    chatStep === "recipient"
+                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
+                      : recipientInput
+                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        chatStep === "recipient"
+                          ? "bg-amber-500 text-slate-950"
+                          : recipientInput
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-200 text-slate-700"
+                      }`}
+                    >
+                      Step 1
+                    </span>
+                    {recipientInput && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
+                    1. Who Is It For?
+                  </p>
+                  <p className="text-[11px] text-slate-600 truncate">
+                    {recipientInput ? `For: ${recipientInput}` : "Type recipient's name"}
+                  </p>
+                </button>
+
+                {/* STEP 2 PILL: WHAT'S THE OCCASION */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectStepManual("occasion")}
+                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
+                    chatStep === "occasion"
+                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
+                      : occasionInput
+                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        chatStep === "occasion"
+                          ? "bg-amber-500 text-slate-950"
+                          : occasionInput
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-200 text-slate-700"
+                      }`}
+                    >
+                      Step 2
+                    </span>
+                    {occasionInput && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
+                    2. What's the Occasion?
+                  </p>
+                  <p className="text-[11px] text-slate-600 truncate">
+                    {occasionInput ? occasionInput : "Birthday, Anniversary..."}
+                  </p>
+                </button>
+
+                {/* STEP 3 PILL: WHAT WORDS / LYRICS YOU WANT */}
+                <button
+                  type="button"
+                  onClick={() => handleSelectStepManual("lyrics")}
+                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
+                    chatStep === "lyrics"
+                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
+                      : storyInput
+                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
+                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
+                        chatStep === "lyrics"
+                          ? "bg-amber-500 text-slate-950"
+                          : storyInput
+                          ? "bg-emerald-600 text-white"
+                          : "bg-slate-200 text-slate-700"
+                      }`}
+                    >
+                      Step 3
+                    </span>
+                    {storyInput && (
+                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
+                    )}
+                  </div>
+                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
+                    3. Words &amp; Lyrics
+                  </p>
+                  <p className="text-[11px] text-slate-600 truncate">
+                    {storyInput ? storyInput : "Memories or lyrics"}
+                  </p>
+                </button>
+              </div>
             </div>
 
             {/* Chat Conversation Feed */}
             <div
               ref={chatContainerRef}
-              className="my-4 p-4 rounded-xl bg-slate-50 border border-slate-200/80 space-y-3 max-h-[260px] min-h-[220px] overflow-y-auto"
+              className="my-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 max-h-[210px] min-h-[175px] overflow-y-auto"
             >
               <AnimatePresence initial={false}>
                 {messages.map((msg) => (
@@ -587,7 +783,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                     className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs sm:text-sm leading-relaxed shadow-2xs whitespace-pre-line ${
                         msg.sender === "user"
                           ? "bg-amber-500 text-slate-950 font-medium rounded-br-xs"
                           : "bg-white text-slate-800 border border-slate-200 rounded-bl-xs"
@@ -600,17 +796,18 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
               </AnimatePresence>
             </div>
 
-            {/* Quick Idea Starters */}
-            <div className="space-y-3">
+            {/* Quick Idea Starters + Guided Step Input */}
+            <div className="space-y-2.5">
               <div className="flex flex-wrap items-center gap-1.5">
                 <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold mr-1">
-                  Quick Starters:
+                  1-Click Fill All 3 Steps:
                 </span>
                 <button
                   type="button"
                   onClick={() =>
                     handleQuickPrompt(
                       "Mom",
+                      "Mother's Day & Gratitude Blessing",
                       "Thank you for your endless prayers, warm hugs, and guiding light through every season.",
                       "Acoustic Folk"
                     )
@@ -624,6 +821,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   onClick={() =>
                     handleQuickPrompt(
                       "My Beloved Partner",
+                      "Wedding Anniversary",
                       "Celebrating our anniversary, every laugh we share, and walking hand in hand forever.",
                       "Indie Pop"
                     )
@@ -637,6 +835,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   onClick={() =>
                     handleQuickPrompt(
                       "Baby Grace",
+                      "New Baby Welcome Blessing",
                       "Welcome to the world little miracle, may your life be filled with joy, peace, and wonder.",
                       "Modern Worship"
                     )
@@ -650,6 +849,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   onClick={() =>
                     handleQuickPrompt(
                       "David",
+                      "Best Friend Birthday Celebration",
                       "Happy birthday brother! Grateful for decades of loyalty, courage, and unforgettable memories.",
                       "Bluegrass"
                     )
@@ -660,6 +860,30 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                 </button>
               </div>
 
+              {/* Active Step Prompt Label Above Input */}
+              <div className="flex items-center justify-between px-1">
+                <label className="text-xs font-mono font-bold text-slate-800 flex items-center gap-1.5">
+                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase">
+                    {chatStep === "recipient"
+                      ? "Step 1 of 3"
+                      : chatStep === "occasion"
+                      ? "Step 2 of 3"
+                      : chatStep === "lyrics"
+                      ? "Step 3 of 3"
+                      : "Steps 1–3 Done"}
+                  </span>
+                  <span>
+                    {chatStep === "recipient"
+                      ? "Who is this gift song for?"
+                      : chatStep === "occasion"
+                      ? `What is the occasion for ${recipientInput || "them"}?`
+                      : chatStep === "lyrics"
+                      ? "What words or lyrics do you want in the song?"
+                      : "Add any extra lyrics, or click a button below:"}
+                  </span>
+                </label>
+              </div>
+
               {/* Chat Input Row */}
               <form onSubmit={handleSendChat} className="flex gap-2">
                 <input
@@ -668,46 +892,75 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   onChange={(e) => setChatInput(e.target.value)}
                   placeholder={
                     chatStep === "recipient"
-                      ? "Type who the gift song is for (e.g. Sarah)..."
-                      : "Type a special memory, occasion, or blessing..."
+                      ? "Step 1: Type who the song is for (e.g., Sarah, Mom & Dad)..."
+                      : chatStep === "occasion"
+                      ? "Step 2: Type the occasion (e.g., Birthday, Anniversary, Graduation)..."
+                      : chatStep === "lyrics"
+                      ? "Step 3: Type the words, memories, or lyrics you want in the song..."
+                      : "Optional: Type any extra lyrics or words to include..."
                   }
-                  className="flex-1 bg-white border border-slate-300 focus:border-amber-500 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
+                  className="flex-1 bg-white border-2 border-slate-300 focus:border-amber-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
                 />
                 <button
                   type="submit"
-                  className="px-4 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
                 >
-                  <span>Reply</span>
-                  <Send size={14} />
+                  <span>
+                    {chatStep === "recipient"
+                      ? "Next: Step 2"
+                      : chatStep === "occasion"
+                      ? "Next: Step 3"
+                      : chatStep === "lyrics"
+                      ? "Save Step 3"
+                      : "Add Words"}
+                  </span>
+                  <Send size={13} />
                 </button>
               </form>
 
-              {/* Primary System Initiation CTA Button */}
-              <div className="pt-2 flex flex-col sm:flex-row gap-2.5">
+              {/* TWO SIDE-BY-SIDE FINAL ACTION BUTTONS:
+                  1) CREATE THE SONG NOW
+                  2) GO INTO FULL STUDIO FOR MORE OPTIONS */}
+              <div className="pt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 <button
                   type="button"
                   onClick={() => {
-                    const finalRecipient = recipientInput || chatInput.trim() || "Someone Special";
-                    const finalStory =
-                      storyInput ||
-                      (recipientInput && chatInput.trim() ? chatInput.trim() : "") ||
-                      `A heartfelt acoustic blessing song dedicated to ${finalRecipient}.`;
+                    const { finalRecipient, finalContext } = buildCombinedContext();
                     onInitiateSystem({
                       target: finalRecipient,
-                      context: finalStory,
+                      context: finalContext,
                       genre: selectedGenre,
-                      autoGenerate: Boolean(recipientInput || chatInput.trim()),
+                      autoGenerate: true,
                       initialSection: "studio",
                     });
                   }}
-                  className="flex-1 py-3.5 px-5 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                  className="py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
                 >
                   <Sparkles size={16} />
                   <span>
                     {recipientInput
-                      ? `Create ${recipientInput}'s Gift Song Now (Free)`
-                      : "Create Your First Gift Song & Initiate Studio"}
+                      ? `Create ${recipientInput}'s Song Now (Free)`
+                      : "Create the Song Now (Free)"}
                   </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    const { finalRecipient, finalContext, hasUserContent } = buildCombinedContext();
+                    onInitiateSystem({
+                      target: hasUserContent ? finalRecipient : undefined,
+                      context: hasUserContent ? finalContext : undefined,
+                      genre: selectedGenre,
+                      autoGenerate: false,
+                      initialSection: "studio",
+                    });
+                  }}
+                  className="py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 font-display font-bold text-xs sm:text-sm uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Music size={15} className="text-amber-400" />
+                  <span>Go Into Full Studio for More Options</span>
+                  <ArrowRight size={14} className="text-amber-400" />
                 </button>
               </div>
             </div>
@@ -721,7 +974,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
           onClick={handleCopyrightClick}
           className="select-none cursor-default"
         >
-          © 2026 mygiftsong.ai • Haddi the Street Minstrel
+          © 2026 mygiftsong.org • AI Assisted Song Generator
         </span>
         <div className="flex flex-wrap items-center gap-4">
           <button
@@ -750,3 +1003,4 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     </div>
   );
 };
+
