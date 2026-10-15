@@ -107,44 +107,44 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   };
 
   return (
-    <div className="max-w-5xl mx-auto w-full space-y-8 py-4">
+    <div className="max-w-5xl mx-auto w-full space-y-8 py-4 text-slate-900">
       {/* =====================================================================
           SECTION 1: FIRST 5 SONGS ARE FREE (WITH STRICT 1-TIME REDO POLICY)
       ===================================================================== */}
       {activeSubPage === "free-songs" && (
         <div className="space-y-8">
           {/* Hero Header */}
-          <div className="bg-gradient-to-br from-[#1f1712] via-[#140f0c] to-[#0c0907] border-2 border-[#FFD700]/60 rounded-2xl p-6 sm:p-8 shadow-2xl">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm">
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-              <div className="space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#FFD700] text-black font-mono text-xs font-extrabold uppercase tracking-wider">
-                  <Gift size={14} /> First 5 Songs Are 100% Free
+              <div className="space-y-2.5 max-w-xl">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold uppercase tracking-wider">
+                  <Gift size={14} className="text-teal-600" /> First 5 Songs Are 100% Free
                 </div>
-                <h2 className="text-2xl sm:text-4xl font-display font-bold text-[#FAF9F6]">
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-slate-900">
                   Your Complimentary 5-Song Minstrel Pass
                 </h2>
-                <p className="text-sm text-[#C5A880] leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   Every creator receives their first <strong>5 custom gift songs completely free</strong>.
                   Includes both <strong>Lyria 3 Full Sung Studio Songs</strong> and{" "}
-                  <strong>Haddi's Acoustic Spoken Blessings</strong>, plus downloadable WAV audio and
+                  <strong>Haddi&apos;s Acoustic Spoken Blessings</strong>, plus downloadable WAV audio and
                   shareable digital gift cards.
                 </p>
                 {/* 1-TIME REDO RULE EXPLANATION */}
-                <div className="mt-3 p-3 rounded-xl bg-amber-950/60 border border-[#FFD700]/40 text-xs text-[#FAF9F6]/90 leading-relaxed">
-                  <strong className="text-[#FFD700] font-mono uppercase">1-Time Redo Policy:</strong>{" "}
+                <div className="mt-3 p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 text-xs text-slate-700 leading-relaxed">
+                  <strong className="text-teal-800 font-semibold uppercase">1-Time Redo Policy:</strong>{" "}
                   If a song is not good, you get an option to <strong>redo ONE song</strong>. Once you use that 1 redo option, whatever song is generated is the one you keep for the other 4 songs.
                 </div>
               </div>
 
               {/* Counter Card + 1-Time Redo Status */}
-              <div className="bg-black/80 border border-[#FFD700]/40 rounded-2xl p-6 text-center min-w-[235px] shrink-0 space-y-2">
-                <p className="text-[11px] font-mono uppercase tracking-widest text-[#C5A880]">
+              <div className="bg-[#F8FAF9] border border-stone-200 rounded-2xl p-6 text-center min-w-[235px] shrink-0 space-y-2">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                   Free Songs Remaining
                 </p>
-                <div className="text-5xl font-display font-extrabold text-[#FFD700] my-1">
+                <div className="text-5xl font-display font-extrabold text-teal-700 my-1">
                   {isAnyLifetimeUnlocked ? "∞" : `${freeSongsRemaining} / 5`}
                 </div>
-                <p className="text-xs text-emerald-400 font-mono">
+                <p className="text-xs text-teal-700 font-medium">
                   {isPremiumLifetimeUnlocked
                     ? "👑 Lifetime Premium Account Active"
                     : isBasic099LifetimeUnlocked
@@ -154,10 +154,10 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     : "All 5 Free Songs Used"}
                 </p>
                 <div
-                  className={`mt-2 py-1.5 px-3 rounded-lg font-mono text-[10px] font-bold uppercase border ${
+                  className={`mt-2 py-1.5 px-3 rounded-lg text-[11px] font-semibold border ${
                     oneTimeRedoUsed
-                      ? "bg-white/5 text-white/60 border-white/15"
-                      : "bg-[#251e19] text-[#FFD700] border-[#FFD700]/40"
+                      ? "bg-stone-100 text-slate-500 border-stone-200"
+                      : "bg-teal-50 text-teal-800 border-teal-200"
                   }`}
                 >
                   {oneTimeRedoUsed
@@ -168,8 +168,8 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
             </div>
 
             {resetNotice && (
-              <div className="mt-4 p-3 rounded-xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-200 text-xs font-mono flex items-center gap-2">
-                <Check size={14} className="text-emerald-400 shrink-0" />
+              <div className="mt-4 p-3 rounded-xl bg-teal-50 border border-teal-300 text-teal-900 text-xs font-medium flex items-center gap-2">
+                <Check size={14} className="text-teal-600 shrink-0" />
                 <span>{resetNotice}</span>
               </div>
             )}
@@ -193,33 +193,33 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     key={slotIdx}
                     className={`rounded-xl p-4 border transition-all flex flex-col justify-between ${
                       isUsed
-                        ? "bg-black/40 border-[#C5A880]/20 opacity-85"
-                        : "bg-[#251e19]/70 border-[#FFD700]/50 shadow-[0_0_15px_rgba(255,215,0,0.1)]"
+                        ? "bg-stone-50 border-stone-200"
+                        : "bg-white border-teal-300 shadow-2xs"
                     }`}
                   >
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
-                        <span className="text-[10px] font-mono uppercase tracking-wider text-[#C5A880]">
+                        <span className="text-[11px] font-medium text-slate-500">
                           Gift Pass #{slotIdx + 1}
                         </span>
                         {isUsed ? (
-                          <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-500/30 px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-semibold bg-stone-200 text-slate-700 px-2 py-0.5 rounded">
                             Claimed
                           </span>
                         ) : (
-                          <span className="text-[10px] font-mono bg-[#FFD700] text-black font-bold px-2 py-0.5 rounded">
+                          <span className="text-[10px] font-bold bg-teal-600 text-white px-2 py-0.5 rounded">
                             FREE
                           </span>
                         )}
                       </div>
 
-                      <p className="text-xs font-bold text-white">
+                      <p className="text-xs font-bold text-slate-900">
                         {historyItem ? historyItem.title : idea.label}
                       </p>
-                      <p className="text-[11px] text-[#C5A880]">
+                      <p className="text-[11px] text-slate-500">
                         {historyItem
                           ? `For ${historyItem.recipient}`
-                          : `Includes Lyria 3 + Haddi Voice`}
+                          : `Sung Song + Haddi Voice`}
                       </p>
                     </div>
 
@@ -233,7 +233,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                             genre: idea.genre,
                           })
                         }
-                        className="mt-4 w-full py-2 px-3 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-[11px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                        className="mt-4 w-full py-2 px-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                       >
                         <span>Use Free Slot</span>
                         <ArrowRight size={12} />
@@ -248,7 +248,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                           );
                           setTimeout(() => setResetNotice(null), 5000);
                         }}
-                        className="mt-4 w-full py-2 px-2.5 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 font-mono text-[10px] font-bold uppercase tracking-wider transition-all cursor-pointer flex items-center justify-center gap-1"
+                        className="mt-4 w-full py-2 px-2.5 rounded-lg bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 text-[11px] font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                         title="Use your 1-Time Redo on this song (only 1 redo allowed across all 5 free songs)"
                       >
                         <RotateCcw size={11} />
@@ -256,7 +256,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       </button>
                     ) : (
                       <div
-                        className="mt-4 w-full py-2 px-2 rounded-lg bg-white/5 text-white/50 border border-white/10 font-mono text-[9px] font-semibold uppercase tracking-wider text-center"
+                        className="mt-4 w-full py-2 px-2 rounded-lg bg-stone-100 text-slate-500 border border-stone-200 text-[10px] font-medium text-center"
                         title="Your 1-time redo option has already been used. Remaining songs are kept as generated."
                       >
                         ✓ Song Kept (1 Redo Used)
@@ -268,21 +268,21 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
             </div>
 
             {/* Bottom Call to Action */}
-            <div className="mt-6 pt-6 border-t border-[#C5A880]/20 flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-xs text-[#FAF9F6]/80">
-                <ShieldCheck size={18} className="text-[#FFD700] shrink-0" />
+            <div className="mt-6 pt-6 border-t border-stone-200 flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-xs text-slate-600">
+                <ShieldCheck size={18} className="text-teal-600 shrink-0" />
                 <span>
-                  Sign up 10 <strong className="text-[#FFD700]">$0.99 cent users</strong> to get a{" "}
-                  <strong className="text-[#FFD700]">Lifetime $0.99 Account</strong>, or sign up 10{" "}
-                  <strong className="text-[#FFD700]">Premium Accounts</strong> to get a{" "}
-                  <strong className="text-[#FFD700]">Lifetime Premium Account for Free</strong>!
+                  Sign up 10 <strong className="text-teal-800">$0.99 cent users</strong> to get a{" "}
+                  <strong className="text-teal-800">Lifetime $0.99 Account</strong>, or sign up 10{" "}
+                  <strong className="text-teal-800">Premium Accounts</strong> to get a{" "}
+                  <strong className="text-teal-800">Lifetime Premium Account for Free</strong>!
                 </span>
               </div>
               <div className="flex flex-wrap items-center gap-2.5">
                 <button
                   type="button"
                   onClick={() => onStartSongInStudio()}
-                  className="px-5 py-3 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#e6c200] text-black font-display font-extrabold text-xs uppercase tracking-wider shadow-lg hover:brightness-110 transition-all cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs shadow-xs transition-all cursor-pointer"
                 >
                   🎵 Create Next Free Song in Studio
                 </button>
@@ -297,20 +297,20 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
       ===================================================================== */}
       {activeSubPage === "lifetime" && (
         <div className="space-y-8">
-          <div className="bg-gradient-to-br from-[#1f1712] via-[#140f0c] to-[#0c0907] border-2 border-[#FFD700]/70 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-6">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-6">
             <div className="space-y-2 max-w-3xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#FFD700] text-black font-mono text-xs font-extrabold uppercase tracking-wider">
-                <Crown size={14} /> One-Time Lifetime License Rewards
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold uppercase tracking-wider">
+                <Crown size={14} className="text-teal-600" /> One-Time Lifetime License Rewards
               </div>
-              <h2 className="text-2xl sm:text-4xl font-display font-bold text-[#FAF9F6]">
+              <h2 className="text-2xl sm:text-3xl font-display font-bold text-slate-900">
                 Sign Up 10 Users • Unlock Your Lifetime Account Free
               </h2>
-              <p className="text-sm text-[#C5A880] leading-relaxed">
+              <p className="text-sm text-slate-600 leading-relaxed">
                 We offer two clear 10-signup one-time Lifetime License milestones:
                 <br />• <strong>Sign up 10 $0.99 cent users</strong> and get a{" "}
-                <strong className="text-[#FFD700]">Lifetime $0.99 Cent Account</strong>.
+                <strong className="text-teal-800">Lifetime $0.99 Cent Account</strong>.
                 <br />• <strong>Sign up 10 Premium accounts</strong> and get a{" "}
-                <strong className="text-[#FFD700]">Lifetime Premium Account for FREE</strong> (plus a
+                <strong className="text-teal-800">Lifetime Premium Account for FREE</strong> (plus a
                 one-time commission on each Premium sign-up).
               </p>
             </div>
@@ -318,38 +318,38 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
             {/* TWO SIDE-BY-SIDE 10-SIGNUP LIFETIME TRACKERS */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {/* TRACK 1: 10 x $0.99 CENT USERS -> LIFETIME $0.99 ACCOUNT */}
-              <div className="bg-black/70 border-2 border-[#C5A880]/40 rounded-2xl p-5 space-y-4">
+              <div className="bg-[#F8FAF9] border border-stone-200 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#C5A880] block">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-500 block">
                       Tier 1 • $0.99 Cent Plan Track
                     </span>
-                    <h3 className="text-lg font-display font-bold text-[#FAF9F6]">
+                    <h3 className="text-lg font-display font-bold text-slate-900">
                       Sign Up 10 $0.99 Cent Users
                     </h3>
-                    <p className="text-xs text-[#FFD700]">
+                    <p className="text-xs text-teal-700 font-medium">
                       Reward: Get a Lifetime $0.99 Cent Account
                     </p>
                   </div>
-                  <div className="bg-[#1c1612] border border-[#FFD700]/40 rounded-xl px-4 py-2 text-center shrink-0">
-                    <span className="text-2xl font-display font-extrabold text-[#FFD700]">
+                  <div className="bg-white border border-stone-200 rounded-xl px-4 py-2 text-center shrink-0">
+                    <span className="text-2xl font-display font-extrabold text-teal-700">
                       {Math.min(10, basic099Referrals.length)} / 10
                     </span>
-                    <span className="block text-[9px] font-mono uppercase text-[#C5A880]">
+                    <span className="block text-[10px] font-medium uppercase text-slate-500">
                       $0.99 Signups
                     </span>
                   </div>
                 </div>
 
-                <div className="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#FFD700] to-emerald-400 transition-all duration-500"
+                    className="h-full bg-teal-600 transition-all duration-500"
                     style={{ width: `${Math.min(100, (basic099Referrals.length / 10) * 100)}%` }}
                   />
                 </div>
 
                 {isBasic099LifetimeUnlocked && (
-                  <div className="p-3 rounded-xl bg-emerald-950/80 border border-emerald-400/50 text-emerald-300 text-xs font-mono text-center">
+                  <div className="p-3 rounded-xl bg-teal-50 border border-teal-200 text-teal-800 text-xs font-semibold text-center">
                     👑 UNLOCKED: Your Lifetime $0.99 Cent Account is Active!
                   </div>
                 )}
@@ -362,26 +362,26 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                         key={idx}
                         className={`p-2.5 rounded-xl border text-left transition-all ${
                           refPerson
-                            ? "bg-emerald-950/30 border-emerald-500/40 text-white"
-                            : "bg-black/50 border-[#C5A880]/20 text-white/50"
+                            ? "bg-teal-50 border-teal-300 text-slate-900"
+                            : "bg-white border-stone-200 text-slate-400"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-mono uppercase text-[#C5A880]">
+                          <span className="text-[10px] font-mono uppercase text-slate-500">
                             $0.99 #{idx + 1}
                           </span>
                           {refPerson ? (
-                            <Check size={11} className="text-emerald-400" />
+                            <Check size={11} className="text-teal-600" />
                           ) : (
-                            <Users size={11} className="text-white/30" />
+                            <Users size={11} className="text-slate-300" />
                           )}
                         </div>
                         {refPerson ? (
-                          <p className="text-[11px] font-bold text-[#FAF9F6] truncate">
+                          <p className="text-[11px] font-bold text-slate-900 truncate">
                             {refPerson.name}
                           </p>
                         ) : (
-                          <p className="text-[10px] text-white/35">Open Slot</p>
+                          <p className="text-[10px] text-slate-400">Open Slot</p>
                         )}
                       </div>
                     );
@@ -390,38 +390,38 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
               </div>
 
               {/* TRACK 2: 10 x PREMIUM ACCOUNTS -> LIFETIME PREMIUM ACCOUNT FOR FREE */}
-              <div className="bg-black/70 border-2 border-[#FFD700]/60 rounded-2xl p-5 space-y-4 shadow-[0_0_25px_rgba(255,215,0,0.12)]">
+              <div className="bg-[#F8FAF9] border border-teal-300 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between gap-3">
                   <div>
-                    <span className="text-[10px] font-mono uppercase tracking-widest text-[#FFD700] block">
+                    <span className="text-[11px] font-semibold uppercase tracking-wider text-teal-700 block">
                       Tier 2 • Premium Account Track
                     </span>
-                    <h3 className="text-lg font-display font-bold text-[#FAF9F6]">
+                    <h3 className="text-lg font-display font-bold text-slate-900">
                       Sign Up 10 Premium Accounts
                     </h3>
-                    <p className="text-xs text-[#FFD700]">
+                    <p className="text-xs text-teal-700 font-medium">
                       Reward: Get a Lifetime Premium Account for FREE
                     </p>
                   </div>
-                  <div className="bg-[#1c1612] border border-[#FFD700] rounded-xl px-4 py-2 text-center shrink-0">
-                    <span className="text-2xl font-display font-extrabold text-[#FFD700]">
+                  <div className="bg-white border border-teal-200 rounded-xl px-4 py-2 text-center shrink-0">
+                    <span className="text-2xl font-display font-extrabold text-teal-700">
                       {Math.min(10, premiumReferrals.length)} / 10
                     </span>
-                    <span className="block text-[9px] font-mono uppercase text-[#FFD700]">
+                    <span className="block text-[10px] font-medium uppercase text-teal-700">
                       Premium Signups
                     </span>
                   </div>
                 </div>
 
-                <div className="w-full h-2.5 bg-neutral-800 rounded-full overflow-hidden">
+                <div className="w-full h-2.5 bg-stone-200 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-gradient-to-r from-[#FFD700] via-amber-300 to-emerald-400 transition-all duration-500"
+                    className="h-full bg-teal-600 transition-all duration-500"
                     style={{ width: `${Math.min(100, (premiumReferrals.length / 10) * 100)}%` }}
                   />
                 </div>
 
                 {isPremiumLifetimeUnlocked && (
-                  <div className="p-3 rounded-xl bg-amber-950/90 border border-[#FFD700] text-[#FFD700] text-xs font-mono text-center">
+                  <div className="p-3 rounded-xl bg-teal-50 border border-teal-300 text-teal-900 text-xs font-semibold text-center">
                     👑 UNLOCKED: Your Free Lifetime Premium Account is Active!
                   </div>
                 )}
@@ -434,26 +434,26 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                         key={idx}
                         className={`p-2.5 rounded-xl border text-left transition-all ${
                           refPerson
-                            ? "bg-amber-950/40 border-[#FFD700]/60 text-white"
-                            : "bg-black/50 border-[#C5A880]/20 text-white/50"
+                            ? "bg-teal-50 border-teal-300 text-slate-900"
+                            : "bg-white border-stone-200 text-slate-400"
                         }`}
                       >
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-[9px] font-mono uppercase text-[#FFD700]">
+                          <span className="text-[10px] font-mono uppercase text-teal-700">
                             Prem #{idx + 1}
                           </span>
                           {refPerson ? (
-                            <Check size={11} className="text-[#FFD700]" />
+                            <Check size={11} className="text-teal-600" />
                           ) : (
-                            <Crown size={11} className="text-white/30" />
+                            <Crown size={11} className="text-slate-300" />
                           )}
                         </div>
                         {refPerson ? (
-                          <p className="text-[11px] font-bold text-[#FAF9F6] truncate">
+                          <p className="text-[11px] font-bold text-slate-900 truncate">
                             {refPerson.name}
                           </p>
                         ) : (
-                          <p className="text-[10px] text-white/35">Open Slot</p>
+                          <p className="text-[10px] text-slate-400">Open Slot</p>
                         )}
                       </div>
                     );
@@ -463,17 +463,17 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
             </div>
 
             {/* Share Your Referral Link + Direct Friend Signup Form */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-[#C5A880]/20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 pt-4 border-t border-stone-200">
               {/* Left: Personal Referral Link */}
-              <div className="bg-black/60 border border-[#C5A880]/25 rounded-xl p-5 space-y-4">
-                <h3 className="text-sm font-display font-bold text-[#FFD700] uppercase tracking-wider flex items-center gap-2">
-                  <Share2 size={15} /> Step 1: Share Your Personal Invite Link
+              <div className="bg-[#F8FAF9] border border-stone-200 rounded-xl p-5 space-y-4">
+                <h3 className="text-sm font-display font-bold text-slate-900 flex items-center gap-2">
+                  <Share2 size={15} className="text-teal-600" /> Step 1: Share Your Personal Invite Link
                 </h3>
-                <p className="text-xs text-[#C5A880]">
+                <p className="text-xs text-slate-600">
                   Share your link with friends. Sign up 10 $0.99 cent users for a{" "}
-                  <strong className="text-white">Lifetime $0.99 Account</strong>, or sign up 10
+                  <strong className="text-slate-900">Lifetime $0.99 Account</strong>, or sign up 10
                   Premium accounts for a{" "}
-                  <strong className="text-[#FFD700]">Free Lifetime Premium Account</strong>!
+                  <strong className="text-teal-800">Free Lifetime Premium Account</strong>!
                 </p>
 
                 <div className="flex gap-2">
@@ -481,12 +481,12 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     type="text"
                     readOnly
                     value={referralUrl}
-                    className="flex-1 bg-neutral-950 border border-[#C5A880]/30 rounded-lg px-3 py-2.5 text-xs font-mono text-[#FFD700]"
+                    className="flex-1 bg-white border border-stone-300 rounded-lg px-3 py-2.5 text-xs font-mono text-teal-800"
                   />
                   <button
                     type="button"
                     onClick={() => handleCopyText(referralUrl, setCopiedRefLink)}
-                    className="px-4 py-2.5 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0"
+                    className="px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer shrink-0"
                   >
                     {copiedRefLink ? <Check size={14} /> : <Copy size={14} />}
                     <span>{copiedRefLink ? "Copied!" : "Copy"}</span>
@@ -497,7 +497,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   <button
                     type="button"
                     onClick={handleEmailInvite}
-                    className="flex-1 py-2.5 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-[#FAF9F6] border border-[#C5A880]/30 font-mono text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-2.5 px-3 rounded-lg bg-white hover:bg-stone-50 text-slate-700 border border-stone-300 text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <Mail size={13} /> Send Email Invite
                   </button>
@@ -509,7 +509,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       );
                       window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
                     }}
-                    className="flex-1 py-2.5 px-3 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white font-mono text-xs flex items-center justify-center gap-1.5 cursor-pointer"
+                    className="flex-1 py-2.5 px-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
                   >
                     <ExternalLink size={13} /> Share on WhatsApp
                   </button>
@@ -519,14 +519,14 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
               {/* Right: Register / Sign Up a Friend Directly */}
               <form
                 onSubmit={handleInviteSubmit}
-                className="bg-black/60 border border-[#C5A880]/25 rounded-xl p-5 space-y-4"
+                className="bg-[#F8FAF9] border border-stone-200 rounded-xl p-5 space-y-4"
               >
-                <h3 className="text-sm font-display font-bold text-[#FFD700] uppercase tracking-wider flex items-center gap-2">
-                  <Plus size={15} /> Step 2: Record a $0.99 or Premium Sign-Up
+                <h3 className="text-sm font-display font-bold text-slate-900 flex items-center gap-2">
+                  <Plus size={15} className="text-teal-600" /> Step 2: Record a $0.99 or Premium Sign-Up
                 </h3>
 
                 {referralBanner && (
-                  <div className="p-2.5 rounded-lg bg-emerald-950/80 border border-emerald-500/40 text-emerald-300 text-xs font-mono">
+                  <div className="p-2.5 rounded-lg bg-teal-50 border border-teal-300 text-teal-800 text-xs font-medium">
                     ✓ {referralBanner}
                   </div>
                 )}
@@ -536,10 +536,10 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   <button
                     type="button"
                     onClick={() => setSelectedSignupTier("basic_099")}
-                    className={`py-2 px-3 rounded-lg border text-xs font-mono font-bold transition-all cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                       selectedSignupTier === "basic_099"
-                        ? "bg-[#FFD700] text-black border-[#FFD700]"
-                        : "bg-neutral-950 text-white/70 border-[#C5A880]/30"
+                        ? "bg-teal-600 text-white border-teal-600"
+                        : "bg-white text-slate-700 border-stone-300"
                     }`}
                   >
                     $0.99 Cent User ({basic099Referrals.length}/10)
@@ -547,10 +547,10 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   <button
                     type="button"
                     onClick={() => setSelectedSignupTier("premium")}
-                    className={`py-2 px-3 rounded-lg border text-xs font-mono font-bold transition-all cursor-pointer ${
+                    className={`py-2 px-3 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
                       selectedSignupTier === "premium"
-                        ? "bg-[#FFD700] text-black border-[#FFD700]"
-                        : "bg-neutral-950 text-white/70 border-[#C5A880]/30"
+                        ? "bg-teal-600 text-white border-teal-600"
+                        : "bg-white text-slate-700 border-stone-300"
                     }`}
                   >
                     👑 Premium Account ({premiumReferrals.length}/10)
@@ -559,8 +559,8 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
-                      Friend's Name
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Friend&apos;s Name
                     </label>
                     <input
                       type="text"
@@ -568,12 +568,12 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       value={friendName}
                       onChange={(e) => setFriendName(e.target.value)}
                       placeholder="e.g. Pastor John"
-                      className="w-full bg-neutral-950 border border-[#C5A880]/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]"
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
-                      Friend's Email
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      Friend&apos;s Email
                     </label>
                     <input
                       type="email"
@@ -581,14 +581,14 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       value={friendEmail}
                       onChange={(e) => setFriendEmail(e.target.value)}
                       placeholder="friend@example.com"
-                      className="w-full bg-neutral-950 border border-[#C5A880]/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]"
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-600"
                     />
                   </div>
                 </div>
 
                 <button
                   type="submit"
-                  className="w-full py-3 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-display font-extrabold text-xs uppercase tracking-wider shadow transition-all cursor-pointer flex items-center justify-center gap-2"
+                  className="w-full py-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
                   <Users size={15} />
                   <span>
@@ -608,36 +608,36 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
       ===================================================================== */}
       {activeSubPage === "affiliate" && (
         <div className="space-y-8">
-          <div className="bg-gradient-to-br from-[#1f1712] via-[#140f0c] to-[#0c0907] border-2 border-[#FFD700]/70 rounded-2xl p-6 sm:p-8 shadow-2xl space-y-8">
+          <div className="bg-white border border-stone-200 rounded-2xl p-6 sm:p-8 shadow-sm space-y-8">
             {/* Header */}
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-xl">
-                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-[#FFD700] text-black font-mono text-xs font-extrabold uppercase tracking-wider">
-                  <TrendingUp size={14} /> Official Affiliate & Lifetime License Program
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-xs font-semibold uppercase tracking-wider">
+                  <TrendingUp size={14} className="text-teal-600" /> Official Affiliate &amp; Lifetime License Program
                 </div>
-                <h2 className="text-2xl sm:text-4xl font-display font-bold text-[#FAF9F6]">
-                  One-Time Lifetime License & Commission on Premium Sign-Ups
+                <h2 className="text-2xl sm:text-3xl font-display font-bold text-slate-900">
+                  One-Time Lifetime License &amp; Commission on Premium Sign-Ups
                 </h2>
-                <p className="text-sm text-[#C5A880] leading-relaxed">
+                <p className="text-sm text-slate-600 leading-relaxed">
                   We offer a straightforward, transparent partner structure with{" "}
                   <strong>no recurring subscriptions or recurring commissions</strong>. Earn a{" "}
-                  <strong className="text-[#FFD700]">one-time commission on every Premium sign-up</strong>,
+                  <strong className="text-teal-800">one-time commission on every Premium sign-up</strong>,
                   and unlock your own{" "}
-                  <strong className="text-[#FFD700]">One-Time Lifetime License</strong> by signing up 10 users!
+                  <strong className="text-teal-800">One-Time Lifetime License</strong> by signing up 10 users!
                 </p>
               </div>
 
               {/* One-Time Program Highlights */}
               <div className="grid grid-cols-2 gap-3 shrink-0">
-                <div className="bg-black/80 border border-[#FFD700]/40 rounded-xl p-4 text-center">
-                  <p className="text-[10px] font-mono uppercase text-[#C5A880]">Premium Sign-Up</p>
-                  <p className="text-xl font-display font-extrabold text-[#FFD700] my-1">One-Time</p>
-                  <p className="text-[10px] text-emerald-400 font-mono">Commission Payout</p>
+                <div className="bg-[#F8FAF9] border border-stone-200 rounded-xl p-4 text-center">
+                  <p className="text-[11px] font-medium uppercase text-slate-500">Premium Sign-Up</p>
+                  <p className="text-xl font-display font-extrabold text-teal-700 my-1">One-Time</p>
+                  <p className="text-[11px] text-teal-700 font-medium">Commission Payout</p>
                 </div>
-                <div className="bg-black/80 border border-[#FFD700]/40 rounded-xl p-4 text-center">
-                  <p className="text-[10px] font-mono uppercase text-[#C5A880]">10 Referrals</p>
-                  <p className="text-xl font-display font-extrabold text-[#FFD700] my-1">Lifetime</p>
-                  <p className="text-[10px] text-emerald-400 font-mono">One-Time License</p>
+                <div className="bg-[#F8FAF9] border border-stone-200 rounded-xl p-4 text-center">
+                  <p className="text-[11px] font-medium uppercase text-slate-500">10 Referrals</p>
+                  <p className="text-xl font-display font-extrabold text-teal-700 my-1">Lifetime</p>
+                  <p className="text-[11px] text-teal-700 font-medium">One-Time License</p>
                 </div>
               </div>
             </div>
@@ -645,14 +645,14 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
             {/* Affiliate Link Generator & One-Time License / Commission Breakdown */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
               {/* Left 7 Cols: Partner Link & Registration */}
-              <div className="lg:col-span-7 bg-black/60 border border-[#C5A880]/25 rounded-2xl p-6 space-y-5">
-                <h3 className="text-base font-display font-bold text-[#FFD700] flex items-center gap-2">
-                  <Award size={18} /> Your Custom Affiliate Tracking Link
+              <div className="lg:col-span-7 bg-[#F8FAF9] border border-stone-200 rounded-2xl p-6 space-y-5">
+                <h3 className="text-base font-display font-bold text-slate-900 flex items-center gap-2">
+                  <Award size={18} className="text-teal-600" /> Your Custom Affiliate Tracking Link
                 </h3>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
                       Your Partner Handle / ID
                     </label>
                     <input
@@ -662,25 +662,25 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                         setAffiliateHandle(e.target.value.toLowerCase().replace(/[^a-z0-9-_]/g, ""))
                       }
                       placeholder="your-name"
-                      className="w-full bg-neutral-950 border border-[#C5A880]/30 rounded-lg px-3 py-2 text-xs font-mono text-white focus:outline-none focus:border-[#FFD700]"
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-xs font-mono text-slate-900 focus:outline-none focus:border-teal-600"
                     />
                   </div>
                   <div>
-                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
-                      PayPal / Stripe Payout Email (For Premium Sign-Up Commissions)
+                    <label className="block text-xs font-medium text-slate-600 mb-1">
+                      PayPal / Stripe Payout Email
                     </label>
                     <input
                       type="email"
                       value={affiliateEmail}
                       onChange={(e) => setAffiliateEmail(e.target.value)}
                       placeholder="payouts@yourdomain.com"
-                      className="w-full bg-neutral-950 border border-[#C5A880]/30 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#FFD700]"
+                      className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-xs text-slate-900 focus:outline-none focus:border-teal-600"
                     />
                   </div>
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-[10px] font-mono uppercase text-[#C5A880]">
+                  <label className="block text-xs font-medium text-slate-600">
                     Your Live Affiliate Referral Link:
                   </label>
                   <div className="flex gap-2">
@@ -688,12 +688,12 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                       type="text"
                       readOnly
                       value={affiliateUrl}
-                      className="flex-1 bg-neutral-950 border border-[#FFD700]/40 rounded-lg px-3 py-2.5 text-xs font-mono text-[#FFD700]"
+                      className="flex-1 bg-white border border-stone-300 rounded-lg px-3 py-2.5 text-xs font-mono text-teal-800"
                     />
                     <button
                       type="button"
                       onClick={() => handleCopyText(affiliateUrl, setCopiedAffLink)}
-                      className="px-4 py-2.5 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-2.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                     >
                       {copiedAffLink ? <Check size={14} /> : <Copy size={14} />}
                       <span>{copiedAffLink ? "Copied!" : "Copy Link"}</span>
@@ -702,10 +702,10 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                 </div>
 
                 {/* Ready-to-Post Promo Copy */}
-                <div className="space-y-2 pt-2 border-t border-[#C5A880]/15">
+                <div className="space-y-2 pt-2 border-t border-stone-200">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] font-mono uppercase text-[#C5A880]">
-                      Ready-to-Share Social & Email Blurb:
+                    <span className="text-xs font-medium text-slate-600">
+                      Ready-to-Share Social &amp; Email Blurb:
                     </span>
                     <button
                       type="button"
@@ -715,23 +715,23 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                           setCopiedPromoText
                         )
                       }
-                      className="text-[11px] font-mono text-[#FFD700] hover:underline flex items-center gap-1 cursor-pointer"
+                      className="text-xs font-semibold text-teal-700 hover:underline flex items-center gap-1 cursor-pointer"
                     >
                       {copiedPromoText ? <Check size={12} /> : <Copy size={12} />}
                       <span>{copiedPromoText ? "Copied Blurb!" : "Copy Blurb"}</span>
                     </button>
                   </div>
-                  <div className="p-3 rounded-lg bg-neutral-950/90 border border-[#C5A880]/20 text-xs text-white/80 italic">
-                    "🎁 Give someone a custom sung song today! Haddi the Street Minstrel turns your
+                  <div className="p-3 rounded-lg bg-white border border-stone-200 text-xs text-slate-600 italic">
+                    &ldquo;🎁 Give someone a custom sung song today! Haddi the Street Minstrel turns your
                     personal memories into a studio-quality acoustic song. Get your first 5 songs FREE
-                    here: {affiliateUrl}"
+                    here: {affiliateUrl}&rdquo;
                   </div>
                 </div>
 
                 <button
                   type="button"
                   onClick={() => setAffiliateJoined(true)}
-                  className="w-full py-3 rounded-xl bg-gradient-to-r from-[#FFD700] to-[#e6c200] text-black font-display font-extrabold text-xs uppercase tracking-wider shadow hover:brightness-110 transition-all cursor-pointer"
+                  className="w-full py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs shadow-2xs transition-all cursor-pointer"
                 >
                   {affiliateJoined
                     ? "✓ Affiliate Partner Account Active & Tracking"
@@ -739,70 +739,70 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                 </button>
               </div>
 
-              {/* Right 5 Cols: Official One-Time Reward & Commission Rules (No Recurring Estimator) */}
-              <div className="lg:col-span-5 bg-black/60 border border-[#C5A880]/25 rounded-2xl p-6 flex flex-col justify-between space-y-5">
+              {/* Right 5 Cols: Official One-Time Reward & Commission Rules */}
+              <div className="lg:col-span-5 bg-[#F8FAF9] border border-stone-200 rounded-2xl p-6 flex flex-col justify-between space-y-5">
                 <div className="space-y-4">
-                  <h3 className="text-base font-display font-bold text-[#FFD700] flex items-center gap-2">
-                    <Crown size={18} /> One-Time License & Commission Tiers
+                  <h3 className="text-base font-display font-bold text-slate-900 flex items-center gap-2">
+                    <Crown size={18} className="text-teal-600" /> One-Time License &amp; Commission Tiers
                   </h3>
 
                   {/* Rule 1: 10 x $0.99 Users */}
-                  <div className="p-4 rounded-xl bg-neutral-950/90 border border-[#C5A880]/30 space-y-1.5">
+                  <div className="p-4 rounded-xl bg-white border border-stone-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-[#FFD700] uppercase">
+                      <span className="text-xs font-semibold text-teal-800 uppercase">
                         1. $0.99 Cent User Track
                       </span>
-                      <span className="text-xs font-mono text-emerald-400 font-bold">
+                      <span className="text-xs font-semibold text-teal-700">
                         {Math.min(10, basic099Referrals.length)} / 10 Signed Up
                       </span>
                     </div>
-                    <p className="text-xs text-[#FAF9F6] leading-relaxed">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       <strong>Sign up 10 $0.99 cent users</strong> and get a{" "}
-                      <strong className="text-[#FFD700]">Lifetime $0.99 Cent Account</strong> (one-time
+                      <strong className="text-teal-800">Lifetime $0.99 Cent Account</strong> (one-time
                       lifetime license).
                     </p>
                   </div>
 
                   {/* Rule 2: 10 x Premium Accounts */}
-                  <div className="p-4 rounded-xl bg-neutral-950/90 border border-[#FFD700]/50 space-y-1.5">
+                  <div className="p-4 rounded-xl bg-white border border-teal-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-[#FFD700] uppercase">
+                      <span className="text-xs font-semibold text-teal-800 uppercase">
                         2. Premium Account Track
                       </span>
-                      <span className="text-xs font-mono text-emerald-400 font-bold">
+                      <span className="text-xs font-semibold text-teal-700">
                         {Math.min(10, premiumReferrals.length)} / 10 Signed Up
                       </span>
                     </div>
-                    <p className="text-xs text-[#FAF9F6] leading-relaxed">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       <strong>Sign up 10 Premium accounts</strong> and get a{" "}
-                      <strong className="text-[#FFD700]">Lifetime Premium Account for FREE</strong>{" "}
+                      <strong className="text-teal-800">Lifetime Premium Account for FREE</strong>{" "}
                       (one-time lifetime license).
                     </p>
                   </div>
 
                   {/* Rule 3: One-Time Commission on Premium Sign-Ups */}
-                  <div className="p-4 rounded-xl bg-neutral-950/90 border border-emerald-500/30 space-y-1.5">
+                  <div className="p-4 rounded-xl bg-white border border-stone-200 space-y-1.5">
                     <div className="flex items-center justify-between">
-                      <span className="text-xs font-mono font-bold text-emerald-400 uppercase flex items-center gap-1">
+                      <span className="text-xs font-semibold text-teal-800 uppercase flex items-center gap-1">
                         <DollarSign size={13} /> 3. One-Time Premium Commission
                       </span>
-                      <span className="text-[10px] font-mono bg-emerald-950 text-emerald-300 px-2 py-0.5 rounded border border-emerald-500/30">
+                      <span className="text-[10px] font-semibold bg-teal-50 text-teal-800 px-2 py-0.5 rounded border border-teal-200">
                         One-Time Payout
                       </span>
                     </div>
-                    <p className="text-xs text-[#C5A880] leading-relaxed">
+                    <p className="text-xs text-slate-600 leading-relaxed">
                       Earn a <strong>one-time commission</strong> exclusively on verified{" "}
-                      <strong className="text-white">Premium Account sign-ups</strong>. No recurring
+                      <strong className="text-slate-900">Premium Account sign-ups</strong>. No recurring
                       fees or recurring commissions.
                     </p>
                   </div>
                 </div>
 
-                <div className="bg-gradient-to-br from-[#251e19] to-black border border-[#FFD700]/40 rounded-xl p-4 text-center space-y-1">
-                  <p className="text-[10px] font-mono uppercase tracking-widest text-[#C5A880]">
+                <div className="bg-teal-50/70 border border-teal-200 rounded-xl p-4 text-center space-y-1">
+                  <p className="text-[11px] font-medium uppercase tracking-wider text-teal-800">
                     Your Current Lifetime License Status
                   </p>
-                  <p className="text-sm font-display font-extrabold text-[#FFD700]">
+                  <p className="text-sm font-display font-bold text-teal-900">
                     {isPremiumLifetimeUnlocked
                       ? "👑 Lifetime Premium Account Unlocked (FREE)"
                       : isBasic099LifetimeUnlocked

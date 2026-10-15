@@ -68,72 +68,72 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   };
 
   return (
-    <div className="max-w-md mx-auto bg-gradient-to-br from-amber-950 to-amber-900 rounded-2xl shadow-2xl border border-amber-500/40 p-6 text-amber-100 my-6">
+    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-stone-200 p-6 text-slate-900 my-4">
       <div className="text-center mb-4">
-        <span className="bg-amber-500 text-slate-950 text-xs font-extrabold px-3 py-1 rounded-full uppercase tracking-wider">
+        <span className="bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
           Custom Haddi Gift Card
         </span>
-        <h3 className="text-2xl font-bold mt-2 font-serif text-amber-200">{songTitle}</h3>
-        <p className="text-xs text-amber-400">Dedicated to {recipientName}</p>
+        <h3 className="text-xl font-display font-bold mt-2.5 text-slate-900">{songTitle}</h3>
+        <p className="text-xs text-teal-700 font-medium mt-0.5">Dedicated to {recipientName}</p>
       </div>
 
       {/* Dual Option Switcher: Option 1 (Lyria 3 Sung Song) & Option 2 (Haddi Spoken Narration) */}
       {(lyriaAudioUrl || narrationAudioUrl) && (
-        <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-950/60 p-1.5 rounded-xl border border-amber-500/20">
+        <div className="grid grid-cols-2 gap-1.5 mb-3 bg-stone-100 p-1 rounded-xl border border-stone-200">
           <button
             type="button"
             onClick={() => handleTrackSwitch("lyria")}
             disabled={!lyriaAudioUrl}
-            className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
+            className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
               selectedTrack === "lyria" && lyriaAudioUrl
-                ? "bg-amber-500 text-slate-950 shadow"
-                : "text-amber-200/80 hover:text-amber-100"
+                ? "bg-white text-teal-800 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🎸 Sung Song (Lyria 3)</span>
+            <span>🎸 Sung Song</span>
           </button>
           <button
             type="button"
             onClick={() => handleTrackSwitch("narration")}
             disabled={!narrationAudioUrl}
-            className={`py-1.5 px-2 rounded-lg text-[11px] font-bold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
+            className={`py-1.5 px-2 rounded-lg text-xs font-semibold transition-all flex items-center justify-center gap-1 cursor-pointer disabled:opacity-40 ${
               selectedTrack === "narration" && narrationAudioUrl
-                ? "bg-amber-500 text-slate-950 shadow"
-                : "text-amber-200/80 hover:text-amber-100"
+                ? "bg-white text-teal-800 shadow-2xs"
+                : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🎙️ Haddi Narration</span>
+            <span>🎙️ Haddi Voice</span>
           </button>
         </div>
       )}
 
       {/* Embedded HTML5 Audio Player for the Real Generated Song */}
-      <div className="bg-slate-900/80 rounded-xl p-4 shadow-inner mb-4 border border-amber-500/30">
+      <div className="bg-[#F8FAF9] rounded-xl p-3.5 mb-4 border border-stone-200">
         {resolvedAudioSource ? (
           <div className="space-y-2">
-            <div className="flex items-center justify-between text-[10px] font-mono text-amber-300/80 uppercase tracking-wider">
+            <div className="flex items-center justify-between text-[11px] font-medium text-teal-800">
               <span>
                 {selectedTrack === "narration" && narrationAudioUrl
                   ? "🎙️ Haddi Spoken Blessing Track"
                   : "🎵 Lyria 3 Sung Studio Master"}
               </span>
-              {isPlaying && <span className="text-emerald-400 animate-pulse">● PLAYING</span>}
+              {isPlaying && <span className="text-teal-600 font-semibold animate-pulse">● Playing</span>}
             </div>
             <audio 
               controls 
               src={resolvedAudioSource} 
-              className="w-full accent-amber-500"
+              className="w-full h-9 accent-teal-600"
               onPlay={() => setIsPlaying(true)}
               onPause={() => setIsPlaying(false)}
             />
           </div>
         ) : (
-          <p className="text-center text-xs text-amber-400/70 italic">Composing and rendering audio track...</p>
+          <p className="text-center text-xs text-slate-500 italic">Composing and rendering audio track...</p>
         )}
       </div>
 
       {/* Preview Lyrics Box */}
-      <div className="bg-slate-900/50 rounded-lg p-3 max-h-32 overflow-y-auto text-sm italic text-amber-200/80 mb-4 border border-amber-500/20">
+      <div className="bg-stone-50 rounded-xl p-3.5 max-h-32 overflow-y-auto text-xs sm:text-sm italic text-slate-700 mb-4 border border-stone-200/80">
         <p className="whitespace-pre-line">{lyrics}</p>
       </div>
 
@@ -142,28 +142,28 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         <button 
           type="button"
           onClick={handleCopyLink}
-          className="bg-amber-800 hover:bg-amber-700 text-amber-100 font-semibold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
+          className="bg-stone-100 hover:bg-stone-200 text-slate-800 border border-stone-200 font-semibold py-2.5 px-2 rounded-xl transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
         >
-          <span>{copiedFeedback ? "✅ Copied!" : "📋 Copy Link"}</span>
+          <span>{copiedFeedback ? "✓ Copied!" : "Copy Link"}</span>
         </button>
 
         <a
           href={resolvedAudioSource || "#"}
           download={`${songTitle.replace(/\s+/g, "_")}_${selectedTrack}.wav`}
-          className={`bg-amber-700 hover:bg-amber-600 text-amber-100 font-semibold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 ${
+          className={`bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 font-semibold py-2.5 px-2 rounded-xl transition duration-200 text-xs flex items-center justify-center space-x-1 ${
             !resolvedAudioSource ? "opacity-50 pointer-events-none" : ""
           }`}
         >
-          <span>⬇️ Save Track</span>
+          <span>Save Audio</span>
         </a>
 
         <button 
           type="button"
           onClick={handleEmailShare}
           disabled={!resolvedAudioSource}
-          className="bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-bold py-2.5 px-2 rounded-xl shadow transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
+          className="bg-teal-600 hover:bg-teal-700 disabled:opacity-50 text-white font-semibold py-2.5 px-2 rounded-xl shadow-2xs transition duration-200 text-xs flex items-center justify-center space-x-1 cursor-pointer"
         >
-          <span>✉️ Send Email</span>
+          <span>Send Email</span>
         </button>
       </div>
     </div>

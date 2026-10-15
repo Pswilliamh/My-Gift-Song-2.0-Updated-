@@ -1106,37 +1106,7 @@ export default function App() {
   };
 
   return (
-    <div
-      className={
-        !isSystemInitiated
-          ? "min-h-screen bg-white text-slate-900 flex flex-col justify-between font-sans selection:bg-amber-400 selection:text-black"
-          : "min-h-screen bg-[#0d0a08] text-white flex flex-col justify-between font-sans selection:bg-[#FFD700] selection:text-black main-studio-bg"
-      }
-    >
-      {/* --- Ambient Star Decor & Floating Note Stream (Only in Full Studio View) --- */}
-      {isSystemInitiated && (
-        <>
-          <div className="fixed inset-0 pointer-events-none overflow-hidden opacity-30">
-            <div className="absolute top-[10%] left-[5%] text-[#C5A880] text-lg ambient-decor"><Star size={16} /></div>
-            <div className="absolute top-[40%] right-[8%] text-[#C5A880]/30 text-xl ambient-decor delay-1000"><Star size={12} /></div>
-            <div className="absolute bottom-[25%] left-[12%] text-[#C5A880]/40 text-lg ambient-decor delay-3000"><Star size={14} /></div>
-            <div className="absolute top-[80%] right-[20%] text-[#C5A880]/25 text-2xl ambient-decor delay-500"><Star size={10} /></div>
-          </div>
-
-          <div className="fixed w-full pointer-events-none overflow-hidden z-10" style={{ top: "15%", height: "180px" }}>
-            <div className="music-note-stream">
-              <span className="note-item" style={{ animationDelay: "0s", top: "10%" }}>♫</span>
-              <span className="note-item" style={{ animationDelay: "2s", top: "35%" }}>♪</span>
-              <span className="note-item" style={{ animationDelay: "4.5s", top: "15%" }}>♬</span>
-              <span className="note-item" style={{ animationDelay: "6.5s", top: "65%" }}>♫</span>
-              <span className="note-item" style={{ animationDelay: "8s", top: "25%" }}>♪</span>
-              <span className="note-item" style={{ animationDelay: "10s", top: "45%" }}>♬</span>
-              <span className="note-item" style={{ animationDelay: "12s", top: "5%" }}>♫</span>
-            </div>
-          </div>
-        </>
-      )}
-
+    <div className="min-h-screen bg-[#FAF9F6] text-slate-900 flex flex-col justify-between font-sans selection:bg-teal-600 selection:text-white">
       {/* --- CLEAN CLUTTER-FREE LANDING PAGE (BEFORE SYSTEM INITIATION) --- */}
       {!isSystemInitiated ? (
         <LandingExperience
@@ -1156,11 +1126,12 @@ export default function App() {
         />
       ) : (
         <>
-          {/* --- FULL SYSTEM HEADER (SHOWN AFTER USER INITIATES SYSTEM) --- */}
-          <header className="border-b border-[#C5A880]/20 bg-[#0c0b0a]/95 backdrop-blur-lg sticky top-0 z-40 px-4 sm:px-6 py-4">
-            <div className="max-w-6xl mx-auto flex flex-wrap justify-between items-center gap-4">
+          {/* --- CLEAN WHITE & EARTHY TEAL STUDIO NAVIGATION BAR --- */}
+          <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-stone-200/80">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+              {/* Left: Brand Logo & Wordmark */}
               <div
-                className="flex items-center gap-3 cursor-pointer"
+                className="flex items-center gap-3 cursor-pointer shrink-0"
                 onClick={() => {
                   setActiveSystemTab("studio");
                   handleReset();
@@ -1169,95 +1140,118 @@ export default function App() {
                 <img
                   src="/pwa-192x192.png"
                   alt="mygiftsong.org App Icon"
-                  className="w-11 h-11 rounded-2xl border-2 border-[#FFD700] object-cover shadow-[0_0_15px_rgba(255,215,0,0.25)]"
+                  className="w-10 h-10 rounded-xl border border-teal-600/30 object-cover shadow-xs"
                 />
-                <div>
-                  <h1 className="text-lg md:text-xl font-display font-bold tracking-wide text-white flex items-center gap-1.5">
-                    mygiftsong.org <span className="text-[#FFD700] text-xs font-mono font-semibold">STUDIO</span>
-                  </h1>
-                  <p className="text-[11px] text-[#FFD700]/80 tracking-widest uppercase font-mono font-medium">
+                <div className="leading-tight">
+                  <div className="flex items-center gap-1.5">
+                    <span className="font-display font-bold text-slate-900 text-base sm:text-lg tracking-tight">
+                      mygiftsong<span className="text-teal-700">.org</span>
+                    </span>
+                    <span className="hidden sm:inline-block text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 font-semibold">
+                      Studio
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium hidden sm:block">
                     AI Assisted Song Generator • Haddi the Street Minstrel
                   </p>
                 </div>
               </div>
 
-              {/* Navigation Tabs for All Full System Features */}
-              <nav className="flex flex-wrap items-center gap-2">
-                <PWAInstallButton variant="dark" />
-
+              {/* Center: Uncluttered Horizontal Text Links */}
+              <nav className="hidden lg:flex items-center gap-6">
                 <button
                   type="button"
                   onClick={() => setActiveSystemTab("studio")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "studio"
-                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
-                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
                   }`}
                 >
-                  <Music size={13} />
+                  <Music size={15} className="text-teal-600" />
                   <span>Haddi Studio</span>
+                  {activeSystemTab === "studio" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveSystemTab("yosia-kids")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "yosia-kids"
-                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
-                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
                   }`}
                 >
-                  <Smile size={13} />
-                  <span>👦🎸 Children&apos;s Page (Yosia)</span>
+                  <Smile size={15} className="text-teal-600" />
+                  <span>Children&apos;s Page (Yosia)</span>
+                  {activeSystemTab === "yosia-kids" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveSystemTab("free-songs")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "free-songs"
-                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
-                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
                   }`}
                 >
-                  <Gift size={13} />
-                  <span>First 5 Free ({isLifetimeUnlocked ? "∞" : `${freeSongsRemaining}/5`})</span>
+                  <Gift size={15} className="text-teal-600" />
+                  <span>5 Free Songs ({isLifetimeUnlocked ? "∞" : `${freeSongsRemaining}/5`})</span>
+                  {activeSystemTab === "free-songs" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveSystemTab("lifetime")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "lifetime"
-                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
-                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
                   }`}
                 >
-                  <Crown size={13} />
-                  <span>10 Signups = Lifetime ({Math.min(10, basic099ReferralCount)}/10 • {Math.min(10, premiumReferralCount)}/10)</span>
+                  <Crown size={15} className="text-teal-600" />
+                  <span>Lifetime Pass</span>
+                  {activeSystemTab === "lifetime" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
                 </button>
 
                 <button
                   type="button"
                   onClick={() => setActiveSystemTab("affiliate")}
-                  className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "affiliate"
-                      ? "bg-[#FFD700] text-black shadow-[0_0_15px_rgba(255,215,0,0.25)]"
-                      : "bg-[#1c1815] text-[#FAF9F6]/80 hover:text-[#FFD700] border border-[#C5A880]/25"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
                   }`}
                 >
-                  <TrendingUp size={13} />
+                  <TrendingUp size={15} className="text-teal-600" />
                   <span>Affiliate Hub</span>
+                  {activeSystemTab === "affiliate" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
                 </button>
+              </nav>
+
+              {/* Right: Actions & Mobile Pill Switcher */}
+              <div className="flex items-center gap-2.5">
+                <PWAInstallButton variant="light" />
 
                 {isAdminMenuVisible && (
                   <button
                     type="button"
                     onClick={() => setActiveSystemTab("admin")}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-mono font-bold uppercase tracking-wider transition-all flex items-center gap-1.5 cursor-pointer ${
+                    className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
                       activeSystemTab === "admin"
-                        ? "bg-emerald-400 text-black shadow-[0_0_15px_rgba(52,211,153,0.35)]"
-                        : "bg-emerald-950/70 text-emerald-300 hover:bg-emerald-900 border border-emerald-500/40"
+                        ? "bg-teal-700 text-white shadow-xs"
+                        : "bg-teal-50 text-teal-800 hover:bg-teal-100 border border-teal-200"
                     }`}
                     title="Private Master Admin Console"
                   >
@@ -1269,18 +1263,77 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setIsSystemInitiated(false)}
-                  className="px-3 py-2 rounded-xl text-xs font-mono text-[#C5A880] hover:text-white bg-black/50 border border-[#C5A880]/20 flex items-center gap-1 transition-colors cursor-pointer"
-                  title="Return to Clean Welcome Landing Page"
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 hover:text-teal-800 bg-stone-100 hover:bg-teal-50 border border-stone-200 flex items-center gap-1 transition-colors cursor-pointer"
+                  title="Return to Welcome Home Page"
                 >
                   <ArrowLeft size={13} />
-                  <span className="hidden sm:inline">Welcome Page</span>
+                  <span className="hidden sm:inline">Home</span>
                 </button>
-              </nav>
+              </div>
+            </div>
+
+            {/* Secondary Sub-Navigation Bar for Mobile / Tablet */}
+            <div className="lg:hidden border-t border-stone-100 bg-stone-50/80 px-4 py-2 flex items-center gap-2 overflow-x-auto">
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("studio")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "studio"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                Haddi Studio
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("yosia-kids")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "yosia-kids"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                👦🎸 Children&apos;s Page
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("free-songs")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "free-songs"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                5 Free ({freeSongsRemaining}/5)
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("lifetime")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "lifetime"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                Lifetime Pass
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveSystemTab("affiliate")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "affiliate"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                Affiliate Hub
+              </button>
             </div>
           </header>
 
           {/* --- MAIN STAGES MATRIX & SEPARATE SYSTEM SECTIONS --- */}
-          <main className="flex-1 max-w-6xl w-full mx-auto px-6 py-8 flex flex-col justify-center">
+          <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-6 py-8 flex flex-col justify-center">
             {activeSystemTab === "admin" ? (
               <AdminAccountDashboard
                 adminUser={adminUser}
@@ -1315,7 +1368,7 @@ export default function App() {
               />
             ) : activeSystemTab === "yosia-kids" ? (
               <YosiaChildrenSection
-                variant="dark"
+                variant="light"
                 freeSongsRemaining={freeSongsRemaining}
                 onBackToMainPage={() => setActiveSystemTab("studio")}
                 onGenerateYosiaSong={(params) => {
@@ -1362,1237 +1415,910 @@ export default function App() {
                     transition={{ duration: 0.4 }}
                     className="flex flex-col gap-6 w-full max-w-[1100px] mx-auto py-2 animate-fade-in"
                   >
-              {paymentNotice && (
-                <div id="stripe-checkout-notice" className="bg-[#1c1815]/95 border-2 border-[#FFD700] rounded-2xl p-4 md:p-5 w-full flex items-center justify-between text-xs md:text-sm text-amber-200 font-medium tracking-wide shadow-[0_0_20px_rgba(255,215,0,0.25)] animate-pulse mb-2">
-                  <div className="flex items-center gap-3">
-                    <Sparkles className="text-[#FFD700] shrink-0" size={18} />
-                    <span>{paymentNotice}</span>
-                  </div>
-                  <button 
-                    type="button" 
-                    onClick={() => setPaymentNotice(null)} 
-                    className="text-[#FFD700] hover:text-white transition-colors p-1"
-                  >
-                    <X size={16} />
-                  </button>
-                </div>
-              )}
-
-              {/* Expandable Accordion: Our Purpose & How to Use */}
-              <div className="w-full bg-[#121110]/85 border border-[#C5A880]/30 rounded-2xl overflow-hidden backdrop-blur-md shadow-xl transition-all">
-                <button
-                  type="button"
-                  id="purpose_accordion_toggle"
-                  onClick={() => setIsPurposeExpanded(!isPurposeExpanded)}
-                  className="w-full text-left px-6 py-4 flex items-center justify-between text-xs sm:text-sm font-mono font-bold text-[#FFD700] tracking-wider uppercase bg-[#1c1917]/85 hover:bg-[#2c2824]/90 transition-all cursor-pointer"
-                >
-                  <span className="flex items-center gap-2">
-                    ✨ OUR PURPOSE & HOW TO USE THIS APP {isPurposeExpanded ? "(CLICK TO COLLAPSE)" : "(CLICK TO EXPAND)"}
-                  </span>
-                  <ChevronRight size={18} className={`text-[#FFD700] transition-transform duration-300 ${isPurposeExpanded ? 'rotate-90' : 'rotate-0'}`} />
-                </button>
-                
-                {isPurposeExpanded && (
-                  <div className="p-6 md:p-8 space-y-6 border-t border-[#C5A880]/20 bg-black/60 text-white/90 animate-fade-in text-left">
-                    {/* Official 5+3 Lyre Mandate */}
-                    <div className="space-y-3">
-                      <h4 className="text-sm font-mono font-bold text-[#FFD700] uppercase tracking-widest flex items-center gap-2">
-                        📜 The Official 5+3 Lyre Mandate
-                      </h4>
-                      <p className="text-xs md:text-sm leading-relaxed text-[#FAF9F6]/90 font-sans pl-4 border-l border-[#FFD700]/40">
-                        Haddi’s system integrates five distinct digital narrative dimensions (character, location, history, milestone, and blessing) with three traditional acoustic plucking intentions (sincerity, honor, and resonance). Every single track is engineered not as generic ambient music, but as an active sonic keepsake.
-                      </p>
-                    </div>
-
-                    {/* The 4-Step Gifting Journey */}
-                    <div className="space-y-4">
-                      <h4 className="text-sm font-mono font-bold text-[#FFD700] uppercase tracking-widest flex items-center gap-2">
-                        🚀 The 4-Step Gifting Journey
-                      </h4>
-                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pl-4">
-                        <div className="bg-[#1c1917]/70 border border-[#C5A880]/15 rounded-xl p-4 space-y-2">
-                          <span className="text-[10px] font-mono font-bold text-[#FFD700] uppercase tracking-widest bg-[#2c1e14] px-2 py-0.5 rounded">Step 01</span>
-                          <h5 className="text-xs font-bold text-white font-sans uppercase">Identify & Honor</h5>
-                          <p className="text-[11px] text-white/75 leading-relaxed font-sans">
-                            Specify the name of the special person or group the custom song is created to dedicate.
-                          </p>
+                    {paymentNotice && (
+                      <div id="stripe-checkout-notice" className="bg-teal-50 border border-teal-300 rounded-2xl p-4 w-full flex items-center justify-between text-xs md:text-sm text-teal-900 font-medium shadow-xs mb-2">
+                        <div className="flex items-center gap-3">
+                          <Sparkles className="text-teal-700 shrink-0" size={18} />
+                          <span>{paymentNotice}</span>
                         </div>
-                        <div className="bg-[#1c1917]/70 border border-[#C5A880]/15 rounded-xl p-4 space-y-2">
-                          <span className="text-[10px] font-mono font-bold text-[#FFD700] uppercase tracking-widest bg-[#2c1e14] px-2 py-0.5 rounded">Step 02</span>
-                          <h5 className="text-xs font-bold text-white font-sans uppercase">Weave the Lore</h5>
-                          <p className="text-[11px] text-white/75 leading-relaxed font-sans">
-                            Describe memories, details, and message prompts to feed the acoustic AI songcrafting engine.
-                          </p>
-                        </div>
-                        <div className="bg-[#1c1917]/70 border border-[#C5A880]/15 rounded-xl p-4 space-y-2">
-                          <span className="text-[10px] font-mono font-bold text-[#FFD700] uppercase tracking-widest bg-[#2c1e14] px-2 py-0.5 rounded">Step 03</span>
-                          <h5 className="text-xs font-bold text-white font-sans uppercase">Choose Frequency & Images</h5>
-                          <p className="text-[11px] text-white/75 leading-relaxed font-sans">
-                            Select a dedicated music theme and package bundle. For Premium Video ($4.99) or Legacy Bundle ($12.99), attach up to 5 personal photos to build a custom lyric slideshow.
-                          </p>
-                        </div>
-                        <div className="bg-[#1c1917]/70 border border-[#C5A880]/15 rounded-xl p-4 space-y-2">
-                          <span className="text-[10px] font-mono font-bold text-[#FFD700] uppercase tracking-widest bg-[#2c1e14] px-2 py-0.5 rounded">Step 04</span>
-                          <h5 className="text-xs font-bold text-white font-sans uppercase">Strum & Receive</h5>
-                          <p className="text-[11px] text-white/75 leading-relaxed font-sans">
-                            Securely checkout to compile Haddi's blessing. The high-fidelity audio or video link will be deployed directly to the recipient's inbox!
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-
-              {/* Top Section: Side-by-Side 50/50 Layout for Intro Text & Video/Form */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8 items-stretch p-6 rounded-2xl bg-[#0c0b0a]/70 border border-[#C5A880]/15 backdrop-blur-md shadow-2xl max-w-[1100px] mx-auto w-full">
-                
-                {/* Left Side: Centered Smoked Charcoal Greeting Text Block & Flagship Video */}
-                <div className="flex flex-col justify-start items-center text-center space-y-5 p-6 md:p-8 rounded-xl bg-[#121110]/95 border border-[#C5A880]/15 h-full">
-                  <div className="inline-flex items-center gap-2 px-3 py-1 bg-[#251e19] border border-[#C5A880]/20 rounded-full text-[10px] md:text-xs font-mono text-[#FFD700] uppercase tracking-wider">
-                    <Sparkles size={12} className="text-[#FFD700]" /> 5+3 Lyre Method
-                  </div>
-                  <h1 className="text-xl md:text-2xl lg:text-3xl font-display font-black tracking-wide text-white" style={{ textShadow: "2px 4px 12px rgba(0, 0, 0, 0.95), 0px 0px 20px rgba(0, 0, 0, 0.6)" }}>
-                    Who is your <span className="text-[#FFD700]">Acoustic Song</span> honoring today?
-                  </h1>
-                  <p className="text-[#FAF9F6]/85 text-xs md:text-sm leading-relaxed font-sans">
-                    Shalom! Welcome. My name is Haddi, a local street musician here in Jakarta, and this is my digital musician street corner. There is no greater gift than a song... so tell me, whose heart are we honoring with our silver strings today?
-                  </p>
-
-                  {/* Flagship Video Canvas: universal, front-and-center landing track layout with zero barriers */}
-                  <div className="relative w-full rounded-xl overflow-hidden border border-[#C5A880]/20 shadow-xl bg-black/80 flex items-center justify-center aspect-video min-h-[200px]">
-                    <iframe 
-                      id="haddi-video"
-                      src="https://drive.google.com/file/d/1H7bdSkULkzoNQGqqno26_KJzAPsZUPL2/preview" 
-                      width="100%" 
-                      height="450" 
-                      allow="autoplay" 
-                      style={{ border: "none", borderRadius: "12px", backgroundColor: "#050b14" }}
-                    ></iframe>
-
-                    {/* Golden unmute/mute overlay button */}
-                    <button 
-                      id="unmute-btn" 
-                      type="button"
-                      onClick={toggleMinstrelAudio}
-                      style={{
-                        position: "absolute",
-                        bottom: "15px",
-                        right: "15px",
-                        background: "rgba(12, 11, 10, 0.85)",
-                        border: "1.5px solid #FFD700",
-                        color: "#FFD700",
-                        borderRadius: "50%",
-                        width: "42px",
-                        height: "42px",
-                        cursor: "pointer",
-                        fontSize: "1.1rem",
-                        boxShadow: "0 0 12px rgba(255, 215, 0, 0.4)",
-                        zIndex: 10,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "all 0.2s ease"
-                      }}
-                      className="hover:scale-105 active:scale-95"
-                    >
-                      {introVideoMuted ? "🔇" : "🔊"}
-                    </button>
-                  </div>
-
-                  {/* Official Anthem Lyrics Banner Container: Dedicated full-width banner container positioned underneath the media player */}
-                  <div className="w-full bg-[#1c1917]/95 border-2 border-[#FFD700]/40 rounded-xl px-4 py-3.5 text-center shadow-lg relative overflow-hidden">
-                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[#FFD700]/5 to-transparent animate-pulse pointer-events-none" />
-                    <p className="text-xs sm:text-sm md:text-md text-[#FFD700] font-mono font-extrabold tracking-wider uppercase leading-relaxed select-none relative z-10 text-shadow-md">
-                      "THERE IS NO GREATER GIFT THAN A SONG... IT IS WORTH MORE THAN A THOUSAND WORDS!"
-                    </p>
-                  </div>
-
-                  {/* BOTTOM video player or custom audio player or loader depending on Suno state */}
-                  {isGenerating ? (
-                    <div className="relative w-full rounded-xl overflow-hidden border border-[#FFD700]/30 shadow-[0_0_25px_rgba(255,215,0,0.15)] bg-[#120e0a]/90 flex flex-col items-center justify-center aspect-video min-h-[200px] p-6 space-y-4">
-                      <div className="relative flex items-center justify-center">
-                        <Disc size={40} className="text-[#FFD700] animate-spin [animation-duration:3s]" />
-                        <Sparkles size={16} className="text-[#FFD700] absolute -top-1 -right-1 animate-ping" />
-                      </div>
-                      <div className="space-y-1 text-center max-w-xs">
-                        <p className="text-xs font-mono font-bold text-[#FFD700] uppercase tracking-widest animate-pulse">HADDI IS STRUMMING...</p>
-                        <p className="text-[10px] text-[#FAF9F6]/70 font-sans italic leading-relaxed">
-                          "Plucking silver strings with Sumatra passion and Jakarta energy..."
-                        </p>
-                      </div>
-                    </div>
-                  ) : audioUrl ? (
-                    <div className="relative w-full rounded-xl overflow-hidden border border-[#FFD700]/40 shadow-[0_0_25px_rgba(255,215,0,0.2)] bg-[#120e0a]/95 flex flex-col justify-center items-center p-5 aspect-video min-h-[200px] space-y-3.5">
-                      <div className="flex items-center gap-3.5 w-full">
-                        <div className={`p-3.5 rounded-full bg-black/60 border-2 border-[#FFD700] text-[#FFD700] relative shrink-0 ${isAudioPlaying ? 'animate-spin [animation-duration:10s]' : ''}`}>
-                          <Disc size={26} />
-                          <div className="absolute -inset-1 bg-[#FFD700]/10 blur-md rounded-full -z-10" />
-                        </div>
-                        <div className="text-left flex-1 min-w-0">
-                          <span className="text-[9px] font-mono text-[#FFD700] uppercase tracking-widest block font-bold">
-                            {activeTrackType === "narration" ? "Haddi Minstrel Spoken Blessing" : "Lyria 3 Sung Studio Master"}
-                          </span>
-                          <h4 className="text-xs md:text-sm font-bold text-white truncate font-sans uppercase">
-                            {currentSong?.title || "Bespoke Acoustic Masterpiece"}
-                          </h4>
-                          <p className="text-[10px] text-white/50 font-mono truncate">
-                            Style: {customGenre} • {setType.toUpperCase()}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Dual Option Track Switcher inside Main Studio Player */}
-                      {(lyriaAudioUrl || narrationAudioUrl) && (
-                        <div className="grid grid-cols-2 gap-2 w-full bg-black/60 p-1 rounded-lg border border-[#FFD700]/20">
-                          <button
-                            type="button"
-                            onClick={() => handleSelectTrackType("lyria")}
-                            disabled={!lyriaAudioUrl}
-                            className={`py-1 px-2 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
-                              activeTrackType === "lyria" && lyriaAudioUrl
-                                ? "bg-[#FFD700] text-black"
-                                : "text-white/70 hover:text-white"
-                            }`}
-                          >
-                            🎸 Sung Song (Lyria 3)
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleSelectTrackType("narration")}
-                            disabled={!narrationAudioUrl}
-                            className={`py-1 px-2 rounded text-[10px] font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
-                              activeTrackType === "narration" && narrationAudioUrl
-                                ? "bg-[#FFD700] text-black"
-                                : "text-white/70 hover:text-white"
-                            }`}
-                          >
-                            🎙️ Haddi Narration
-                          </button>
-                        </div>
-                      )}
-
-                      {/* Active HTML5 Audio Player */}
-                      <audio
-                        id="suno-audio-player"
-                        src={audioUrl}
-                        ref={audioRef}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onEnded={() => setIsAudioPlaying(false)}
-                        autoPlay={true}
-                        muted={false}
-                        controls={true}
-                        className="w-full mt-2 block rounded-lg bg-black/40 border border-[#FFD700]/20 text-white"
-                      />
-
-                      {/* Progress Line */}
-                      <div className="w-full space-y-1">
-                        <div className="flex justify-between text-[9px] font-mono text-white/40">
-                          <span>{formatTime(audioCurrentTime)}</span>
-                          <span>{formatTime(audioDuration || 120)}</span>
-                        </div>
-                        <div
-                          onClick={handleAudioSeek}
-                          className="h-1.5 w-full bg-white/10 rounded-full cursor-pointer relative overflow-hidden group hover:h-2 transition-all"
-                        >
-                          <div
-                            className="h-full bg-gradient-to-r from-[#FFD700] via-[#FCE068] to-[#FFD700] rounded-full transition-all duration-100"
-                            style={{ width: `${(audioCurrentTime / (audioDuration || 1)) * 100}%` }}
-                          />
-                        </div>
-                      </div>
-
-                      {/* Lower Action Layout */}
-                      <div className="flex items-center justify-between w-full pt-1.5">
                         <button
                           type="button"
-                          onClick={toggleAudioPlayback}
-                          className="bg-[#FFD700] hover:bg-[#FCE068] text-black rounded-lg px-4 py-1.5 text-[10px] font-mono tracking-wider font-extrabold uppercase transition-all duration-200 active:scale-95 flex items-center gap-1.5 shadow-[0_2px_8px_rgba(255,215,0,0.15)] shrink-0"
+                          onClick={() => setPaymentNotice(null)}
+                          className="text-teal-700 hover:text-teal-950 transition-colors p-1"
                         >
-                          {isAudioPlaying ? (
-                            <>
-                              <Pause size={12} fill="currentColor" /> PAUSE
-                            </>
-                          ) : (
-                            <>
-                              <Play size={12} fill="currentColor" /> PLAY
-                            </>
-                          )}
+                          <X size={16} />
                         </button>
-
-                        <div className="flex items-center gap-1 bg-black/40 rounded-full px-2 py-1 border border-white/5">
-                          <p className="text-[8px] font-mono text-emerald-400 uppercase tracking-widest flex items-center gap-1">
-                            <span className="w-1 h-1 rounded-full bg-[#FFD700] animate-ping" />
-                            LIVE
-                          </p>
-                        </div>
-
-                        {/* Mute and volume */}
-                        <div className="flex items-center gap-1.5 shrink-0">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (audioRef.current) {
-                                const targetMute = !audioRef.current.muted;
-                                audioRef.current.muted = targetMute;
-                                setIsAudioMuted(targetMute);
-                              }
-                            }}
-                            className="text-white/60 hover:text-white p-1"
-                          >
-                            {isAudioMuted ? <VolumeX size={14} className="text-red-400" /> : <Volume2 size={14} className="text-[#FFD700]" />}
-                          </button>
-                          <input
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.05"
-                            value={audioVolume}
-                            onChange={(e) => {
-                              const newVol = parseFloat(e.target.value);
-                              setAudioVolume(newVol);
-                              if (audioRef.current) {
-                                audioRef.current.volume = newVol;
-                                audioRef.current.muted = false;
-                                setIsAudioMuted(false);
-                              }
-                            }}
-                            className="w-14 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-[#FFD700]"
-                          />
-                        </div>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="relative w-full rounded-xl overflow-hidden border border-[#C5A880]/20 shadow-xl bg-black/80 flex items-center justify-center aspect-video min-h-[200px]">
-                      <iframe 
-                        id="premium-preview-video"
-                        src="https://drive.google.com/file/d/1dvyq1PS79s4e3GZlcDxZ3tK2lGKktyiC/preview" 
-                        width="100%" 
-                        height="450" 
-                        allow="autoplay" 
-                        style={{ border: "none", borderRadius: "12px", backgroundColor: "#050b14" }}
-                      ></iframe>
-                    </div>
-                  )}
+                    )}
 
-                  {/* The Sound of Honor & Covenant definition panel */}
-                  <div className="w-full p-5 bg-[#1c1917]/60 border border-[#C5A880]/20 rounded-xl text-left backdrop-blur-md shadow-lg space-y-2 mt-1">
-                    <h4 className="text-xs sm:text-sm font-mono font-semibold text-[#FFD700] uppercase tracking-widest flex items-center gap-1.5">
-                      🎻 The Sound of Honor & Covenant
-                    </h4>
-                    <p className="text-[11px] sm:text-xs text-[#FAF9F6]/90 leading-relaxed font-sans">
-                      A bespoke acoustic song is more than a melody; it is a sacred covenant of remembrance. Through Haddi's silver strings, your shared history, milestones, and blessings are bound into a living testament of honor, designed to persist as an unbreakable heritage of love and devotion.
-                    </p>
-                  </div>
-
-                  {/* Custom Gift Song Card Preview */}
-                  {audioUrl && (
-                    <div className="w-full mt-2">
-                      <GiftSongCard
-                        audioUrl={audioSource || audioUrl}
-                        lyriaAudioUrl={lyriaAudioUrl}
-                        narrationAudioUrl={narrationAudioUrl}
-                        activeTrackType={activeTrackType}
-                        onSelectTrackType={handleSelectTrackType}
-                        songTitle={currentSong?.title || "The Sound of Honor & Covenant"}
-                        lyrics={
-                          currentSong?.lyricSections?.filter(s => s.sectionName !== "Intro").flatMap(s => s.lines).join("\n") ||
-                          context ||
-                          "A gentle melody of blessings and remembrance, plucked upon silver strings with honor and grace."
-                        }
-                        recipientName={currentSong?.target || target || "Someone Special"}
-                      />
-                    </div>
-                  )}
-                  
-                  {error && (
-                    <div className="bg-red-950/40 border border-red-500/30 p-3 rounded-xl text-xs font-mono text-red-300 w-full text-center">
-                      ⚠️ {error}
-                    </div>
-                  )}
-                </div>
-
-                {/* Right Side: Interactive Studio Form */}
-                <div className="input-panel-container window relative right-interaction-box w-full p-6 bg-[#0c0b0a]/40 border border-[#C5A880]/15 rounded-xl flex flex-col justify-between min-h-full h-auto">
-                  
-                  {/* Decorative Frame */}
-                  <div className="absolute top-3 left-3 w-3 h-3 border-t border-l border-[#C5A880]/30 rounded-tl"></div>
-                  <div className="absolute top-3 right-3 w-3 h-3 border-t border-r border-[#C5A880]/30 rounded-tr"></div>
-                  <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-[#C5A880]/30 rounded-bl"></div>
-                  <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-[#C5A880]/30 rounded-br"></div>
-
-                  <div className="space-y-6">
-                    
-                    {/* --- REQUIRED GIFTER & RECIPIENT EMAILS --- */}
-                    <div className="flex flex-col gap-4 bg-black/40 border border-[#C5A880]/15 p-4 rounded-xl">
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between">
-                          <label className="text-[10px] md:text-xs font-mono text-[#FFD700] uppercase tracking-widest font-bold flex items-center gap-1.5">
-                            📨 Your Email *
-                          </label>
-                          {gifterEmail.trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && (
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setIsAdminMenuVisible(true);
-                                setActiveSystemTab("admin");
-                              }}
-                              className="text-[10px] font-mono font-bold text-emerald-400 hover:text-[#FFD700] flex items-center gap-1 cursor-pointer"
-                            >
-                              <ShieldCheck size={12} /> Open Admin Console
-                            </button>
-                          )}
-                        </div>
-                        <input
-                          id="gifter_email_input"
-                          type="email"
-                          required
-                          placeholder="gifter@example.com"
-                          value={gifterEmail}
-                          onChange={(e) => setGifterEmail(e.target.value)}
-                          className="w-full bg-black/90 border-2 border-[#C5A880]/80 rounded-xl px-3 py-2 text-[#FAF9F6] text-xs placeholder-white/30 focus:outline-none focus:border-[#FFD700] transition-all font-sans font-medium custom-input"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="text-[10px] md:text-xs font-mono text-[#FFD700] uppercase tracking-widest font-bold flex items-center gap-1.5">
-                          ✉️ Recipient's Email *
-                        </label>
-                        <input
-                          id="recipient_email_input"
-                          type="email"
-                          required
-                          placeholder="recipient@example.com"
-                          value={recipientEmail}
-                          onChange={(e) => setRecipientEmail(e.target.value)}
-                          className="w-full bg-black/90 border-2 border-[#C5A880]/80 rounded-xl px-3 py-2 text-[#FAF9F6] text-xs placeholder-white/30 focus:outline-none focus:border-[#FFD700] transition-all font-sans font-medium custom-input"
-                        />
-                      </div>
-                    </div>
-
-                    {/* [1. THE TARGET] */}
-                    <div className="space-y-2">
-                      <label className="text-[1.1rem] md:text-[1.3rem] font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-semibold">
-                        <User size={16} /> Play a Song For...
-                      </label>
-                      <input
-                        id="target_recipient_input"
-                        type="text"
-                        maxLength={40}
-                        placeholder="e.g. Audrey, Johnny, My Eco-Brand"
-                        value={target}
-                        onChange={(e) => setTarget(e.target.value)}
-                        className="w-full bg-black/90 border-2 border-[#C5A880] rounded-xl px-4 py-3 text-[#FAF9F6] placeholder-white/30 focus:outline-none focus:border-[#FFD700] transition-all font-sans text-[1.1rem] md:text-[1.3rem] font-medium custom-input"
-                      />
-                    </div>
-
-                    {/* [2. THE CONTEXT] */}
-                    <div className="space-y-2">
-                      <label className="text-sm md:text-md font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-semibold">
-                        <Calendar size={16} /> The Context & Special Story
-                      </label>
-                      <textarea
-                        id="context_story_textarea"
-                        rows={5}
-                        placeholder="e.g., Pour out your heart here up to 500 words. Describe their character, covenant promises, or a special milestone moment..."
-                        value={context}
-                        onChange={(e) => setContext(e.target.value)}
-                        className={`w-full bg-black/95 border-2 rounded-xl px-3.5 py-2.5 text-[#FAF9F6] text-xs sm:text-sm leading-relaxed placeholder-white/30 focus:outline-none transition-all font-sans font-normal resize-y min-h-[120px] custom-input ${
-                          (context.trim() === "" ? 0 : context.trim().split(/\s+/).length) > 500
-                            ? "border-red-500 focus:border-red-500 text-red-100"
-                            : "border-[#C5A880] focus:border-[#FFD700]"
-                        }`}
-                      />
-                      <div className="flex justify-between items-center text-xs font-mono">
-                        <span className="text-white/50">Include ocean, morning, hero prompts...</span>
-                        <span className={
-                          (context.trim() === "" ? 0 : context.trim().split(/\s+/).length) > 500
-                            ? "text-red-400 font-bold"
-                            : "text-white/50"
-                        }>
-                          {context.trim() === "" ? 0 : context.trim().split(/\s+/).length} / 500 words
+                    {/* Expandable Accordion: Our Purpose & How to Use */}
+                    <div className="w-full bg-white border border-stone-200 rounded-2xl overflow-hidden shadow-xs transition-all">
+                      <button
+                        type="button"
+                        id="purpose_accordion_toggle"
+                        onClick={() => setIsPurposeExpanded(!isPurposeExpanded)}
+                        className="w-full text-left px-6 py-4 flex items-center justify-between text-xs sm:text-sm font-semibold text-teal-900 bg-stone-50/70 hover:bg-teal-50/50 transition-all cursor-pointer"
+                      >
+                        <span className="flex items-center gap-2">
+                          <Sparkles size={15} className="text-teal-600" />
+                          <span>Our Purpose & How to Use the Full Studio {isPurposeExpanded ? "(Hide)" : "(Learn More)"}</span>
                         </span>
-                      </div>
+                        <ChevronRight size={18} className={`text-teal-700 transition-transform duration-300 ${isPurposeExpanded ? "rotate-90" : "rotate-0"}`} />
+                      </button>
+
+                      {isPurposeExpanded && (
+                        <div className="p-6 md:p-8 space-y-6 border-t border-stone-200 bg-white text-slate-700 animate-fade-in text-left">
+                          <div className="space-y-2">
+                            <h4 className="text-sm font-bold text-teal-800 uppercase tracking-wider flex items-center gap-2">
+                              📜 The Official 5+3 Lyre Mandate
+                            </h4>
+                            <p className="text-xs md:text-sm leading-relaxed text-slate-600 pl-4 border-l-2 border-teal-500">
+                              Haddi’s system integrates five distinct narrative dimensions (character, location, history, milestone, and blessing) with three acoustic intentions (sincerity, honor, and resonance). Every track is crafted as a personal sonic keepsake.
+                            </p>
+                          </div>
+
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 space-y-1.5">
+                              <span className="text-[10px] font-mono font-bold text-teal-800 uppercase tracking-widest bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">Step 01</span>
+                              <h5 className="text-xs font-bold text-slate-900">Identify & Honor</h5>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Enter the name of the special person or group your custom song honors.
+                              </p>
+                            </div>
+                            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 space-y-1.5">
+                              <span className="text-[10px] font-mono font-bold text-teal-800 uppercase tracking-widest bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">Step 02</span>
+                              <h5 className="text-xs font-bold text-slate-900">Weave the Story</h5>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Share memories, occasion details, and personal words for the lyrics.
+                              </p>
+                            </div>
+                            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 space-y-1.5">
+                              <span className="text-[10px] font-mono font-bold text-teal-800 uppercase tracking-widest bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">Step 03</span>
+                              <h5 className="text-xs font-bold text-slate-900">Choose Style & Language</h5>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Pick your musical style and language (including Bahasa Indonesia).
+                              </p>
+                            </div>
+                            <div className="bg-stone-50 border border-stone-200 rounded-xl p-4 space-y-1.5">
+                              <span className="text-[10px] font-mono font-bold text-teal-800 uppercase tracking-widest bg-teal-50 border border-teal-200 px-2 py-0.5 rounded">Step 04</span>
+                              <h5 className="text-xs font-bold text-slate-900">Create & Gift</h5>
+                              <p className="text-xs text-slate-600 leading-relaxed">
+                                Generate your complete vocal song and share the digital gift card!
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
 
-                    {/* [3. CONDITIONAL IMAGE UPLOADER] */}
-                    {(setType === "premium" || setType === "legacy") && (
-                      <div className="space-y-2 animate-fade-in bg-black/50 border border-[#C5A880]/20 p-4 rounded-xl text-left">
-                        <label className="text-[11px] md:text-xs font-mono text-[#FFD700] uppercase tracking-widest font-semibold block">
-                          📸 Add a Visual Touch (Optional - Max 5 Photos)
-                        </label>
-                        
-                        <div
-                          onDragOver={(e) => e.preventDefault()}
-                          onDrop={(e) => {
-                            e.preventDefault();
-                            if (uploadedImages.length >= 5) return;
-                            const files = Array.from(e.dataTransfer.files) as File[];
-                            const imageFiles = files.filter(f => f.type.startsWith("image/")).slice(0, 5 - uploadedImages.length);
-                            imageFiles.forEach(file => {
-                              const reader = new FileReader();
-                              reader.onload = (ev) => {
-                                if (ev.target?.result) {
-                                  setUploadedImages(prev => [...prev, ev.target!.result as string].slice(0, 5));
-                                }
-                              };
-                              reader.readAsDataURL(file);
-                            });
-                          }}
-                          onClick={() => {
-                            const fileInput = document.getElementById("uploader-file-input") as HTMLInputElement | null;
-                            if (fileInput) fileInput.click();
-                          }}
-                          className="border-2 border-dashed border-[#C5A880]/30 hover:border-[#FFD700]/70 rounded-xl p-4 text-center cursor-pointer bg-black/40 hover:bg-[#121110]/85 transition-all text-white/50"
-                        >
-                          <input
-                            id="uploader-file-input"
-                            type="file"
-                            multiple
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              if (uploadedImages.length >= 5) return;
-                              const files = Array.from(e.target.files || []) as File[];
-                              const imageFiles = files.filter(f => f.type.startsWith("image/")).slice(0, 5 - uploadedImages.length);
-                              imageFiles.forEach(file => {
-                                const reader = new FileReader();
-                                reader.onload = (ev) => {
-                                  if (ev.target?.result) {
-                                    setUploadedImages(prev => [...prev, ev.target!.result as string].slice(0, 5));
-                                  }
-                                };
-                                reader.readAsDataURL(file);
-                              });
-                            }}
-                          />
-                          <p className="text-xs font-sans">
-                            Drag & drop your photos here, or <span className="text-[#FFD700] underline font-bold">browse</span>
-                          </p>
-                          <p className="text-[10px] font-mono text-white/30 uppercase mt-1">Image files (Max 5)</p>
+                    {/* Top Section: Side-by-Side 50/50 Layout for Intro Video & Studio Form */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                      {/* Left Side: Clean White Greeting & Video Card */}
+                      <div className="flex flex-col justify-start items-center text-center space-y-5 p-6 md:p-7 rounded-2xl bg-white border border-stone-200 shadow-xs">
+                        <div className="inline-flex items-center gap-2 px-3 py-1 bg-teal-50 border border-teal-200 rounded-full text-xs font-semibold text-teal-800">
+                          <Sparkles size={13} className="text-teal-600" /> Haddi&apos;s Acoustic Studio
+                        </div>
+                        <h1 className="text-2xl md:text-3xl font-display font-bold tracking-tight text-slate-900">
+                          Who is your <span className="text-teal-700">Acoustic Song</span> honoring today?
+                        </h1>
+                        <p className="text-slate-600 text-xs md:text-sm leading-relaxed">
+                          Shalom! Welcome. My name is Haddi, a local street musician in Jakarta. There is no greater gift than a song — tell me whose heart we are honoring today.
+                        </p>
+
+                        {/* Flagship Video Canvas */}
+                        <div className="relative w-full rounded-xl overflow-hidden border border-stone-200 shadow-xs bg-slate-900 flex items-center justify-center aspect-video min-h-[200px]">
+                          <iframe
+                            id="haddi-video"
+                            src="https://drive.google.com/file/d/1H7bdSkULkzoNQGqqno26_KJzAPsZUPL2/preview"
+                            width="100%"
+                            height="450"
+                            allow="autoplay"
+                            style={{ border: "none", borderRadius: "12px", backgroundColor: "#0f172a" }}
+                          ></iframe>
+
+                          <button
+                            id="unmute-btn"
+                            type="button"
+                            onClick={toggleMinstrelAudio}
+                            className="absolute bottom-3.5 right-3.5 w-10 h-10 rounded-full bg-white/90 hover:bg-white text-teal-800 border border-teal-300 shadow-md flex items-center justify-center text-base cursor-pointer transition-transform hover:scale-105 z-10"
+                          >
+                            {introVideoMuted ? "🔇" : "🔊"}
+                          </button>
                         </div>
 
-                        {uploadedImages.length > 0 && (
-                          <div className="flex flex-wrap gap-2 pt-1.5 justify-start">
-                            {uploadedImages.map((imgSrc, idx) => (
-                              <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-[#C5A880]/40 group bg-black">
-                                <img src={imgSrc} alt={`Visual Touch ${idx + 1}`} className="w-full h-full object-cover animate-fade-in" />
+                        {/* Quote Banner */}
+                        <div className="w-full bg-teal-50/70 border border-teal-200 rounded-xl px-4 py-3 text-center">
+                          <p className="text-xs font-semibold text-teal-900 tracking-wide">
+                            &ldquo;There is no greater gift than a song... it is worth more than a thousand words!&rdquo;
+                          </p>
+                        </div>
+
+                        {/* Active Studio Audio Player or Secondary Preview */}
+                        {isGenerating ? (
+                          <div className="relative w-full rounded-xl overflow-hidden border border-teal-200 bg-teal-50/50 flex flex-col items-center justify-center aspect-video min-h-[180px] p-6 space-y-3">
+                            <Disc size={36} className="text-teal-700 animate-spin [animation-duration:3s]" />
+                            <div className="space-y-1 text-center max-w-xs">
+                              <p className="text-xs font-mono font-bold text-teal-800 uppercase tracking-widest">
+                                HADDI IS COMPOSING...
+                              </p>
+                              <p className="text-xs text-slate-600 italic">
+                                &ldquo;Plucking silver strings with warmth and sincerity...&rdquo;
+                              </p>
+                            </div>
+                          </div>
+                        ) : audioUrl ? (
+                          <div className="w-full rounded-xl border border-teal-200 bg-stone-50 p-5 space-y-3.5 text-left">
+                            <div className="flex items-center gap-3.5 w-full">
+                              <div className={`p-3 rounded-full bg-teal-700 text-white shrink-0 ${isAudioPlaying ? "animate-spin [animation-duration:10s]" : ""}`}>
+                                <Disc size={22} />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <span className="text-[10px] font-mono text-teal-700 uppercase tracking-widest block font-bold">
+                                  {activeTrackType === "narration" ? "Haddi Spoken Blessing" : "Lyria 3 Sung Studio Master"}
+                                </span>
+                                <h4 className="text-sm font-bold text-slate-900 truncate">
+                                  {currentSong?.title || "Bespoke Acoustic Masterpiece"}
+                                </h4>
+                                <p className="text-xs text-slate-500 truncate">
+                                  Style: {customGenre} • {setType.toUpperCase()}
+                                </p>
+                              </div>
+                            </div>
+
+                            {(lyriaAudioUrl || narrationAudioUrl) && (
+                              <div className="grid grid-cols-2 gap-2 w-full bg-white p-1 rounded-lg border border-stone-200">
                                 <button
                                   type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setUploadedImages(prev => prev.filter((_, i) => i !== idx));
-                                  }}
-                                  className="absolute inset-0 bg-black/70 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer text-red-400 font-bold"
+                                  onClick={() => handleSelectTrackType("lyria")}
+                                  disabled={!lyriaAudioUrl}
+                                  className={`py-1.5 px-2 rounded-md text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
+                                    activeTrackType === "lyria" && lyriaAudioUrl
+                                      ? "bg-teal-700 text-white"
+                                      : "text-slate-600 hover:text-slate-900"
+                                  }`}
                                 >
-                                  <X size={14} />
+                                  🎸 Sung Song
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectTrackType("narration")}
+                                  disabled={!narrationAudioUrl}
+                                  className={`py-1.5 px-2 rounded-md text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
+                                    activeTrackType === "narration" && narrationAudioUrl
+                                      ? "bg-teal-700 text-white"
+                                      : "text-slate-600 hover:text-slate-900"
+                                  }`}
+                                >
+                                  🎙️ Haddi Narration
                                 </button>
                               </div>
-                            ))}
+                            )}
+
+                            <audio
+                              id="suno-audio-player"
+                              src={audioUrl}
+                              ref={audioRef}
+                              onTimeUpdate={handleAudioTimeUpdate}
+                              onEnded={() => setIsAudioPlaying(false)}
+                              autoPlay={true}
+                              muted={false}
+                              controls={true}
+                              className="w-full mt-2 block rounded-lg accent-teal-700"
+                            />
+                          </div>
+                        ) : (
+                          <div className="relative w-full rounded-xl overflow-hidden border border-stone-200 shadow-xs bg-slate-900 flex items-center justify-center aspect-video min-h-[180px]">
+                            <iframe
+                              id="premium-preview-video"
+                              src="https://drive.google.com/file/d/1dvyq1PS79s4e3GZlcDxZ3tK2lGKktyiC/preview"
+                              width="100%"
+                              height="450"
+                              allow="autoplay"
+                              style={{ border: "none", borderRadius: "12px", backgroundColor: "#0f172a" }}
+                            ></iframe>
+                          </div>
+                        )}
+
+                        {audioUrl && (
+                          <div className="w-full mt-2">
+                            <GiftSongCard
+                              audioUrl={audioSource || audioUrl}
+                              lyriaAudioUrl={lyriaAudioUrl}
+                              narrationAudioUrl={narrationAudioUrl}
+                              activeTrackType={activeTrackType}
+                              onSelectTrackType={handleSelectTrackType}
+                              songTitle={currentSong?.title || "The Sound of Honor & Covenant"}
+                              lyrics={
+                                currentSong?.lyricSections?.filter(s => s.sectionName !== "Intro").flatMap(s => s.lines).join("\n") ||
+                                context ||
+                                "A gentle melody of blessings and remembrance, plucked upon silver strings with honor and grace."
+                              }
+                              recipientName={currentSong?.target || target || "Someone Special"}
+                            />
+                          </div>
+                        )}
+
+                        {error && (
+                          <div className="bg-red-50 border border-red-200 p-3 rounded-xl text-xs font-medium text-red-700 w-full text-center">
+                            ⚠️ {error}
                           </div>
                         )}
                       </div>
-                    )}
 
-                    {/* [Musical Style Theme Selector] */}
-                    <div className="style-selector-section">
-                      <label className="text-xs font-mono text-[#FFD700] uppercase tracking-widest block font-bold mb-2">
-                        Select Your Musical Style Theme:
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Acoustic Folk")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Acoustic Folk" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Acoustic Folk
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Bluegrass")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Bluegrass" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Bluegrass
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Rustic Lute")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Rustic Lute" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Rustic Lute
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Modern Worship")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Modern Worship" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Worship
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Lofi Acoustic")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Lofi Acoustic" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Lofi Acoustic
-                        </button>
-                        <button 
-                          type="button" 
-                          onClick={() => setCustomGenre("Indie Pop")} 
-                          className={`px-2 py-2 text-[10px] md:text-xs font-semibold rounded-lg border text-center transition-all ${customGenre === "Indie Pop" ? "bg-[#FFD700] text-black border-[#FFD700]" : "bg-black/40 text-white/70 border-[#C5A880]/20 hover:border-white/50"}`}
-                        >
-                          Indie Pop
-                        </button>
-                      </div>
-                    </div>
+                      {/* Right Side: Interactive Studio Form */}
+                      <div className="w-full p-6 md:p-7 bg-white border border-stone-200 rounded-2xl shadow-xs flex flex-col justify-between space-y-6">
+                        <div className="space-y-5">
+                          {/* Step 1: Recipient */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
+                              <User size={15} className="text-teal-600" /> Step 1: Who is this song for?
+                            </label>
+                            <input
+                              id="target_recipient_input"
+                              type="text"
+                              maxLength={40}
+                              placeholder="e.g. Sarah, Mom & Dad, My Best Friend"
+                              value={target}
+                              onChange={(e) => setTarget(e.target.value)}
+                              className="w-full bg-stone-50 border border-stone-300 rounded-xl px-4 py-3 text-slate-900 placeholder-slate-400 focus:outline-none focus:border-teal-600 focus:bg-white transition-all text-sm font-medium"
+                            />
+                          </div>
 
-                    {/* [QUESTION FOR GUESTS: IS THIS SONG FOR A CHILD? SEPARATE PAGE FOR CHILDREN] */}
-                    <div className="p-3 rounded-xl bg-amber-950/40 border border-[#FFD700]/40 flex flex-wrap items-center justify-between gap-2">
-                      <div className="space-y-0.5">
-                        <p className="text-xs font-bold text-[#FFD700] flex items-center gap-1.5">
-                          <span>👦🎸</span>
-                          <span>Is this song for a child? We have a separate page for children!</span>
-                        </p>
-                        <p className="text-[10px] text-white/75 font-mono">
-                          Meet Haddi&apos;s little brother, Yosia — open our dedicated Children&apos;s Song Page!
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setActiveSystemTab("yosia-kids");
-                          window.scrollTo({ top: 0, behavior: "smooth" });
-                        }}
-                        className="px-3 py-1.5 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-[10px] font-extrabold uppercase tracking-wider flex items-center gap-1 cursor-pointer shrink-0"
-                      >
-                        <span>Open Children&apos;s Page</span>
-                        <ChevronRight size={12} />
-                      </button>
-                    </div>
+                          {/* Step 2: Story & Lyrics */}
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold text-teal-800 uppercase tracking-wider flex items-center gap-1.5">
+                              <Calendar size={15} className="text-teal-600" /> Step 2: Occasion, Memories & Lyrics
+                            </label>
+                            <textarea
+                              id="context_story_textarea"
+                              rows={4}
+                              placeholder="Describe the occasion (Birthday, Anniversary, Thank You) and special memories or exact words to weave into the chorus..."
+                              value={context}
+                              onChange={(e) => setContext(e.target.value)}
+                              className={`w-full bg-stone-50 border rounded-xl px-4 py-3 text-slate-900 text-xs sm:text-sm leading-relaxed placeholder-slate-400 focus:outline-none focus:bg-white transition-all resize-y min-h-[110px] ${
+                                (context.trim() === "" ? 0 : context.trim().split(/\s+/).length) > 500
+                                  ? "border-red-500 focus:border-red-500"
+                                  : "border-stone-300 focus:border-teal-600"
+                              }`}
+                            />
+                            <div className="flex justify-between items-center text-[11px] text-slate-500">
+                              <span>Include personal names, places, or favorite memories</span>
+                              <span className={(context.trim() === "" ? 0 : context.trim().split(/\s+/).length) > 500 ? "text-red-600 font-bold" : ""}>
+                                {context.trim() === "" ? 0 : context.trim().split(/\s+/).length} / 500 words
+                              </span>
+                            </div>
+                          </div>
 
-                    {/* [LANGUAGE TRANSLATOR SELECTOR] */}
-                    <div className="p-3 rounded-xl bg-black/50 border border-[#C5A880]/30 space-y-2">
-                      <label className="text-[11px] font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-1.5 font-bold">
-                        <Globe size={14} /> Song Language & Translator (e.g. Bahasa Indonesia):
-                      </label>
-                      <div className="flex flex-wrap gap-1.5">
-                        {SUPPORTED_SONG_LANGUAGES.slice(0, 6).map((lang) => (
+                          {/* Optional Gifter & Recipient Emails */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-stone-50 border border-stone-200 p-3.5 rounded-xl">
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between">
+                                <label className="text-[11px] font-semibold text-slate-700">
+                                  Your Email
+                                </label>
+                                {gifterEmail.trim().toLowerCase() === MASTER_ADMIN_EMAIL.toLowerCase() && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setIsAdminMenuVisible(true);
+                                      setActiveSystemTab("admin");
+                                    }}
+                                    className="text-[10px] font-mono font-bold text-teal-700 hover:underline flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <ShieldCheck size={11} /> Admin
+                                  </button>
+                                )}
+                              </div>
+                              <input
+                                id="gifter_email_input"
+                                type="email"
+                                placeholder="you@example.com"
+                                value={gifterEmail}
+                                onChange={(e) => setGifterEmail(e.target.value)}
+                                className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-teal-600"
+                              />
+                            </div>
+                            <div className="space-y-1">
+                              <label className="text-[11px] font-semibold text-slate-700">
+                                Recipient&apos;s Email (Optional)
+                              </label>
+                              <input
+                                id="recipient_email_input"
+                                type="email"
+                                placeholder="recipient@example.com"
+                                value={recipientEmail}
+                                onChange={(e) => setRecipientEmail(e.target.value)}
+                                className="w-full bg-white border border-stone-300 rounded-lg px-3 py-2 text-slate-900 text-xs placeholder-slate-400 focus:outline-none focus:border-teal-600"
+                              />
+                            </div>
+                          </div>
+
+                          {/* Step 3: Musical Style Theme Selector */}
+                          <div className="space-y-2">
+                            <label className="text-xs font-bold text-teal-800 uppercase tracking-wider block">
+                              Step 3: Musical Style & Language
+                            </label>
+                            <div className="grid grid-cols-3 gap-2">
+                              {["Acoustic Folk", "Bluegrass", "Rustic Lute", "Modern Worship", "Lofi Acoustic", "Indie Pop"].map((genre) => (
+                                <button
+                                  key={genre}
+                                  type="button"
+                                  onClick={() => setCustomGenre(genre)}
+                                  className={`px-2.5 py-2 text-xs font-semibold rounded-xl border text-center transition-all cursor-pointer ${
+                                    customGenre === genre
+                                      ? "bg-teal-700 text-white border-teal-700 shadow-xs"
+                                      : "bg-stone-50 text-slate-700 border-stone-200 hover:border-teal-300"
+                                  }`}
+                                >
+                                  {genre === "Modern Worship" ? "Worship" : genre}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Language Translator Selector */}
+                          <div className="p-3.5 rounded-xl bg-stone-50 border border-stone-200 space-y-2">
+                            <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
+                              <Globe size={14} className="text-teal-700" /> Song Language & Translator:
+                            </label>
+                            <div className="flex flex-wrap gap-1.5">
+                              {SUPPORTED_SONG_LANGUAGES.slice(0, 6).map((lang) => (
+                                <button
+                                  key={lang.code}
+                                  type="button"
+                                  onClick={() => setSongLanguage(lang.code)}
+                                  className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                                    songLanguage === lang.code
+                                      ? "bg-teal-700 text-white shadow-xs"
+                                      : "bg-white text-slate-700 border border-stone-200 hover:border-teal-300"
+                                  }`}
+                                >
+                                  {lang.short}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Question for Guests: Separate Page for Children (Flashing High-Visibility Callout) */}
+                          <div className="p-4 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border-2 border-teal-500 shadow-[0_0_20px_rgba(13,148,136,0.2)] flex flex-wrap items-center justify-between gap-3">
+                            <div className="space-y-0.5">
+                              <div className="flex flex-wrap items-center gap-1.5">
+                                <span className="text-xs sm:text-sm font-bold text-teal-950 flex items-center gap-1.5">
+                                  <span className="animate-bounce inline-block">👦🎸</span>
+                                  <span>Is this song for a child? We have a separate page for children!</span>
+                                </span>
+                                <span className="px-2 py-0.5 rounded-full bg-amber-300 text-slate-950 text-[10px] font-mono font-extrabold uppercase tracking-wider animate-pulse">
+                                  ✨ Kids Page
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-teal-800 font-medium">
+                                Meet Haddi&apos;s little brother, Yosia — open our dedicated Children&apos;s Song Page.
+                              </p>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setActiveSystemTab("yosia-kids");
+                                window.scrollTo({ top: 0, behavior: "smooth" });
+                              }}
+                              className="px-4 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer shrink-0 transition-all shadow-md ring-2 ring-amber-300/80 animate-pulse hover:animate-none"
+                            >
+                              <span>Open Children&apos;s Page</span>
+                              <ChevronRight size={14} />
+                            </button>
+                          </div>
+
+                          {/* Audio Engine & Package Set */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider block">
+                                Vocal Mode
+                              </label>
+                              <div className="grid grid-cols-3 gap-1.5">
+                                {[
+                                  { id: "lyria", label: "🎸 Sung" },
+                                  { id: "narration", label: "🎙️ Voice" },
+                                  { id: "both", label: "✨ Both" },
+                                ].map((m) => (
+                                  <button
+                                    key={m.id}
+                                    type="button"
+                                    onClick={() => setAudioGenerationMode(m.id as "lyria" | "narration" | "both")}
+                                    className={`py-2 px-2 rounded-lg border text-xs font-semibold transition-all cursor-pointer ${
+                                      audioGenerationMode === m.id
+                                        ? "border-teal-700 bg-teal-50 text-teal-900"
+                                        : "border-stone-200 bg-stone-50 text-slate-600 hover:border-stone-300"
+                                    }`}
+                                  >
+                                    {m.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1.5">
+                              <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider block">
+                                Dedicated Set
+                              </label>
+                              <div className="grid grid-cols-2 gap-1.5">
+                                {[
+                                  { id: "quick", label: "Quick ($0.99)" },
+                                  { id: "full", label: "Full ($1.99)" },
+                                  { id: "premium", label: "Video ($4.99)" },
+                                  { id: "legacy", label: "Legacy ($12.99)" },
+                                ].map((s) => (
+                                  <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => setSetType(s.id as SetType)}
+                                    className={`py-1.5 px-2 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
+                                      setType === s.id
+                                        ? "border-teal-700 bg-teal-50 text-teal-900"
+                                        : "border-stone-200 bg-stone-50 text-slate-600 hover:border-stone-300"
+                                    }`}
+                                  >
+                                    {s.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Conditional Image Uploader for Video/Legacy */}
+                          {(setType === "premium" || setType === "legacy") && (
+                            <div className="space-y-2 bg-stone-50 border border-stone-200 p-4 rounded-xl text-left">
+                              <label className="text-xs font-semibold text-teal-900 block">
+                                📸 Add Photos for Lyric Video (Optional - Max 5)
+                              </label>
+                              <div
+                                onClick={() => {
+                                  const fileInput = document.getElementById("uploader-file-input") as HTMLInputElement | null;
+                                  if (fileInput) fileInput.click();
+                                }}
+                                className="border-2 border-dashed border-stone-300 hover:border-teal-600 rounded-xl p-4 text-center cursor-pointer bg-white transition-all text-slate-500"
+                              >
+                                <input
+                                  id="uploader-file-input"
+                                  type="file"
+                                  multiple
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    if (uploadedImages.length >= 5) return;
+                                    const files = Array.from(e.target.files || []) as File[];
+                                    const imageFiles = files.filter(f => f.type.startsWith("image/")).slice(0, 5 - uploadedImages.length);
+                                    imageFiles.forEach(file => {
+                                      const reader = new FileReader();
+                                      reader.onload = (ev) => {
+                                        if (ev.target?.result) {
+                                          setUploadedImages(prev => [...prev, ev.target!.result as string].slice(0, 5));
+                                        }
+                                      };
+                                      reader.readAsDataURL(file);
+                                    });
+                                  }}
+                                />
+                                <p className="text-xs">
+                                  Click to upload photos (<span className="text-teal-700 font-semibold underline">browse</span>)
+                                </p>
+                              </div>
+                              {uploadedImages.length > 0 && (
+                                <div className="flex flex-wrap gap-2 pt-1">
+                                  {uploadedImages.map((imgSrc, idx) => (
+                                    <div key={idx} className="relative w-12 h-12 rounded-lg overflow-hidden border border-stone-300 group">
+                                      <img src={imgSrc} alt={`Upload ${idx + 1}`} className="w-full h-full object-cover" />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setUploadedImages(prev => prev.filter((_, i) => i !== idx));
+                                        }}
+                                        className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white cursor-pointer"
+                                      >
+                                        <X size={14} />
+                                      </button>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Free Pass & 1-Time Redo Policy Banner */}
+                          <div className="p-3.5 rounded-xl bg-teal-50/70 border border-teal-200 space-y-1 text-xs text-teal-950">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <span className="flex items-center gap-1.5 font-bold">
+                                <Gift size={14} className="text-teal-700" />
+                                {adminUser.isAuthenticated && adminUser.unlimitedBypass
+                                  ? `Admin Unlimited Mode (${adminUser.email})`
+                                  : isLifetimeUnlocked
+                                  ? "Lifetime Account Active — Unlimited Free Songs"
+                                  : `First 5 Songs Free Pass: ${freeSongsRemaining} of 5 Remaining`}
+                              </span>
+                              <span className="px-2 py-0.5 rounded-full bg-white text-teal-800 border border-teal-200 text-[11px] font-semibold">
+                                {oneTimeRedoUsed ? "1-Time Redo Used" : "1-Time Redo Available"}
+                              </span>
+                            </div>
+                            <p className="text-[11px] text-slate-600 leading-relaxed">
+                              <strong>1-Time Redo Policy:</strong> You get <strong>1 redo option</strong> across your 5 free songs. Once used, whatever song is generated is kept for the remaining 4 songs.
+                            </p>
+                          </div>
+
+                          {/* Submit Button */}
                           <button
-                            key={lang.code}
+                            id="strum_generate_button"
                             type="button"
-                            onClick={() => setSongLanguage(lang.code)}
-                            className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer flex items-center gap-1 ${
-                              songLanguage === lang.code
-                                ? "bg-[#FFD700] text-black border border-[#FFD700] shadow"
-                                : "bg-black/60 text-white/75 border border-[#C5A880]/30 hover:border-[#FFD700]/50"
-                            }`}
+                            onClick={handleStrumSong}
+                            className="w-full bg-teal-700 hover:bg-teal-800 text-white font-display font-bold rounded-xl text-center py-4 text-sm tracking-wide cursor-pointer transition-all shadow-sm flex items-center justify-center gap-2"
                           >
-                            <span>{lang.short}</span>
+                            <Music size={17} />
+                            <span>
+                              {freeSongsRemaining > 0 || isLifetimeUnlocked
+                                ? `Create & Render Complete Song (${isLifetimeUnlocked ? "Lifetime" : `${freeSongsRemaining}/5 Free`})`
+                                : "Create & Render Complete Song"}
+                            </span>
                           </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    {/* [AI AUDIO GENERATION ENGINE SELECTOR: BOTH OPTIONS] */}
-                    <div className="space-y-2">
-                      <label className="text-xs font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-bold">
-                        <Music size={15} /> Select Song Generation Engine:
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          type="button"
-                          onClick={() => setAudioGenerationMode("lyria")}
-                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                            audioGenerationMode === "lyria"
-                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
-                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
-                          }`}
-                        >
-                          <span className="text-[10px] font-bold uppercase">🎸 Lyria 3 Song</span>
-                          <span className="text-[8px] text-white/50 font-mono">Full Sung Vocals</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setAudioGenerationMode("narration")}
-                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 ${
-                            audioGenerationMode === "narration"
-                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
-                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
-                          }`}
-                        >
-                          <span className="text-[10px] font-bold uppercase">🎙️ Haddi Voice</span>
-                          <span className="text-[8px] text-white/50 font-mono">Spoken + Chords</span>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setAudioGenerationMode("both")}
-                          className={`p-2.5 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center justify-center gap-0.5 relative ${
-                            audioGenerationMode === "both"
-                              ? "border-[#FFD700] bg-[#251e19]/80 text-[#FFD700] shadow-[0_0_15px_rgba(255,215,0,0.2)]"
-                              : "border-[#C5A880]/20 bg-black/40 text-white/70 hover:border-[#C5A880]/50"
-                          }`}
-                        >
-                          <span className="absolute -top-1.5 -right-1 bg-[#FFD700] text-black text-[6px] font-mono font-bold px-1 rounded uppercase tracking-wider">DUAL</span>
-                          <span className="text-[10px] font-bold uppercase">✨ Both Options</span>
-                          <span className="text-[8px] text-white/50 font-mono">Sung + Narration</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* [3. THE RUNTIME FREQUENCY SET] */}
-                    <div className="space-y-2">
-                      <label className="text-xs md:text-sm font-mono text-[#FFD700] uppercase tracking-widest flex items-center gap-2 font-semibold">
-                        <Clock size={16} /> Select Your Dedicated Set Option:
-                      </label>
-                      <div className="grid grid-cols-2 gap-2">
-                        {/* Quick Strum */}
-                        <div
-                          id="set_type_quick"
-                          onClick={() => setSetType("quick")}
-                          className={`p-2 rounded-xl border cursor-pointer flex flex-col justify-between items-center text-center transition-all ${setType === "quick" ? "border-[#FFD700] bg-[#251e19]/60 shadow-[0_0_15px_rgba(255,215,0,0.15)]" : "border-[#C5A880]/20 bg-black/40 hover:border-[#C5A880]/50"}`}
-                        >
-                          <span className="text-[10px] font-bold text-[#FFD700]">⏱️ QUICK STRUM</span>
-                          <span className="text-[8px] text-white/50 font-mono">(60s • $0.99)</span>
-                        </div>
-
-                        {/* Full Set */}
-                        <div
-                          id="set_type_full"
-                          onClick={() => setSetType("full")}
-                          className={`p-2 rounded-xl border cursor-pointer flex flex-col justify-between items-center text-center transition-all ${setType === "full" ? "border-[#FFD700] bg-[#251e19]/60 shadow-[0_0_15px_rgba(255,215,0,0.15)]" : "border-[#C5A880]/20 bg-black/40 hover:border-[#C5A880]/50"}`}
-                        >
-                          <span className="text-[10px] font-bold text-[#FFD700]">📀 FULL SET</span>
-                          <span className="text-[8px] text-white/50 font-mono">(125s • $1.99)</span>
-                        </div>
-
-                        {/* Premium Video */}
-                        <div
-                          id="set_type_premium"
-                          onClick={() => setSetType("premium")}
-                          className={`p-2 rounded-xl border cursor-pointer flex flex-col justify-between items-center text-center transition-all relative ${setType === "premium" ? "border-[#FFD700] bg-[#251e19]/60 shadow-[0_0_15px_rgba(255,215,0,0.2)]" : "border-[#C5A880]/20 bg-black/40 hover:border-[#C5A880]/50"}`}
-                        >
-                          <span className="absolute -top-1.5 -right-1 bg-[#FFD700] text-black text-[6px] font-mono font-bold px-1 rounded uppercase tracking-wider scale-90">HOT</span>
-                          <span className="text-[10px] font-bold text-[#FFD700]">🚀 PREMIUM VIDEO</span>
-                          <span className="text-[8px] text-white/50 font-mono">(3-Songs • $4.99)</span>
-                        </div>
-
-                        {/* Legacy Bundle */}
-                        <div
-                          id="set_type_legacy"
-                          onClick={() => setSetType("legacy")}
-                          className={`p-2 rounded-xl border cursor-pointer flex flex-col justify-between items-center text-center transition-all relative ${setType === "legacy" ? "border-[#FFD700] bg-[#251e19]/60 shadow-[0_0_15px_rgba(255,215,0,0.2)]" : "border-[#C5A880]/20 bg-black/40 hover:border-[#C5A880]/50"}`}
-                        >
-                          <span className="text-[10px] font-bold text-[#FFD700]">📦 LEGACY BUNDLE</span>
-                          <span className="text-[8px] text-white/50 font-mono">(Ultimate • $12.99)</span>
                         </div>
                       </div>
                     </div>
+                  </motion.div>
+                )}
 
-                    {/* FREE PASS STATUS BANNER ABOVE SUBMIT (WITH 1-TIME REDO POLICY) */}
-                    <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/40 space-y-1.5 text-xs font-mono text-emerald-300">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <span className="flex items-center gap-1.5 font-bold">
-                          <Gift size={14} className="text-[#FFD700]" />
-                          {adminUser.isAuthenticated && adminUser.unlimitedBypass
-                            ? `🛡️ Admin Unlimited Mode (${adminUser.email})`
-                            : premiumReferralCount >= 10
-                            ? "👑 Lifetime Premium Account Active — Unlimited Free Songs"
-                            : basic099ReferralCount >= 10
-                            ? "👑 Lifetime $0.99 Account Active — Unlimited Free Songs"
-                            : `🎁 First 5 Songs Free Pass: ${freeSongsRemaining} of 5 Remaining`}
-                        </span>
-                        <div className="flex items-center gap-2">
-                          <span className="px-2 py-0.5 rounded bg-black/50 text-[#FFD700] border border-[#FFD700]/40 text-[10px] font-bold">
-                            {oneTimeRedoUsed ? "1-Time Redo Used" : "1-Time Redo Available"}
-                          </span>
-                          <span className="bg-[#FFD700] text-black px-2 py-0.5 rounded font-extrabold text-[10px]">
-                            $0.00 FREE
-                          </span>
-                        </div>
+                {/* STAGE 2: COMPOSING & VOCAL RENDERING */}
+                {stage === 2 && (
+                  <motion.div
+                    key="stage2"
+                    initial={{ opacity: 0, scale: 0.98 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 1.02 }}
+                    className="max-w-xl mx-auto w-full bg-white border border-stone-200 rounded-2xl p-8 text-center space-y-6 shadow-xs"
+                  >
+                    <div className="relative inline-block">
+                      <div className="w-24 h-24 rounded-full border-2 border-teal-500 bg-teal-50 flex items-center justify-center mx-auto">
+                        <Music size={36} className="text-teal-700 animate-pulse" />
                       </div>
-                      <p className="text-[10px] text-emerald-200/80 leading-relaxed">
-                        <strong>1-Time Redo Rule:</strong> You get an option to redo <strong>1 song</strong> if it is not good. Once you use that option, whatever song is generated is the one you keep for the other 4 songs.
+                      <div className="mt-2 inline-block bg-teal-700 text-white text-[10px] font-mono font-bold tracking-widest px-3 py-1 rounded-full uppercase">
+                        {artistPersona === "yosia" ? "YOSIA • LITTLE GUITAR BROTHER" : "HADDI THE MINSTREL"}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1">
+                      <h2 className="text-xl font-display font-bold text-slate-900">
+                        {artistPersona === "yosia" ? "Yosia (Haddi's Little Brother)" : "Haddi"}
+                      </h2>
+                      <p className="text-xs text-slate-500 font-mono uppercase tracking-wider">
+                        {artistPersona === "yosia"
+                          ? `Joyful Children's Guitar Star • Singing in ${songLanguage}`
+                          : `Sumatran Soul • Jakarta Street Musician (${songLanguage})`}
                       </p>
                     </div>
 
-                    {/* STRUM THE STRINGS / SUBMIT */}
-                    <div className="pt-2">
-                      <button
-                        id="strum_generate_button"
-                        type="button"
-                        onClick={handleStrumSong}
-                        className="w-full text-black font-display font-extrabold rounded-xl text-center py-4 text-xs md:text-sm tracking-widest uppercase cursor-pointer bg-gradient-to-r from-[#FFD700] via-[#FCE068] to-[#FFD700] hover:brightness-110 active:scale-[0.99] transition-all duration-300 shadow-[0_0_20px_rgba(255,215,0,0.25)] flex items-center justify-center gap-2 border border-white/10"
-                      >
-                        {freeSongsRemaining > 0 || isLifetimeUnlocked
-                          ? `🎵 STRUM & RENDER FREE SONG (${isLifetimeUnlocked ? "LIFETIME" : `${freeSongsRemaining}/5 FREE`})`
-                          : "🎵 STRUM THE STRINGS & RENDER"}
-                      </button>
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-display font-semibold text-teal-800 flex items-center justify-center gap-2">
+                        <span className="w-2 h-2 rounded-full bg-teal-600 animate-ping"></span>
+                        Composing {target || "Your Special"}&apos;s Complete Song ({songLanguage})...
+                      </h3>
+
+                      <div className="bg-stone-50 border border-stone-200 rounded-xl p-5 text-center max-w-md mx-auto">
+                        <p className="text-slate-700 text-sm italic leading-relaxed">
+                          &ldquo;{loadingStep === 0 && (artistPersona === "yosia" ? "Halo teman-teman! Yosia is tuning his happy acoustic guitar..." : "Selamat datang! Haddi is tuning the acoustic guitar...")}
+                          {loadingStep === 1 && "Aligning warm acoustic chords and melody..."}
+                          {loadingStep === 2 && `Composing your personalized song lyrics in ${songLanguage}...`}
+                          {loadingStep === 3 && (artistPersona === "yosia" ? "Yosia is warming up his cheerful voice!" : "Recording studio vocals and guitar harmony...")}
+                          {loadingStep >= 4 && "Ada lagu! Your custom gift song is ready!"}&rdquo;
+                        </p>
+                      </div>
                     </div>
 
-                  </div>
-                </div>
+                    <div className="flex justify-center items-end gap-2.5 h-10">
+                      <div className="w-1.5 bg-teal-500 rounded-full visualizer-pillar" style={{ height: "100%", animationDelay: "0.1s" }}></div>
+                      <div className="w-1.5 bg-teal-700 rounded-full visualizer-pillar" style={{ height: "70%", animationDelay: "0.4s" }}></div>
+                      <div className="w-1.5 bg-teal-600 rounded-full visualizer-pillar" style={{ height: "85%", animationDelay: "0.25s" }}></div>
+                      <div className="w-1.5 bg-teal-400 rounded-full visualizer-pillar" style={{ height: "45%", animationDelay: "0.6s" }}></div>
+                      <div className="w-1.5 bg-teal-700 rounded-full visualizer-pillar" style={{ height: "95%", animationDelay: "0.33s" }}></div>
+                    </div>
+                  </motion.div>
+                )}
 
-              </div>
-
-              {/* Quick Access Feature Cards on the Full System Page */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
-                <div
-                  onClick={() => setActiveSystemTab("free-songs")}
-                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
-                      <Gift size={15} /> First 5 Songs Free
-                    </span>
-                    <span className="text-[11px] font-mono bg-[#FFD700]/15 text-[#FFD700] px-2.5 py-0.5 rounded-md font-bold">
-                      {freeSongsRemaining}/5 Left
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/75 leading-relaxed">
-                    View your 5 complimentary custom gift song slots. Includes Lyria 3 Sung Vocals & Haddi Narration.
-                  </p>
-                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
-                    Open Free Song Pass <ChevronRight size={13} />
-                  </span>
-                </div>
-
-                <div
-                  onClick={() => setActiveSystemTab("lifetime")}
-                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
-                      <Crown size={15} /> Lifetime License
-                    </span>
-                    <span className="text-[11px] font-mono bg-emerald-950 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-md font-bold">
-                      $0.99: {Math.min(10, basic099ReferralCount)}/10 • Prem: {Math.min(10, premiumReferralCount)}/10
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/75 leading-relaxed">
-                    Sign up 10 $0.99 cent users to get a Lifetime $0.99 Account, or sign up 10 Premium accounts to get a Lifetime Premium Account for free.
-                  </p>
-                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
-                    Invite Friends & Track Progress <ChevronRight size={13} />
-                  </span>
-                </div>
-
-                <div
-                  onClick={() => setActiveSystemTab("affiliate")}
-                  className="bg-[#121110]/90 hover:bg-[#1c1814] border border-[#FFD700]/40 rounded-2xl p-5 cursor-pointer transition-all flex flex-col justify-between space-y-3 shadow-lg"
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-mono uppercase tracking-wider text-[#FFD700] font-bold flex items-center gap-1.5">
-                      <TrendingUp size={15} /> Affiliate Partner Hub
-                    </span>
-                    <span className="text-[11px] font-mono bg-[#FFD700] text-black px-2.5 py-0.5 rounded-md font-extrabold">
-                      One-Time License
-                    </span>
-                  </div>
-                  <p className="text-xs text-white/75 leading-relaxed">
-                    One-time commission on Premium sign-ups and one-time Lifetime License rewards (10 $0.99 users or 10 Premium accounts).
-                  </p>
-                  <span className="text-[11px] font-mono text-[#FFD700] flex items-center gap-1 font-semibold">
-                    Open Affiliate Dashboard <ChevronRight size={13} />
-                  </span>
-                </div>
-              </div>
-
-            </motion.div>
-          )}
-
-          {/* STAGE 2: THE AVATAR ACTIVATING & RESOLVING */}
-          {stage === 2 && (
-            <motion.div
-              key="stage2"
-              initial={{ opacity: 0, scale: 0.98 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 1.02 }}
-              className="max-w-xl mx-auto w-full text-center space-y-8"
-            >
-              
-              {/* Pulsing avatar placeholder frame */}
-              <div className="relative inline-block">
-                <div className="w-32 h-32 rounded-full border-4 border-[#FFD700] bg-gradient-to-tr from-[#251e19] to-[#0c0907] flex items-center justify-center shadow-[0_0_35px_rgba(255,215,0,0.3)] overflow-hidden mx-auto">
-                  {/* Highly polished stylized silhouette of Haddi */}
-                  <div className="relative">
-                    <Music size={42} className="text-[#FFD700] opacity-80 animate-pulse" />
-                    <div className="absolute -inset-2 bg-[#FFD700]/10 blur-xl rounded-full"></div>
-                  </div>
-                </div>
-                <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-[#FFD700] text-black text-[9px] font-mono font-bold tracking-widest px-3 py-1 rounded-full uppercase">
-                  {artistPersona === "yosia" ? "YOSIA • LITTLE GUITAR BROTHER" : "HADDI THE MINSTREL"}
-                </div>
-              </div>
-
-              <div className="space-y-1">
-                <h2 className="text-xl font-display font-extrabold tracking-wider text-[#FFD700]">
-                  {artistPersona === "yosia" ? "Yosia (Haddi's Little Brother)" : "Haddi"}
-                </h2>
-                <p className="text-[11px] text-white/60 font-mono uppercase tracking-widest">
-                  {artistPersona === "yosia"
-                    ? `Joyful Children's Guitar Star • Singing in ${songLanguage}`
-                    : `Sumatran Soul • Jakarta Street Musician (${songLanguage})`}
-                </p>
-              </div>
-
-              {/* Status information detailing what step is taking place */}
-              <div className="space-y-4">
-                <h3 className="text-xl font-display font-semibold text-white tracking-wide flex items-center justify-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-[#FFD700] animate-ping"></span>
-                  Plucking {target || "Mr. Sonni"}'s song frequency ({songLanguage})...
-                </h3>
-
-                {/* Highly descriptive dialog bubble displaying what the bard sees */}
-                <div className="bg-black/90 border-2 border-[#C5A880] rounded-2xl p-6 text-left relative max-w-md mx-auto backdrop-blur-md">
-                  <div className="absolute -top-[10px] left-[50%] -translate-x-1/2 w-4 h-4 bg-black border-t-2 border-l-2 border-[#C5A880] transform rotate-45"></div>
-                  <p className="text-[#FAF9F6]/95 text-sm italic font-sans leading-relaxed text-center font-medium">
-                    "{loadingStep === 0 && (artistPersona === "yosia" ? "Halo teman-teman! Yosia is tuning his happy acoustic guitar by the fireplace..." : "Selamat datang! Haddi is tuning the acoustic guitar...")}
-                     {loadingStep === 1 && "Aligning joyful chords on the silver strings for a warm smile..."}
-                     {loadingStep === 2 && `Composing your special song lyrics in ${songLanguage}...`}
-                     {loadingStep === 3 && (artistPersona === "yosia" ? "Yosia is warming up his cheerful voice to make everyone happy!" : "Setting up my digital musician street corner vocals...")}
-                     {loadingStep >= 4 && "Ada lagu! The guitar strings are ready to sing your blessing..."}"
-                  </p>
-                </div>
-              </div>
-
-              {/* [ANIMATION: 3 GOLDEN PILLARS] Pulsing Visualizer */}
-              <div className="space-y-2">
-                <p className="text-[10px] font-mono text-[#FFD700]/85 tracking-widest uppercase font-semibold">Geometric Acoustic Flow</p>
-                <div className="flex justify-center items-end gap-3 h-14">
-                  <div className="w-1.5 bg-[#FFD700]/50 rounded-full visualizer-pillar" style={{ height: "100%", animationDelay: "0.1s" }}></div>
-                  <div className="w-1.5 bg-[#FFD700] rounded-full visualizer-pillar" style={{ height: "70%", animationDelay: "0.4s" }}></div>
-                  <div className="w-1.5 bg-[#FFD700]/75 rounded-full visualizer-pillar" style={{ height: "85%", animationDelay: "0.25s" }}></div>
-                  <div className="w-1.5 bg-[#FFD700]/45 rounded-full visualizer-pillar" style={{ height: "40%", animationDelay: "0.6s" }}></div>
-                  <div className="w-1.5 bg-[#FFD700]/90 rounded-full visualizer-pillar" style={{ height: "95%", animationDelay: "0.33s" }}></div>
-                </div>
-              </div>
-
-            </motion.div>
-          )}
-
-          {/* STAGE 3: THE NOW PLAYING SCREEN REVEAL */}
-          {stage === 3 && currentSong && (
-            <motion.div
-              key="stage3"
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -15 }}
-              className="space-y-8"
-            >
-              
-              {/* Back button and Sharing controls header */}
-              <div className="flex justify-between items-center bg-black/85 border-2 border-[#C5A880] rounded-2xl px-5 py-4 backdrop-blur-md">
-                <button
-                  type="button"
-                  onClick={handleReset}
-                  className="flex items-center gap-1.5 text-xs text-[#FFD700] hover:text-white font-mono font-bold uppercase transition-colors"
-                >
-                  <RefreshCw size={13} /> Back to Studio
-                </button>
-
-                <div className="flex gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowKeepsake(true)}
-                    className="flex items-center gap-1.5 text-xs text-black bg-[#FFD700] hover:brightness-110 px-3.5 py-1.5 rounded-lg font-mono font-bold transition-all cursor-pointer"
+                {/* STAGE 3: THE NOW PLAYING SCREEN REVEAL */}
+                {stage === 3 && currentSong && (
+                  <motion.div
+                    key="stage3"
+                    initial={{ opacity: 0, y: 15 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -15 }}
+                    className="space-y-6"
                   >
-                    <Download size={13} /> Printable Card
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleShareWhatsApp}
-                    className="flex items-center gap-1.5 text-xs text-white bg-green-700 hover:bg-green-600 px-3.5 py-1.5 rounded-lg font-mono font-semibold transition-colors cursor-pointer"
-                  >
-                    <Phone size={13} /> Send WhatsApp
-                  </button>
-                </div>
-              </div>
-
-              {/* Main Performance Center Block */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                
-                {/* Left side: Now playing title & Interactive Vinyl block */}
-                <div className="lg:col-span-5 space-y-6">
-                  
-                  {/* ASCII styled typography banner for Target */}
-                  <div className="bg-black/90 border-2 border-[#C5A880] rounded-2xl p-6 text-center space-y-3 shadow-xl">
-                    <span className="text-xs font-mono text-[#FFD700] tracking-widest uppercase font-bold">🎵 Now Playing For 🎵</span>
-                    
-                    {/* Generative big retro text displaying target name */}
-                    <div className="font-mono text-xs text-neutral-500 overflow-x-auto whitespace-pre leading-none py-2 text-center max-w-full">
-                      {"+-----------------------------------------------+\n"}
-                      {`|    ${currentSong.target.toUpperCase().padEnd(38, " ")} |\n`}
-                      {"+-----------------------------------------------+"}
-                    </div>
-
-                    <h3 className="text-2xl font-display font-semibold tracking-wide text-white">
-                      {currentSong.title}
-                    </h3>
-
-                    <div className="inline-flex items-center gap-1.5 text-xs font-mono text-[#FFD700] bg-black/80 border border-[#C5A880]/40 px-3 py-1 rounded font-semibold">
-                      <Disc size={13} className={isPlaying ? "animate-spin text-[#FFD700]" : ""} /> 
-                      {currentSong.genre} • {currentSong.tempo}
-                    </div>
-                  </div>
-
-                  {/* Complete AI Studio Song Player Console (Replaces old synthesized strumming lyre player) */}
-                  <div className="bg-black/90 border-2 border-[#C5A880] rounded-2xl p-6 space-y-5 shadow-xl">
-                    <div className="flex justify-between items-center text-xs font-mono text-[#C5A880] font-bold">
-                      <span>
-                        {activeTrackType === "narration"
-                          ? "🎙️ HADDI SPOKEN BLESSING"
-                          : "🎸 COMPLETE STUDIO SONG (LYRIA 3)"}
-                      </span>
-                      <span className="text-[#FFD700] uppercase">
-                        {isAudioPlaying || isPlaying ? "● NOW PLAYING" : "READY"}
-                      </span>
-                    </div>
-
-                    {/* Dual Option Track Switcher inside Stage 3 Now Playing Console */}
-                    {(lyriaAudioUrl || narrationAudioUrl) && (
-                      <div className="grid grid-cols-2 gap-2 bg-neutral-950 p-1.5 rounded-xl border border-[#C5A880]/30">
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTrackType("lyria")}
-                          disabled={!lyriaAudioUrl}
-                          className={`py-2 px-3 rounded-lg text-xs font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
-                            activeTrackType === "lyria" && lyriaAudioUrl
-                              ? "bg-[#FFD700] text-black shadow"
-                              : "text-white/75 hover:text-white"
-                          }`}
-                        >
-                          🎸 Complete Sung Song
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleSelectTrackType("narration")}
-                          disabled={!narrationAudioUrl}
-                          className={`py-2 px-3 rounded-lg text-xs font-mono font-bold uppercase transition-all cursor-pointer disabled:opacity-40 ${
-                            activeTrackType === "narration" && narrationAudioUrl
-                              ? "bg-[#FFD700] text-black shadow"
-                              : "text-white/75 hover:text-white"
-                          }`}
-                        >
-                          🎙️ Haddi Narration
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Primary HTML5 Audio Element for the Complete Generated Song */}
-                    {audioUrl && (
-                      <audio
-                        id="stage3-complete-song-player"
-                        src={audioSource || audioUrl}
-                        ref={audioRef}
-                        onTimeUpdate={handleAudioTimeUpdate}
-                        onPlay={() => {
-                          luteEngineInstance.stopLutePlayback();
-                          setIsAudioPlaying(true);
-                          setIsPlaying(true);
-                        }}
-                        onPause={() => {
-                          setIsAudioPlaying(false);
-                          setIsPlaying(false);
-                        }}
-                        onEnded={() => {
-                          setIsAudioPlaying(false);
-                          setIsPlaying(false);
-                        }}
-                        autoPlay
-                        controls
-                        className="w-full rounded-xl bg-neutral-900 border border-[#FFD700]/30 accent-[#FFD700]"
-                      />
-                    )}
-
-                    {/* Timeline and Drag-Seeker */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-xs font-mono text-white/50">
-                        <span>{formatTime(Math.floor(audioUrl ? audioCurrentTime : currentTime))}</span>
-                        <span>{formatTime(Math.floor(audioUrl && audioDuration ? audioDuration : currentSong.totalDurationSeconds))}</span>
-                      </div>
-                      <div className="relative">
-                        <input
-                          type="range"
-                          min={0}
-                          max={Math.floor(audioUrl && audioDuration ? audioDuration : currentSong.totalDurationSeconds)}
-                          value={Math.floor(audioUrl ? audioCurrentTime : currentTime)}
-                          onChange={(e) => handleSeek(Number(e.target.value))}
-                          className="w-full accent-[#FFD700] bg-neutral-800 h-1 rounded-lg cursor-pointer"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Controls Row */}
-                    <div className="flex justify-between items-center">
-                      <div className="flex items-center gap-3">
-                        {/* Playback action toggle (controls the complete generated song) */}
-                        <button
-                          type="button"
-                          onClick={togglePlayback}
-                          className="w-14 h-14 rounded-full bg-[#FFD700] hover:brightness-110 text-black shadow-lg flex items-center justify-center transition-all duration-200 transform hover:scale-105 active:scale-95 cursor-pointer"
-                          title="Play/Pause Complete Song"
-                        >
-                          {isAudioPlaying || isPlaying ? <Pause size={24} fill="black" /> : <Play size={24} fill="black" className="ml-1" />}
-                        </button>
-
-                        <div className="text-left">
-                          <p className="text-xs font-mono font-bold text-[#FFD700] uppercase">
-                            {isAudioPlaying || isPlaying ? "Playing Complete Song" : "Play Complete Song"}
-                          </p>
-                          <p className="text-[10px] text-white/60 font-mono">
-                            Full Vocals & Studio Arrangement
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Dynamic Volume Console */}
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setMuted(!muted)}
-                          className="text-[#C5A880] hover:text-white transition-colors"
-                        >
-                          {muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
-                        </button>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={volume}
-                          onChange={(e) => {
-                            setVolume(Number(e.target.value));
-                            setMuted(false);
-                          }}
-                          className="w-20 accent-[#C5A880] bg-neutral-800 h-1 rounded"
-                        />
-                      </div>
-                    </div>
-
-                    <p className="text-[10px] text-white/40 font-mono text-center">
-                      Your complete custom song with vocals and full instrumentation is ready above. Switch between the Sung Studio Track and Haddi's Spoken Blessing anytime.
-                    </p>
-                  </div>
-
-                  {/* Variation Swapper (Only populated in multi-track modes) */}
-                  {(setType === "extended" || setType === "premium" || setType === "legacy") && allVariations.length > 1 && (
-                    <div className="bg-black/90 border-2 border-[#C5A880] rounded-2xl p-5 space-y-3">
-                      <span className="text-xs font-mono text-[#FFD700] tracking-wider uppercase font-bold">
-                        🎁 Select Your Encore Variation:
-                      </span>
-                      <div className="space-y-2">
-                        {allVariations.map((song, vIdx) => (
-                          <button
-                            key={vIdx}
-                            type="button"
-                            onClick={() => {
-                              setActiveVariationIdx(vIdx);
-                            }}
-                            className={`w-full flex justify-between items-center px-3.5 py-2.5 rounded-xl text-left text-xs font-mono transition-all border-2 ${
-                              activeVariationIdx === vIdx
-                                ? "bg-[#271d15] border-[#FFD700] text-white"
-                                : "bg-black/60 border-transparent text-[#ffffff]/50 hover:bg-black hover:text-white hover:border-[#C5A880]/50"
-                            }`}
-                          >
-                            <span>Variation {vIdx + 1}: {song.genre}</span>
-                            <span className="opacity-75">{song.tempo.split(" ")[0]}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Gift Song Card with Dual Audio Player (Lyria 3 Sung Song & Haddi Narration) */}
-                  <GiftSongCard
-                    audioUrl={audioSource || audioUrl}
-                    lyriaAudioUrl={lyriaAudioUrl}
-                    narrationAudioUrl={narrationAudioUrl}
-                    activeTrackType={activeTrackType}
-                    onSelectTrackType={handleSelectTrackType}
-                    songTitle={currentSong.title}
-                    lyrics={
-                      currentSong.lyricSections
-                        .filter(s => s.sectionName !== "Intro")
-                        .flatMap(s => s.lines)
-                        .join("\n")
-                    }
-                    recipientName={currentSong.target}
-                  />
-
-                  {/* Back & Strict 1-Time Redo Policy Controls */}
-                  <div className="space-y-2 pt-2">
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      {!oneTimeRedoUsed ? (
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (freeSongsUsedHistory.length > 0) {
-                              handleRefundSongSlot(freeSongsUsedHistory.length - 1);
-                            } else {
-                              setOneTimeRedoUsed(true);
-                              localStorage.setItem("mygiftsong_one_time_redo_used_v1", "true");
-                              setFreeSongsRemaining((prev) => {
-                                const next = Math.min(5, prev + 1);
-                                localStorage.setItem("mygiftsong_free_remaining", String(next));
-                                return next;
-                              });
-                            }
-                            luteEngineInstance.stopLutePlayback();
-                            if (audioRef.current) audioRef.current.pause();
-                            setIsAudioPlaying(false);
-                            setIsPlaying(false);
-                            setStage(1);
-                          }}
-                          className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-[#251e19] hover:bg-[#332922] text-[#FFD700] border border-[#FFD700]/40 text-xs font-mono font-bold cursor-pointer transition-all"
-                          title="You get 1 opportunity to redo a song across your 5 free songs."
-                        >
-                          <RotateCcw size={13} />
-                          <span>Song Not Good? Use Your 1-Time Redo (1 of 1 Left)</span>
-                        </button>
-                      ) : (
-                        <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/5 text-white/60 border border-white/15 text-[11px] font-mono font-semibold">
-                          <Check size={13} className="text-emerald-400" />
-                          <span>1-Time Redo Used — This Song Is Kept ({freeSongsRemaining}/5 Free Left)</span>
-                        </div>
-                      )}
-
+                    {/* Back button and Sharing controls header */}
+                    <div className="flex flex-wrap justify-between items-center gap-3 bg-white border border-stone-200 rounded-2xl px-5 py-4 shadow-xs">
                       <button
                         type="button"
                         onClick={handleReset}
-                        className="inline-flex items-center justify-center gap-1 text-xs text-[#C5A880]/70 hover:text-[#FFD700] font-mono cursor-pointer"
+                        className="flex items-center gap-1.5 text-xs text-teal-800 hover:text-teal-950 font-semibold transition-colors cursor-pointer"
                       >
-                        Strum a New Dedication <ChevronRight size={12} />
+                        <RefreshCw size={14} /> Back to Studio
                       </button>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setShowKeepsake(true)}
+                          className="flex items-center gap-1.5 text-xs text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer"
+                        >
+                          <Download size={14} /> Printable Keepsake Card
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleShareWhatsApp}
+                          className="flex items-center gap-1.5 text-xs text-white bg-teal-700 hover:bg-teal-800 px-3.5 py-2 rounded-xl font-semibold transition-colors cursor-pointer"
+                        >
+                          <Phone size={14} /> Share on WhatsApp
+                        </button>
+                      </div>
                     </div>
 
-                    <p className="text-[10px] font-mono text-center text-[#C5A880]/80 max-w-md mx-auto leading-relaxed">
-                      {!oneTimeRedoUsed
-                        ? "Note: You get an option to redo ONE song. Once you use that option, whatever song is generated is the one you keep for the other 4 songs."
-                        : "You have already used your 1-time song redo option. Whatever song is generated is the one you keep for the remaining 4 songs."}
-                    </p>
-                  </div>
+                    {/* Main Performance Center Block */}
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+                      {/* Left side: Now playing title & Complete Song Player */}
+                      <div className="lg:col-span-5 space-y-6">
+                        <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center space-y-3 shadow-xs">
+                          <span className="inline-block text-[11px] font-mono text-teal-800 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full uppercase font-semibold">
+                            🎵 Dedicated to {currentSong.target}
+                          </span>
 
-                </div>
+                          <h3 className="text-2xl font-display font-bold text-slate-900">
+                            {currentSong.title}
+                          </h3>
 
-                {/* Right side: The Bronze Lyric Canvas */}
-                <div className="lg:col-span-7">
-                  <LyricCanvas
-                    lyricSections={currentSong.lyricSections}
-                    originalLyricSections={originalLyricSections}
-                    currentTimeSeconds={currentTime}
-                    onLineClick={(stamp) => handleSeek(stamp)}
-                    currentLanguage={currentSong.language || songLanguage}
-                    isTranslating={isTranslatingSong}
-                    onSelectLanguage={(lang) => handleTranslateCurrentSong(lang, false)}
-                    onReSingInLanguage={(lang) => handleTranslateCurrentSong(lang, true)}
-                  />
-                </div>
+                          <div className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-600 bg-stone-100 px-3 py-1 rounded-lg font-medium">
+                            <Disc size={14} className={isPlaying ? "animate-spin text-teal-700" : "text-teal-700"} />
+                            {currentSong.genre} • {currentSong.tempo}
+                          </div>
+                        </div>
 
-              </div>
+                        {/* Complete AI Studio Song Player Console */}
+                        <div className="bg-white border border-stone-200 rounded-2xl p-6 space-y-5 shadow-xs">
+                          <div className="flex justify-between items-center text-xs font-mono text-slate-500 font-semibold">
+                            <span>
+                              {activeTrackType === "narration"
+                                ? "🎙️ HADDI SPOKEN BLESSING"
+                                : "🎸 COMPLETE STUDIO SONG"}
+                            </span>
+                            <span className="text-teal-700 font-bold uppercase">
+                              {isAudioPlaying || isPlaying ? "● NOW PLAYING" : "READY"}
+                            </span>
+                          </div>
 
-            </motion.div>
-          )}
+                          {(lyriaAudioUrl || narrationAudioUrl) && (
+                            <div className="grid grid-cols-2 gap-2 bg-stone-100 p-1 rounded-xl border border-stone-200">
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTrackType("lyria")}
+                                disabled={!lyriaAudioUrl}
+                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
+                                  activeTrackType === "lyria" && lyriaAudioUrl
+                                    ? "bg-teal-700 text-white shadow-xs"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                🎸 Complete Sung Song
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleSelectTrackType("narration")}
+                                disabled={!narrationAudioUrl}
+                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
+                                  activeTrackType === "narration" && narrationAudioUrl
+                                    ? "bg-teal-700 text-white shadow-xs"
+                                    : "text-slate-600 hover:text-slate-900"
+                                }`}
+                              >
+                                🎙️ Haddi Narration
+                              </button>
+                            </div>
+                          )}
 
-                </AnimatePresence>
+                          {audioUrl && (
+                            <audio
+                              id="stage3-complete-song-player"
+                              src={audioSource || audioUrl}
+                              ref={audioRef}
+                              onTimeUpdate={handleAudioTimeUpdate}
+                              onPlay={() => {
+                                luteEngineInstance.stopLutePlayback();
+                                setIsAudioPlaying(true);
+                                setIsPlaying(true);
+                              }}
+                              onPause={() => {
+                                setIsAudioPlaying(false);
+                                setIsPlaying(false);
+                              }}
+                              onEnded={() => {
+                                setIsAudioPlaying(false);
+                                setIsPlaying(false);
+                              }}
+                              autoPlay
+                              controls
+                              className="w-full rounded-xl accent-teal-700"
+                            />
+                          )}
+
+                          {/* Timeline and Drag-Seeker */}
+                          <div className="space-y-1.5">
+                            <div className="flex justify-between text-xs font-mono text-slate-500">
+                              <span>{formatTime(Math.floor(audioUrl ? audioCurrentTime : currentTime))}</span>
+                              <span>{formatTime(Math.floor(audioUrl && audioDuration ? audioDuration : currentSong.totalDurationSeconds))}</span>
+                            </div>
+                            <input
+                              type="range"
+                              min={0}
+                              max={Math.floor(audioUrl && audioDuration ? audioDuration : currentSong.totalDurationSeconds)}
+                              value={Math.floor(audioUrl ? audioCurrentTime : currentTime)}
+                              onChange={(e) => handleSeek(Number(e.target.value))}
+                              className="w-full accent-teal-700 bg-stone-200 h-1.5 rounded-lg cursor-pointer"
+                            />
+                          </div>
+
+                          {/* Controls Row */}
+                          <div className="flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                              <button
+                                type="button"
+                                onClick={togglePlayback}
+                                className="w-12 h-12 rounded-full bg-teal-700 hover:bg-teal-800 text-white shadow-sm flex items-center justify-center transition-all cursor-pointer"
+                                title="Play/Pause Complete Song"
+                              >
+                                {isAudioPlaying || isPlaying ? <Pause size={20} fill="currentColor" /> : <Play size={20} fill="currentColor" className="ml-0.5" />}
+                              </button>
+
+                              <div className="text-left">
+                                <p className="text-xs font-bold text-slate-900">
+                                  {isAudioPlaying || isPlaying ? "Playing Complete Song" : "Play Complete Song"}
+                                </p>
+                                <p className="text-[11px] text-slate-500">
+                                  Full Vocals & Acoustic Arrangement
+                                </p>
+                              </div>
+                            </div>
+
+                            {/* Volume Console */}
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setMuted(!muted)}
+                                className="text-slate-500 hover:text-teal-700 transition-colors"
+                              >
+                                {muted || volume === 0 ? <VolumeX size={18} /> : <Volume2 size={18} />}
+                              </button>
+                              <input
+                                type="range"
+                                min={0}
+                                max={100}
+                                value={volume}
+                                onChange={(e) => {
+                                  setVolume(Number(e.target.value));
+                                  setMuted(false);
+                                }}
+                                className="w-20 accent-teal-700 bg-stone-200 h-1.5 rounded"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Variation Swapper */}
+                        {(setType === "extended" || setType === "premium" || setType === "legacy") && allVariations.length > 1 && (
+                          <div className="bg-white border border-stone-200 rounded-2xl p-5 space-y-3 shadow-xs">
+                            <span className="text-xs font-bold text-teal-800 uppercase tracking-wider block">
+                              🎁 Select Encore Variation:
+                            </span>
+                            <div className="space-y-2">
+                              {allVariations.map((song, vIdx) => (
+                                <button
+                                  key={vIdx}
+                                  type="button"
+                                  onClick={() => setActiveVariationIdx(vIdx)}
+                                  className={`w-full flex justify-between items-center px-3.5 py-2.5 rounded-xl text-left text-xs font-semibold transition-all border cursor-pointer ${
+                                    activeVariationIdx === vIdx
+                                      ? "bg-teal-50 border-teal-600 text-teal-950"
+                                      : "bg-stone-50 border-stone-200 text-slate-600 hover:border-teal-300"
+                                  }`}
+                                >
+                                  <span>Variation {vIdx + 1}: {song.genre}</span>
+                                  <span className="text-slate-500">{song.tempo.split(" ")[0]}</span>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Gift Song Card */}
+                        <GiftSongCard
+                          audioUrl={audioSource || audioUrl}
+                          lyriaAudioUrl={lyriaAudioUrl}
+                          narrationAudioUrl={narrationAudioUrl}
+                          activeTrackType={activeTrackType}
+                          onSelectTrackType={handleSelectTrackType}
+                          songTitle={currentSong.title}
+                          lyrics={
+                            currentSong.lyricSections
+                              .filter(s => s.sectionName !== "Intro")
+                              .flatMap(s => s.lines)
+                              .join("\n")
+                          }
+                          recipientName={currentSong.target}
+                        />
+
+                        {/* Strict 1-Time Redo Policy Controls */}
+                        <div className="bg-white border border-stone-200 rounded-2xl p-4 space-y-2 text-center shadow-xs">
+                          <div className="flex flex-wrap items-center justify-center gap-3">
+                            {!oneTimeRedoUsed ? (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (freeSongsUsedHistory.length > 0) {
+                                    handleRefundSongSlot(freeSongsUsedHistory.length - 1);
+                                  } else {
+                                    setOneTimeRedoUsed(true);
+                                    localStorage.setItem("mygiftsong_one_time_redo_used_v1", "true");
+                                    setFreeSongsRemaining((prev) => {
+                                      const next = Math.min(5, prev + 1);
+                                      localStorage.setItem("mygiftsong_free_remaining", String(next));
+                                      return next;
+                                    });
+                                  }
+                                  luteEngineInstance.stopLutePlayback();
+                                  if (audioRef.current) audioRef.current.pause();
+                                  setIsAudioPlaying(false);
+                                  setIsPlaying(false);
+                                  setStage(1);
+                                }}
+                                className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-teal-50 hover:bg-teal-100 text-teal-900 border border-teal-200 text-xs font-semibold cursor-pointer transition-all"
+                              >
+                                <RotateCcw size={13} />
+                                <span>Song Not Good? Use Your 1-Time Redo (1 of 1 Left)</span>
+                              </button>
+                            ) : (
+                              <div className="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-stone-100 text-slate-600 border border-stone-200 text-xs font-medium">
+                                <Check size={13} className="text-teal-700" />
+                                <span>1-Time Redo Used — This Song Is Kept ({freeSongsRemaining}/5 Free Left)</span>
+                              </div>
+                            )}
+
+                            <button
+                              type="button"
+                              onClick={handleReset}
+                              className="inline-flex items-center justify-center gap-1 text-xs text-teal-700 hover:text-teal-900 font-semibold cursor-pointer"
+                            >
+                              Create Another Song <ChevronRight size={13} />
+                            </button>
+                          </div>
+
+                          <p className="text-[11px] text-slate-500 max-w-md mx-auto leading-relaxed">
+                            {!oneTimeRedoUsed
+                              ? "You get an option to redo ONE song. Once you use that option, whatever song is generated is the one you keep for the other 4 songs."
+                              : "You have already used your 1-time song redo option. Whatever song is generated is the one you keep for the remaining 4 songs."}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Right side: The Clean White & Teal Lyric Sheet */}
+                      <div className="lg:col-span-7">
+                        <LyricCanvas
+                          lyricSections={currentSong.lyricSections}
+                          originalLyricSections={originalLyricSections}
+                          currentTimeSeconds={currentTime}
+                          onLineClick={(stamp) => handleSeek(stamp)}
+                          currentLanguage={currentSong.language || songLanguage}
+                          isTranslating={isTranslatingSong}
+                          onSelectLanguage={(lang) => handleTranslateCurrentSong(lang, false)}
+                          onReSingInLanguage={(lang) => handleTranslateCurrentSong(lang, true)}
+                        />
+                      </div>
+                    </div>
+                  </motion.div>
+                )}
+
+              </AnimatePresence>
             )}
 
           </main>
@@ -2601,75 +2327,69 @@ export default function App() {
 
       {/* --- KEEPSAKE MODAL --- */}
       {showKeepsake && currentSong && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-[#faf6f0] text-[#1c1612] w-full max-w-lg rounded-2xl shadow-2xl border-8 border-[#C5A880]/40 overflow-hidden relative"
+            className="bg-white text-slate-900 w-full max-w-lg rounded-2xl shadow-xl border border-stone-200 overflow-hidden relative"
           >
-            {/* Modal actions */}
             <div className="absolute top-4 right-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="p-1.5 bg-[#1c1612]/5 hover:bg-[#1c1612]/10 rounded-full text-xs font-mono flex items-center gap-1 transition-colors"
-                title="Print KeepSake Card"
+                className="px-3 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
               >
-                Print
+                Print Card
               </button>
               <button
                 type="button"
                 onClick={() => setShowKeepsake(false)}
-                className="p-1 text-[#1c1612]/60 hover:text-[#1c1612] rounded-full"
+                className="p-1 text-slate-400 hover:text-slate-700 rounded-full cursor-pointer"
               >
                 <X size={20} />
               </button>
             </div>
 
-            {/* Keepsake Portrait frame */}
-            <div className="p-8 md:p-10 space-y-6 pt-12 text-center text-print">
-              
-              {/* Elegant header */}
+            <div className="p-8 md:p-10 space-y-6 pt-12 text-center">
               <div className="space-y-1">
-                <p className="text-[10px] font-mono tracking-widest text-[#C5A880] uppercase font-bold">A Lute & Lyre Dedication Track</p>
-                <h3 className="text-3xl font-display font-bold text-[#201813]">{currentSong.title}</h3>
-                <div className="w-16 h-px bg-[#C5A880] mx-auto my-3"></div>
-                <p className="text-xs uppercase font-mono tracking-wider font-semibold text-[#C5A880]">Playable song for {currentSong.target}</p>
+                <p className="text-[10px] font-mono tracking-widest text-teal-700 uppercase font-bold">
+                  A Custom Acoustic Gift Song
+                </p>
+                <h3 className="text-2xl font-display font-bold text-slate-900">{currentSong.title}</h3>
+                <div className="w-16 h-0.5 bg-teal-600/30 mx-auto my-3"></div>
+                <p className="text-xs uppercase font-mono tracking-wider font-semibold text-slate-500">
+                  Dedicated to {currentSong.target}
+                </p>
               </div>
 
-              {/* Body message section */}
-              <div className="border border-[#C5A880]/30 rounded-xl p-5 bg-white/70 max-h-[240px] overflow-y-auto text-left space-y-4">
+              <div className="border border-stone-200 rounded-xl p-5 bg-stone-50/70 max-h-[240px] overflow-y-auto text-left space-y-4">
                 {currentSong.lyricSections.filter(s => s.sectionName !== "Intro").map((section, idx) => (
                   <div key={idx} className="space-y-1 text-xs">
-                    <p className="font-mono text-[9px] text-[#C5A880] font-bold uppercase">{section.sectionName}</p>
+                    <p className="font-mono text-[10px] text-teal-700 font-bold uppercase">{section.sectionName}</p>
                     {section.lines.map((line, lIdx) => (
-                      <p key={lIdx} className="font-sans text-[#1c1612]/90 leading-relaxed font-medium">{line}</p>
+                      <p key={lIdx} className="font-sans text-slate-700 leading-relaxed">{line}</p>
                     ))}
                   </div>
                 ))}
               </div>
 
-              {/* Keepsake Footer signature info */}
-              <div className="flex justify-between items-center pt-4 border-t border-[#C5A880]/30 text-[9px] font-mono text-[#C5A880]">
+              <div className="flex justify-between items-center pt-4 border-t border-stone-200 text-[10px] font-mono text-slate-400">
                 <span>AI ASSISTED SONG GENERATOR</span>
-                <span className="uppercase">mygiftsong.org - {currentSong.genre}</span>
+                <span className="uppercase">mygiftsong.org • {currentSong.genre}</span>
               </div>
 
-              {/* Action row at bottom */}
               <div className="pt-2 flex justify-center gap-3">
                 <button
                   type="button"
                   onClick={handleCopyLyrics}
-                  className="px-4 py-2 bg-[#201813] hover:bg-[#3d2e24] text-[#faf6f0] text-xs font-mono font-medium rounded-lg flex items-center gap-1.5 transition-colors cursor-pointer"
+                  className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copiedLyrics ? <Check size={14} /> : <Copy size={14} />}
-                  {copiedLyrics ? "Copied!" : "Copy Full Lyrics"}
+                  {copiedLyrics ? "Copied Lyrics!" : "Copy Full Lyrics"}
                 </button>
               </div>
-
             </div>
-
           </motion.div>
         </div>
       )}
@@ -2947,29 +2667,29 @@ export default function App() {
             >
               © 2026 mygiftsong.org • AI Assisted Song Generator | All Rights Reserved.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-4 my-2 text-xs font-mono text-[#C5A880]">
+            <div className="flex flex-wrap items-center justify-center gap-4 my-2 text-xs font-medium text-slate-500">
               <button
                 type="button"
                 onClick={() => setActiveSystemTab("free-songs")}
-                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+                className="hover:text-teal-700 transition-colors cursor-pointer"
               >
-                🎁 First 5 Songs Free
+                First 5 Songs Free
               </button>
               <span>•</span>
               <button
                 type="button"
                 onClick={() => setActiveSystemTab("lifetime")}
-                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+                className="hover:text-teal-700 transition-colors cursor-pointer"
               >
-                👑 Invite 10 = Lifetime License
+                Invite 10 = Lifetime License
               </button>
               <span>•</span>
               <button
                 type="button"
                 onClick={() => setActiveSystemTab("affiliate")}
-                className="hover:text-[#FFD700] transition-colors cursor-pointer"
+                className="hover:text-teal-700 transition-colors cursor-pointer"
               >
-                🤝 Affiliate Partner Hub
+                Affiliate Partner Hub
               </button>
             </div>
             <a href="https://inflow.com/your-partner-id" target="_blank" rel="noopener noreferrer" className="affiliate-link">

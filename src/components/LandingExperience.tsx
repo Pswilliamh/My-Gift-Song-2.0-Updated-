@@ -13,7 +13,9 @@ import {
   RotateCcw,
   ShieldCheck,
   Globe,
-  Smile
+  Smile,
+  Menu,
+  X
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PWAInstallButton } from "./PWAInstallButton";
@@ -67,6 +69,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   // "haddi-main" = Original main focus on Haddi
   // "yosia-children" = Separate page for Children's Songs with Haddi's little brother Yosia
   const [activeLandingPage, setActiveLandingPage] = useState<"haddi-main" | "yosia-children">("haddi-main");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   // 3-Step Chat & Song Builder state:
   // Step 1: Who the song is for (recipient)
@@ -352,769 +355,819 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     chatStep === "recipient" ? 1 : chatStep === "occasion" ? 2 : chatStep === "lyrics" ? 3 : 3;
 
   return (
-    <div className="min-h-screen w-full bg-white text-slate-900 flex flex-col justify-between relative z-10 px-4 sm:px-8 py-6 max-w-6xl mx-auto">
-      {/* Minimal Clean Top Header on White Background */}
-      <header className="flex flex-wrap items-center justify-between gap-4 pb-6 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <img
-            src="/pwa-192x192.png"
-            alt="mygiftsong.org App Icon"
-            className="w-11 h-11 rounded-2xl object-cover border-2 border-amber-400 shadow-md"
-          />
-          <div>
-            <span className="font-display text-lg font-bold tracking-wide text-slate-900 block leading-none">
-              mygiftsong.org
-            </span>
-            <span className="font-mono text-[10px] uppercase tracking-widest text-amber-700 font-semibold">
-              AI Assisted Song Generator • Haddi the Street Minstrel
-            </span>
-          </div>
-        </div>
+    <div className="min-h-screen w-full bg-[#F8FAF9] text-slate-900 flex flex-col justify-between relative z-10">
+      {/* =====================================================================
+          NEW UNCLUTTERED WHITE & TEAL NAVIGATION BAR (INSPIRED BY SCREENSHOTS)
+      ===================================================================== */}
+      <header className="sticky top-0 z-40 w-full bg-white/95 backdrop-blur-md border-b border-stone-200/80">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+          {/* Brand Logo (Left) */}
+          <button
+            type="button"
+            onClick={() => {
+              setActiveLandingPage("haddi-main");
+              setMobileMenuOpen(false);
+            }}
+            className="flex items-center gap-3 text-left cursor-pointer group"
+          >
+            <img
+              src="/pwa-192x192.png"
+              alt="mygiftsong.org App Icon"
+              className="w-9 h-9 rounded-xl object-cover border border-teal-600/30 shadow-xs"
+            />
+            <div>
+              <span className="font-display text-base sm:text-lg font-bold tracking-tight text-slate-900 block leading-none group-hover:text-teal-700 transition-colors">
+                mygiftsong.org
+              </span>
+              <span className="font-sans text-[11px] text-teal-700 font-medium block mt-0.5">
+                AI Assisted Song Generator
+              </span>
+            </div>
+          </button>
 
-        {/* Clean Status, Android/Desktop PWA Install & Initiate Button */}
-        <div className="flex flex-wrap items-center gap-2">
-          <PWAInstallButton variant="light" />
-
-          <div className="inline-flex items-center rounded-lg bg-amber-50 border border-amber-300 overflow-hidden">
+          {/* Clean Borderless Center Navigation Links (Desktop) */}
+          <nav className="hidden md:flex items-center gap-7 text-sm font-medium text-slate-600">
             <button
               type="button"
-              onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-              className="inline-flex items-center gap-1.5 px-3 py-2 text-amber-900 text-xs font-mono font-semibold hover:bg-amber-100 transition-all cursor-pointer"
-              title="You get 5 free songs + 1 single redo option across your 5 songs"
+              onClick={() => setActiveLandingPage("haddi-main")}
+              className={`py-5 border-b-2 transition-colors cursor-pointer ${
+                activeLandingPage === "haddi-main"
+                  ? "border-teal-600 text-teal-700 font-semibold"
+                  : "border-transparent hover:text-slate-900"
+              }`}
             >
-              <Gift size={14} className="text-amber-600" />
-              <span>{freeSongsRemaining} of 5 Free Songs Left</span>
-              <span className="ml-1 px-1.5 py-0.5 rounded bg-amber-200/80 text-amber-950 text-[10px] font-bold">
-                {oneTimeRedoUsed ? "1 Redo Used" : "+ 1 Redo Option"}
-              </span>
+              Haddi&apos;s Song Builder
             </button>
-          </div>
 
-          {activeLandingPage === "haddi-main" ? (
             <button
               type="button"
               onClick={() => {
                 setActiveLandingPage("yosia-children");
                 window.scrollTo({ top: 0, behavior: "smooth" });
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-xs font-mono font-bold transition-all cursor-pointer"
+              className={`py-5 border-b-2 transition-colors flex items-center gap-2 cursor-pointer ${
+                activeLandingPage === "yosia-children"
+                  ? "border-teal-600 text-teal-700 font-semibold"
+                  : "border-transparent hover:text-slate-900"
+              }`}
             >
-              <Smile size={14} className="text-amber-600" />
-              <span>👦🎸 Children&apos;s Song Page (Yosia)</span>
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-teal-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-teal-600"></span>
+              </span>
+              <span>Children&apos;s Songs (Yosia)</span>
             </button>
-          ) : (
+
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
+              className="py-5 border-b-2 border-transparent hover:text-teal-700 transition-colors cursor-pointer"
+            >
+              5 Free Songs ({freeSongsRemaining}/5)
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
+              className="py-5 border-b-2 border-transparent hover:text-teal-700 transition-colors cursor-pointer"
+            >
+              Lifetime &amp; Affiliates
+            </button>
+          </nav>
+
+          {/* Right Actions: Clean Free Status + Primary Teal CTA + Mobile Menu Toggle */}
+          <div className="flex items-center gap-2.5">
+            <PWAInstallButton variant="light" />
+
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-teal-50 text-teal-800 border border-teal-200/80 text-xs font-medium hover:bg-teal-100/70 transition-colors cursor-pointer"
+              title="5 Free Songs + 1 single redo option"
+            >
+              <Gift size={13} className="text-teal-600" />
+              <span>{freeSongsRemaining}/5 Free</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "studio" })}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs sm:text-sm font-semibold shadow-xs transition-all cursor-pointer"
+            >
+              <span>Full Studio</span>
+              <ArrowRight size={14} />
+            </button>
+
+            {/* Mobile Hamburger Button (Matches Screenshot 1) */}
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="md:hidden p-2 rounded-lg text-slate-600 hover:text-slate-900 hover:bg-stone-100 transition-colors cursor-pointer"
+              aria-label="Toggle Navigation Menu"
+            >
+              {mobileMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Clean Mobile Dropdown Drawer */}
+        {mobileMenuOpen && (
+          <div className="md:hidden bg-white border-b border-stone-200 px-4 py-3 space-y-1 shadow-lg">
             <button
               type="button"
               onClick={() => {
                 setActiveLandingPage("haddi-main");
-                window.scrollTo({ top: 0, behavior: "smooth" });
+                setMobileMenuOpen(false);
               }}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-900 text-xs font-mono font-bold transition-all cursor-pointer"
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between cursor-pointer ${
+                activeLandingPage === "haddi-main"
+                  ? "bg-teal-50 text-teal-800 font-semibold"
+                  : "text-slate-700 hover:bg-stone-50"
+              }`}
             >
-              <span>🎸 Back to Haddi&apos;s Main Page</span>
+              <span>🎸 Haddi&apos;s Song Builder</span>
             </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => onInitiateSystem({ initialSection: "studio" })}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-900 hover:bg-amber-500 text-white hover:text-slate-950 text-xs font-mono font-bold uppercase tracking-wider shadow-sm transition-all cursor-pointer"
-          >
-            <span>Enter Full Studio</span>
-            <ArrowRight size={14} />
-          </button>
-        </div>
+            <button
+              type="button"
+              onClick={() => {
+                setActiveLandingPage("yosia-children");
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium flex items-center justify-between cursor-pointer ${
+                activeLandingPage === "yosia-children"
+                  ? "bg-teal-50 text-teal-800 font-semibold"
+                  : "text-slate-700 hover:bg-stone-50"
+              }`}
+            >
+              <span>👦🎸 Children&apos;s Song Page (Yosia)</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onInitiateSystem({ initialSection: "free-songs" });
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-stone-50 flex items-center justify-between cursor-pointer"
+            >
+              <span>🎁 First 5 Free Songs Pass</span>
+              <span className="text-xs font-mono text-teal-700 font-bold">
+                {freeSongsRemaining}/5 Left {oneTimeRedoUsed ? "(1 Redo Used)" : "(+1 Redo)"}
+              </span>
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onInitiateSystem({ initialSection: "lifetime" });
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-stone-50 cursor-pointer"
+            >
+              👑 10 Signups = Lifetime License
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                onInitiateSystem({ initialSection: "affiliate" });
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-stone-50 cursor-pointer"
+            >
+              🤝 Affiliate Partner Hub
+            </button>
+          </div>
+        )}
       </header>
 
       {/* SEPARATE PAGE FOR YOSIA (CHILDREN'S SONGS) VS. HADDI'S MAIN PAGE */}
-      {activeLandingPage === "yosia-children" ? (
-        <main className="my-auto py-8">
-          <YosiaChildrenSection
-            variant="light"
-            freeSongsRemaining={freeSongsRemaining}
-            onBackToMainPage={() => {
-              setActiveLandingPage("haddi-main");
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }}
-            onGenerateYosiaSong={(params) => {
-              onInitiateSystem({
-                target: params.target,
-                context: params.context,
-                genre: params.genre,
-                language: params.language,
-                artistPersona: params.artistPersona,
-                preloadedSong: params.preloadedSong,
-                autoGenerate: params.autoGenerate,
-                initialSection: "studio",
-              });
-            }}
-          />
-        </main>
-      ) : (
-      /* Main Clutter-Free Center Stage: Haddi Video Player + Welcome Chat Window */
-      <main className="my-auto py-8 md:py-10">
-        <div className="text-center max-w-2xl mx-auto mb-8 space-y-2">
-          <p className="text-xs font-mono uppercase tracking-[0.22em] text-amber-700 font-bold">
-            mygiftsong.org • AI Assisted Song Generator
-          </p>
-          <h1 className="text-3xl sm:text-5xl font-display font-bold text-slate-900 tracking-tight leading-tight">
-            Turn Your Heartfelt Story Into a{" "}
-            <span className="text-amber-600 italic font-serif">Playable Gift Song</span>
-          </h1>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
-          {/* LEFT COLUMN: HADDI VIDEO MEDIA PLAYER (5 cols) */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4 }}
-            className="lg:col-span-5 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-slate-200/70"
-          >
-            <div className="space-y-4">
-              {/* Top Media Header */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-amber-500 animate-pulse" />
-                  <span className="text-xs font-mono uppercase tracking-widest text-slate-800 font-bold">
-                    Haddi Video Player
-                  </span>
-                </div>
-                <span className="text-[10px] font-mono font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-md flex items-center gap-1">
-                  <Video size={11} className="text-amber-600" />
-                  Haddi Playing Song
-                </span>
-              </div>
-
-              {/* Video Performance Switcher Tabs */}
-              <div className="grid grid-cols-2 gap-2 bg-slate-100 p-1 rounded-xl border border-slate-200">
-                <button
-                  type="button"
-                  onClick={() => handleSwitchVideo("flagship")}
-                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                    selectedVideo === "flagship"
-                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  🎬 Haddi Flagship Song
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handleSwitchVideo("encore")}
-                  className={`py-1.5 px-2.5 rounded-lg text-[11px] font-mono font-bold transition-all cursor-pointer ${
-                    selectedVideo === "encore"
-                      ? "bg-white text-slate-900 shadow-xs border border-slate-200/80"
-                      : "text-slate-600 hover:text-slate-900"
-                  }`}
-                >
-                  🎸 Encore Song Video
-                </button>
-              </div>
-
-              {/* Haddi Video Player Showcase */}
-              <div className="relative rounded-xl overflow-hidden border border-slate-200 bg-slate-950 shadow-md aspect-video group">
-                <video
-                  ref={videoRef}
-                  src={videoSources[selectedVideo].src}
-                  poster="/images/guiter-rescaled-9music.png"
-                  controls
-                  playsInline
-                  preload="metadata"
-                  onPlay={() => setIsVideoPlaying(true)}
-                  onPause={() => setIsVideoPlaying(false)}
-                  onEnded={() => setIsVideoPlaying(false)}
-                  className="w-full h-full object-cover"
-                />
-
-                {/* Play Overlay Button when Paused */}
-                {!isVideoPlaying && (
-                  <button
-                    type="button"
-                    onClick={handleToggleVideoPlay}
-                    className="absolute inset-0 bg-black/35 hover:bg-black/25 flex flex-col items-center justify-center gap-2 transition-all cursor-pointer"
-                    title="Watch & Listen to Haddi Playing Song"
-                  >
-                    <div className="w-16 h-16 rounded-full bg-amber-400 hover:bg-amber-300 text-slate-950 flex items-center justify-center shadow-[0_0_30px_rgba(251,191,36,0.7)] transition-transform hover:scale-105 active:scale-95">
-                      <Play size={28} fill="currentColor" className="ml-1" />
-                    </div>
-                    <span className="px-3 py-1 rounded-full bg-black/75 text-amber-300 font-mono text-[11px] font-bold uppercase tracking-wider border border-amber-400/40">
-                      Watch Haddi Play Song
-                    </span>
-                  </button>
-                )}
-              </div>
-
-              {/* Video Title & Quick Controls Bar */}
-              <div className="bg-slate-50 rounded-xl p-3.5 border border-slate-200 flex items-center justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="font-display text-sm font-bold text-slate-900 truncate">
-                    {videoSources[selectedVideo].title}
-                  </h2>
-                  <p className="text-[11px] text-slate-500 font-sans truncate">
-                    {videoSources[selectedVideo].subtitle}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-1.5 shrink-0">
-                  <button
-                    type="button"
-                    onClick={handleToggleVideoPlay}
-                    className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-400 text-slate-950 font-mono text-xs font-bold flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
-                  >
-                    {isVideoPlaying ? (
-                      <>
-                        <Pause size={13} fill="currentColor" />
-                        <span>Pause</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play size={13} fill="currentColor" />
-                        <span>Play</span>
-                      </>
-                    )}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleToggleVideoMute}
-                    className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
-                    title={isVideoMuted ? "Unmute Video" : "Mute Video"}
-                  >
-                    {isVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleRestartVideo}
-                    className="p-1.5 rounded-lg bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 transition-colors cursor-pointer"
-                    title="Restart Video"
-                  >
-                    <RotateCcw size={15} />
-                  </button>
-                </div>
-              </div>
-
-              {/* Official Minstrel Quote Banner */}
-              <div className="bg-amber-50/90 border border-amber-200 rounded-xl px-3.5 py-2.5 text-center">
-                <p className="text-[11px] text-amber-900 font-mono font-bold uppercase tracking-wide leading-relaxed">
-                  "There is no greater gift than a song... it is worth more than a thousand words!"
-                </p>
-              </div>
-
-              {/* Custom Generated Audio Player (Only appears if a user has already rendered a custom track) */}
-              {audioSource && (
-                <div className="bg-amber-50/60 rounded-xl p-3 border border-amber-200 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-900">
-                      Your Rendered Gift Song Audio
-                    </span>
-                    {(lyriaAudioUrl || narrationAudioUrl) && (
-                      <div className="flex gap-1">
-                        <button
-                          type="button"
-                          onClick={() => onSelectTrackType("lyria")}
-                          disabled={!lyriaAudioUrl}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer ${
-                            activeTrackType === "lyria"
-                              ? "bg-amber-500 text-slate-950"
-                              : "bg-white text-slate-600 border border-slate-200 disabled:opacity-40"
-                          }`}
-                        >
-                          Lyria 3 Song
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => onSelectTrackType("narration")}
-                          disabled={!narrationAudioUrl}
-                          className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold cursor-pointer ${
-                            activeTrackType === "narration"
-                              ? "bg-amber-500 text-slate-950"
-                              : "bg-white text-slate-600 border border-slate-200 disabled:opacity-40"
-                          }`}
-                        >
-                          Haddi Voice
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                  <audio controls src={audioSource} className="w-full h-9 accent-amber-500" />
-                </div>
-              )}
-            </div>
-
-            {/* Subtle Program Highlights Footer inside Player Card */}
-            <div className="pt-4 mt-4 border-t border-slate-200 grid grid-cols-3 gap-2 text-center">
-              <button
-                type="button"
-                onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-              >
-                <p className="text-xs font-bold text-amber-700">5 Free Songs</p>
-                <p className="text-[10px] text-slate-600">No card needed</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-              >
-                <p className="text-xs font-bold text-amber-700">Lifetime Account</p>
-                <p className="text-[10px] text-slate-600">10 $0.99 or 10 Premium</p>
-              </button>
-              <button
-                type="button"
-                onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
-                className="p-2 rounded-lg bg-slate-50 hover:bg-amber-50 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-              >
-                <p className="text-xs font-bold text-amber-700">Affiliate Hub</p>
-                <p className="text-[10px] text-slate-600">One-Time Premium Comm.</p>
-              </button>
-            </div>
-          </motion.div>
-
-          {/* RIGHT COLUMN: WELCOME CHAT WINDOW — CREATE YOUR FIRST GIFT SONG (7 cols) */}
-          <motion.div
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, delay: 0.08 }}
-            className="lg:col-span-7 bg-white border border-slate-200 rounded-2xl p-6 flex flex-col justify-between shadow-xl shadow-slate-200/70"
-          >
-            {/* Chat Window Header */}
-            <div className="flex items-center justify-between pb-3 border-b border-slate-200">
-              <div className="flex items-center gap-3">
-                <div className="relative">
-                  <div className="w-10 h-10 rounded-full bg-amber-100 border-2 border-amber-500 flex items-center justify-center text-amber-800 font-serif font-bold">
-                    H
-                  </div>
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-white" />
-                </div>
-                <div>
-                  <h2 className="text-base font-display font-bold text-slate-900">
-                    Create Your First Gift Song in 3 Easy Steps
-                  </h2>
-                  <p className="text-xs text-slate-500">
-                    mygiftsong.org • AI Assisted Song Generator — First 5 songs are free
-                  </p>
-                </div>
-              </div>
-
-              <span className="hidden sm:inline-flex items-center gap-1 text-[11px] font-mono font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2.5 py-1 rounded-md">
-                <Sparkles size={12} className="text-emerald-600" /> {freeSongsRemaining}/5 Free Songs
+      <div className="max-w-6xl w-full mx-auto px-4 sm:px-8 flex-1 flex flex-col justify-center">
+        {activeLandingPage === "yosia-children" ? (
+          <main className="py-8">
+            <YosiaChildrenSection
+              variant="light"
+              freeSongsRemaining={freeSongsRemaining}
+              onBackToMainPage={() => {
+                setActiveLandingPage("haddi-main");
+                window.scrollTo({ top: 0, behavior: "smooth" });
+              }}
+              onGenerateYosiaSong={(params) => {
+                onInitiateSystem({
+                  target: params.target,
+                  context: params.context,
+                  genre: params.genre,
+                  language: params.language,
+                  artistPersona: params.artistPersona,
+                  preloadedSong: params.preloadedSong,
+                  autoGenerate: params.autoGenerate,
+                  initialSection: "studio",
+                });
+              }}
+            />
+          </main>
+        ) : (
+          /* Main Uncluttered Center Stage: Haddi Video Showcase + Clean 3-Step Builder */
+          <main className="py-8 md:py-12">
+            {/* Airy, Spacious Hero Heading */}
+            <div className="text-center max-w-2xl mx-auto mb-10 space-y-3">
+              <span className="inline-block text-xs font-mono uppercase tracking-[0.18em] text-teal-700 font-semibold bg-teal-50 border border-teal-200/80 px-3 py-1 rounded-full">
+                Haddi the Street Minstrel • Custom Acoustic Gift Songs
               </span>
-            </div>
-
-            {/* CLEAR 3-STEP INDICATOR BAR (STEP 1, STEP 2, STEP 3) */}
-            <div className="mt-3 bg-slate-50 border border-slate-200 rounded-xl p-2.5">
-              <div className="flex items-center justify-between mb-2 px-1">
-                <span className="text-[10px] font-mono uppercase tracking-wider font-extrabold text-amber-800">
-                  {chatStep === "ready"
-                    ? "✅ All 3 Steps Complete — Ready to Create Song!"
-                    : `👉 Currently on Step ${currentStepNumber} of 3 (Click any step to edit)`}
-                </span>
-                {(recipientInput || occasionInput || storyInput) && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setRecipientInput("");
-                      setOccasionInput("");
-                      setStoryInput("");
-                      setChatInput("");
-                      setChatStep("recipient");
-                    }}
-                    className="text-[10px] font-mono text-slate-500 hover:text-amber-700 underline cursor-pointer"
-                  >
-                    Start Over
-                  </button>
-                )}
-              </div>
-
-              <div className="grid grid-cols-3 gap-2">
-                {/* STEP 1 PILL: WHO THE SONG IS FOR */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectStepManual("recipient")}
-                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
-                    chatStep === "recipient"
-                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
-                      : recipientInput
-                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                        chatStep === "recipient"
-                          ? "bg-amber-500 text-slate-950"
-                          : recipientInput
-                          ? "bg-emerald-600 text-white"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      Step 1
-                    </span>
-                    {recipientInput && (
-                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
-                    1. Who Is It For?
-                  </p>
-                  <p className="text-[11px] text-slate-600 truncate">
-                    {recipientInput ? `For: ${recipientInput}` : "Type recipient's name"}
-                  </p>
-                </button>
-
-                {/* STEP 2 PILL: WHAT'S THE OCCASION */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectStepManual("occasion")}
-                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
-                    chatStep === "occasion"
-                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
-                      : occasionInput
-                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                        chatStep === "occasion"
-                          ? "bg-amber-500 text-slate-950"
-                          : occasionInput
-                          ? "bg-emerald-600 text-white"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      Step 2
-                    </span>
-                    {occasionInput && (
-                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
-                    2. What's the Occasion?
-                  </p>
-                  <p className="text-[11px] text-slate-600 truncate">
-                    {occasionInput ? occasionInput : "Birthday, Anniversary..."}
-                  </p>
-                </button>
-
-                {/* STEP 3 PILL: WHAT WORDS / LYRICS YOU WANT */}
-                <button
-                  type="button"
-                  onClick={() => handleSelectStepManual("lyrics")}
-                  className={`text-left p-2.5 rounded-lg border transition-all cursor-pointer ${
-                    chatStep === "lyrics"
-                      ? "bg-amber-50 border-amber-500 ring-2 ring-amber-400/30 shadow-xs"
-                      : storyInput
-                      ? "bg-emerald-50/70 border-emerald-300 text-slate-900"
-                      : "bg-white border-slate-200 text-slate-500 hover:border-slate-300"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-1">
-                    <span
-                      className={`text-[10px] font-mono font-extrabold uppercase px-1.5 py-0.5 rounded ${
-                        chatStep === "lyrics"
-                          ? "bg-amber-500 text-slate-950"
-                          : storyInput
-                          ? "bg-emerald-600 text-white"
-                          : "bg-slate-200 text-slate-700"
-                      }`}
-                    >
-                      Step 3
-                    </span>
-                    {storyInput && (
-                      <span className="text-[10px] font-mono font-bold text-emerald-700">✓ Done</span>
-                    )}
-                  </div>
-                  <p className="text-xs font-bold text-slate-900 mt-1 truncate">
-                    3. Words &amp; Lyrics
-                  </p>
-                  <p className="text-[11px] text-slate-600 truncate">
-                    {storyInput ? storyInput : "Memories or lyrics"}
-                  </p>
-                </button>
-              </div>
-            </div>
-
-            {/* Chat Conversation Feed */}
-            <div
-              ref={chatContainerRef}
-              className="my-3 p-3.5 rounded-xl bg-slate-50 border border-slate-200/80 space-y-2.5 max-h-[210px] min-h-[175px] overflow-y-auto"
-            >
-              <AnimatePresence initial={false}>
-                {messages.map((msg) => (
-                  <motion.div
-                    key={msg.id}
-                    initial={{ opacity: 0, y: 6 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
-                  >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-xs sm:text-sm leading-relaxed shadow-2xs whitespace-pre-line ${
-                        msg.sender === "user"
-                          ? "bg-amber-500 text-slate-950 font-medium rounded-br-xs"
-                          : "bg-white text-slate-800 border border-slate-200 rounded-bl-xs"
-                      }`}
-                    >
-                      <p>{msg.text}</p>
-                    </div>
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-
-            {/* Quick Idea Starters + Guided Step Input (Focused on Haddi) */}
-            <div className="space-y-2.5">
-              {/* QUESTION FOR GUESTS: IS THIS SONG FOR A CHILD? WE HAVE A SEPARATE PAGE FOR CHILDREN! */}
-              <div className="p-3 rounded-xl bg-amber-50/90 border border-amber-300 flex flex-wrap items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className="text-base">👦🎸</span>
-                  <div>
-                    <p className="text-xs font-bold text-slate-900 leading-tight">
-                      Is this song for a child? We have a separate page for children!
-                    </p>
-                    <p className="text-[11px] text-amber-900">
-                      Meet Haddi&apos;s little brother, <strong>Yosia</strong> — he plays guitar too and loves making children happy!
-                    </p>
-                  </div>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveLandingPage("yosia-children");
-                    window.scrollTo({ top: 0, behavior: "smooth" });
-                  }}
-                  className="px-3 py-1.5 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-mono text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1 transition-all cursor-pointer shrink-0 shadow-xs"
-                >
-                  <span>Open Children&apos;s Page</span>
-                  <ArrowRight size={12} />
-                </button>
-              </div>
-
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 font-semibold mr-1">
-                    1-Click Fill All 3 Steps:
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        "Mom",
-                        "Mother's Day & Gratitude Blessing",
-                        "Thank you for your endless prayers, warm hugs, and guiding light through every season.",
-                        "Acoustic Folk",
-                        selectedLanguage,
-                        "haddi"
-                      )
-                    }
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                  >
-                    💐 For Mom
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        "My Beloved Partner",
-                        "Wedding Anniversary",
-                        "Celebrating our anniversary, every laugh we share, and walking hand in hand forever.",
-                        "Indie Pop",
-                        selectedLanguage,
-                        "haddi"
-                      )
-                    }
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-amber-50 text-slate-700 hover:text-amber-900 border border-slate-200 hover:border-amber-300 transition-colors cursor-pointer"
-                  >
-                    💍 Anniversary Gift
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      handleQuickPrompt(
-                        "Pak Sonni (Mr. Sonni)",
-                        "Membawa Senyum & Kebahagiaan (Making People Happy)",
-                        "Terima kasih Pak Sonni atas senyum hangat, kebaikan hati, dan semangat yang memberkati semua orang.",
-                        "Acoustic Folk",
-                        "Bahasa Indonesia",
-                        "haddi"
-                      )
-                    }
-                    className="text-[11px] px-2.5 py-1 rounded-lg bg-amber-50 hover:bg-amber-100 text-amber-900 font-semibold border border-amber-300 transition-colors cursor-pointer"
-                  >
-                    🇮🇩 Mr. Sonni (Bahasa Indonesia)
-                  </button>
-                </div>
-
-                {/* Language Selector Bar inside Haddi's Builder */}
-                <div className="flex items-center gap-1.5">
-                  <Globe size={13} className="text-amber-600" />
-                  <span className="text-[10px] font-mono uppercase font-bold text-slate-600">Language:</span>
-                  <select
-                    value={selectedLanguage}
-                    onChange={(e) => setSelectedLanguage(e.target.value)}
-                    className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs font-mono font-bold text-slate-800 focus:outline-none focus:border-amber-500"
-                  >
-                    {SUPPORTED_SONG_LANGUAGES.map((lang) => (
-                      <option key={lang.code} value={lang.code}>
-                        {lang.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              {/* Active Step Prompt Label Above Input */}
-              <div className="flex items-center justify-between px-1">
-                <label className="text-xs font-mono font-bold text-slate-800 flex items-center gap-1.5">
-                  <span className="inline-flex items-center justify-center px-2 py-0.5 rounded bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase">
-                    {chatStep === "recipient"
-                      ? "Step 1 of 3"
-                      : chatStep === "occasion"
-                      ? "Step 2 of 3"
-                      : chatStep === "lyrics"
-                      ? "Step 3 of 3"
-                      : "Steps 1–3 Done"}
-                  </span>
-                  <span>
-                    {chatStep === "recipient"
-                      ? "Who is this gift song for?"
-                      : chatStep === "occasion"
-                      ? `What is the occasion for ${recipientInput || "them"}?`
-                      : chatStep === "lyrics"
-                      ? "What words or lyrics do you want in the song?"
-                      : "Add any extra lyrics, or click a button below:"}
-                  </span>
-                </label>
-              </div>
-
-              {/* Chat Input Row */}
-              <form onSubmit={handleSendChat} className="flex gap-2">
-                <input
-                  type="text"
-                  value={chatInput}
-                  onChange={(e) => setChatInput(e.target.value)}
-                  placeholder={
-                    chatStep === "recipient"
-                      ? "Step 1: Type who the song is for (e.g., Sarah, Mom, Mr. Sonni)..."
-                      : chatStep === "occasion"
-                      ? "Step 2: Type the occasion (e.g., Birthday, Anniversary, Thank You)..."
-                      : chatStep === "lyrics"
-                      ? "Step 3: Type the words, memories, or lyrics you want in the song..."
-                      : "Optional: Type any extra lyrics or words to include..."
-                  }
-                  className="flex-1 bg-white border-2 border-slate-300 focus:border-amber-500 rounded-xl px-4 py-2.5 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-colors"
-                />
-                <button
-                  type="submit"
-                  className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-amber-400 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
-                >
-                  <span>
-                    {chatStep === "recipient"
-                      ? "Next: Step 2"
-                      : chatStep === "occasion"
-                      ? "Next: Step 3"
-                      : chatStep === "lyrics"
-                      ? "Save Step 3"
-                      : "Add Words"}
-                  </span>
-                  <Send size={13} />
-                </button>
-              </form>
-
-              {/* TWO SIDE-BY-SIDE FINAL ACTION BUTTONS:
-                  1) CREATE THE SONG NOW
-                  2) GO INTO FULL STUDIO FOR MORE OPTIONS */}
-              <div className="pt-1.5 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-                <button
-                  type="button"
-                  onClick={() => {
-                    const { finalRecipient, finalContext } = buildCombinedContext();
-                    onInitiateSystem({
-                      target: finalRecipient,
-                      context: finalContext,
-                      genre: selectedGenre,
-                      language: selectedLanguage,
-                      artistPersona: "haddi",
-                      autoGenerate: true,
-                      initialSection: "studio",
-                    });
-                  }}
-                  className="py-3.5 px-4 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Sparkles size={16} />
-                  <span>
-                    {recipientInput
-                      ? `Create ${recipientInput}'s Song (${selectedLanguage.split(" ")[0]})`
-                      : `Create the Song Now (${selectedLanguage.split(" ")[0]})`}
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    const { finalRecipient, finalContext, hasUserContent } = buildCombinedContext();
-                    onInitiateSystem({
-                      target: hasUserContent ? finalRecipient : undefined,
-                      context: hasUserContent ? finalContext : undefined,
-                      genre: selectedGenre,
-                      language: selectedLanguage,
-                      artistPersona: "haddi",
-                      autoGenerate: false,
-                      initialSection: "studio",
-                    });
-                  }}
-                  className="py-3.5 px-4 rounded-xl bg-slate-900 hover:bg-slate-800 text-white border border-slate-800 font-display font-bold text-xs sm:text-sm uppercase tracking-wider shadow-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Music size={15} className="text-amber-400" />
-                  <span>Go Into Full Studio for More Options</span>
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-
-              {/* 1-TIME REDO POLICY REMINDER FOR GUESTS */}
-              <p className="text-[11px] font-mono text-slate-500 text-center pt-1">
-                🎁 <strong>5 Free Songs Policy:</strong> You get <strong>1 option to redo a song</strong> if it&apos;s not good. Once you use your 1 redo option, whatever song is generated is the one you keep for the other 4 songs.
+              <h1 className="text-3xl sm:text-5xl font-display font-bold text-slate-900 tracking-tight leading-tight">
+                Turn Your Heartfelt Story Into a{" "}
+                <span className="text-teal-700">Playable Gift Song</span>
+              </h1>
+              <p className="text-sm sm:text-base text-slate-600 max-w-xl mx-auto leading-relaxed">
+                Share who the song is for, the occasion, and the memories you want included. Your first 5 custom songs are free.
               </p>
             </div>
-          </motion.div>
-        </div>
-      </main>
-      )}
 
-      {/* Clean Minimal Footer with Direct Links to Separate System Sections */}
-      <footer className="pt-4 border-t border-slate-200 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500 font-mono">
-        <span
-          onClick={handleCopyrightClick}
-          className="select-none cursor-default"
-        >
-          © 2026 mygiftsong.org • AI Assisted Song Generator
-        </span>
-        <div className="flex flex-wrap items-center gap-4">
-          <button
-            type="button"
-            onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
-            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              {/* LEFT COLUMN: HADDI VIDEO MEDIA PLAYER (5 cols) — UNCLUTTERED WHITE & TEAL */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35 }}
+                className="lg:col-span-5 bg-white border border-stone-200/90 rounded-2xl p-6 flex flex-col justify-between shadow-sm"
+              >
+                <div className="space-y-4">
+                  {/* Minimal Header & Switcher */}
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-teal-600" />
+                      <span className="text-xs font-semibold uppercase tracking-wider text-slate-700">
+                        Haddi Acoustic Showcase
+                      </span>
+                    </div>
+
+                    <div className="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200">
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchVideo("flagship")}
+                        className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                          selectedVideo === "flagship"
+                            ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        Flagship Song
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchVideo("encore")}
+                        className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                          selectedVideo === "encore"
+                            ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                            : "text-slate-600 hover:text-slate-900"
+                        }`}
+                      >
+                        Encore Video
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Haddi Video Frame */}
+                  <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-900 aspect-video group">
+                    <video
+                      ref={videoRef}
+                      src={videoSources[selectedVideo].src}
+                      poster="/images/guiter-rescaled-9music.png"
+                      controls
+                      playsInline
+                      preload="metadata"
+                      onPlay={() => setIsVideoPlaying(true)}
+                      onPause={() => setIsVideoPlaying(false)}
+                      onEnded={() => setIsVideoPlaying(false)}
+                      className="w-full h-full object-cover"
+                    />
+
+                    {!isVideoPlaying && (
+                      <button
+                        type="button"
+                        onClick={handleToggleVideoPlay}
+                        className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
+                        title="Watch & Listen to Haddi Playing Song"
+                      >
+                        <div className="w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                          <Play size={24} fill="currentColor" className="ml-0.5" />
+                        </div>
+                        <span className="px-3 py-1 rounded-full bg-white/95 text-teal-900 text-xs font-semibold shadow-sm">
+                          Watch Haddi Play
+                        </span>
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Clean Controls Bar */}
+                  <div className="flex items-center justify-between gap-3 pt-1">
+                    <div className="min-w-0">
+                      <h2 className="font-display text-sm font-semibold text-slate-900 truncate">
+                        {videoSources[selectedVideo].title}
+                      </h2>
+                      <p className="text-xs text-slate-500 truncate">
+                        {videoSources[selectedVideo].subtitle}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-1.5 shrink-0">
+                      <button
+                        type="button"
+                        onClick={handleToggleVideoPlay}
+                        className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        {isVideoPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                        <span>{isVideoPlaying ? "Pause" : "Play"}</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleToggleVideoMute}
+                        className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                        title={isVideoMuted ? "Unmute Video" : "Mute Video"}
+                      >
+                        {isVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleRestartVideo}
+                        className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                        title="Restart Video"
+                      >
+                        <RotateCcw size={15} />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Custom Generated Audio Player (Only appears if a user has rendered a custom track) */}
+                  {audioSource && (
+                    <div className="bg-teal-50/70 rounded-xl p-3 border border-teal-200 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] font-semibold text-teal-900">
+                          Your Rendered Gift Song Audio
+                        </span>
+                        {(lyriaAudioUrl || narrationAudioUrl) && (
+                          <div className="flex gap-1">
+                            <button
+                              type="button"
+                              onClick={() => onSelectTrackType("lyria")}
+                              disabled={!lyriaAudioUrl}
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                                activeTrackType === "lyria"
+                                  ? "bg-teal-600 text-white"
+                                  : "bg-white text-slate-600 border border-stone-200 disabled:opacity-40"
+                              }`}
+                            >
+                              Sung Song
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onSelectTrackType("narration")}
+                              disabled={!narrationAudioUrl}
+                              className={`px-2 py-0.5 rounded text-[10px] font-semibold cursor-pointer ${
+                                activeTrackType === "narration"
+                                  ? "bg-teal-600 text-white"
+                                  : "bg-white text-slate-600 border border-stone-200 disabled:opacity-40"
+                              }`}
+                            >
+                              Haddi Voice
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                      <audio controls src={audioSource} className="w-full h-9 accent-teal-600" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Earthy Minstrel Quote & Clean Links */}
+                <div className="pt-5 mt-5 border-t border-stone-200/80 space-y-4">
+                  <p className="text-xs text-slate-600 italic text-center leading-relaxed">
+                    &ldquo;There is no greater gift than a song... it is worth more than a thousand words.&rdquo;
+                  </p>
+
+                  <div className="grid grid-cols-3 gap-2 text-center">
+                    <button
+                      type="button"
+                      onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
+                      className="p-2.5 rounded-xl bg-stone-50/80 hover:bg-teal-50/60 border border-stone-200/80 hover:border-teal-300 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs font-semibold text-teal-800">5 Free Songs</p>
+                      <p className="text-[11px] text-slate-500">No card needed</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
+                      className="p-2.5 rounded-xl bg-stone-50/80 hover:bg-teal-50/60 border border-stone-200/80 hover:border-teal-300 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs font-semibold text-teal-800">Lifetime Pass</p>
+                      <p className="text-[11px] text-slate-500">Invite 10 friends</p>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
+                      className="p-2.5 rounded-xl bg-stone-50/80 hover:bg-teal-50/60 border border-stone-200/80 hover:border-teal-300 transition-colors cursor-pointer"
+                    >
+                      <p className="text-xs font-semibold text-teal-800">Affiliate Hub</p>
+                      <p className="text-[11px] text-slate-500">Partner rewards</p>
+                    </button>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* RIGHT COLUMN: UNCLUTTERED 3-STEP GIFT SONG BUILDER (7 cols) */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.35, delay: 0.06 }}
+                className="lg:col-span-7 bg-white border border-stone-200/90 rounded-2xl p-6 sm:p-7 flex flex-col justify-between shadow-sm"
+              >
+                {/* Clean Header */}
+                <div className="flex flex-wrap items-center justify-between gap-3 pb-4 border-b border-stone-200/80">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-teal-50 border border-teal-300 flex items-center justify-center text-teal-800 font-display font-bold">
+                      H
+                    </div>
+                    <div>
+                      <h2 className="text-base sm:text-lg font-display font-bold text-slate-900">
+                        Create Your Gift Song in 3 Simple Steps
+                      </h2>
+                      <p className="text-xs text-slate-500">
+                        Tell Haddi who it&apos;s for, the occasion, and your desired lyrics
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Language Selector neatly integrated in the card header */}
+                  <div className="flex items-center gap-1.5 bg-stone-50 border border-stone-200 rounded-lg px-2.5 py-1.5">
+                    <Globe size={13} className="text-teal-600" />
+                    <select
+                      value={selectedLanguage}
+                      onChange={(e) => setSelectedLanguage(e.target.value)}
+                      className="bg-transparent text-xs font-medium text-slate-800 focus:outline-none cursor-pointer"
+                      aria-label="Select Song Language"
+                    >
+                      {SUPPORTED_SONG_LANGUAGES.map((lang) => (
+                        <option key={lang.code} value={lang.code}>
+                          {lang.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* CLEAN 3-STEP PROGRESS BAR (STEP 1, STEP 2, STEP 3) */}
+                <div className="mt-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-teal-800">
+                      {chatStep === "ready"
+                        ? "✓ All 3 steps complete — ready to create your song"
+                        : `Step ${currentStepNumber} of 3 — Click any step to edit`}
+                    </span>
+                    {(recipientInput || occasionInput || storyInput) && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setRecipientInput("");
+                          setOccasionInput("");
+                          setStoryInput("");
+                          setChatInput("");
+                          setChatStep("recipient");
+                        }}
+                        className="text-xs text-slate-500 hover:text-teal-700 underline cursor-pointer"
+                      >
+                        Reset steps
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-2.5">
+                    {/* STEP 1 */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStepManual("recipient")}
+                      className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
+                        chatStep === "recipient"
+                          ? "bg-teal-50/70 border-teal-600 ring-2 ring-teal-500/15"
+                          : recipientInput
+                          ? "bg-stone-50 border-teal-300 text-slate-900"
+                          : "bg-white border-stone-200 text-slate-500 hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                            chatStep === "recipient" || recipientInput
+                              ? "bg-teal-600 text-white"
+                              : "bg-stone-200 text-slate-600"
+                          }`}
+                        >
+                          Step 1
+                        </span>
+                        {recipientInput && (
+                          <span className="text-[10px] font-medium text-teal-700">✓</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-slate-900 mt-1.5 truncate">
+                        Who Is It For?
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {recipientInput ? recipientInput : "Recipient name"}
+                      </p>
+                    </button>
+
+                    {/* STEP 2 */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStepManual("occasion")}
+                      className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
+                        chatStep === "occasion"
+                          ? "bg-teal-50/70 border-teal-600 ring-2 ring-teal-500/15"
+                          : occasionInput
+                          ? "bg-stone-50 border-teal-300 text-slate-900"
+                          : "bg-white border-stone-200 text-slate-500 hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                            chatStep === "occasion" || occasionInput
+                              ? "bg-teal-600 text-white"
+                              : "bg-stone-200 text-slate-600"
+                          }`}
+                        >
+                          Step 2
+                        </span>
+                        {occasionInput && (
+                          <span className="text-[10px] font-medium text-teal-700">✓</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-slate-900 mt-1.5 truncate">
+                        Occasion
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {occasionInput ? occasionInput : "Birthday, Anniversary..."}
+                      </p>
+                    </button>
+
+                    {/* STEP 3 */}
+                    <button
+                      type="button"
+                      onClick={() => handleSelectStepManual("lyrics")}
+                      className={`text-left p-3 rounded-xl border transition-all cursor-pointer ${
+                        chatStep === "lyrics"
+                          ? "bg-teal-50/70 border-teal-600 ring-2 ring-teal-500/15"
+                          : storyInput
+                          ? "bg-stone-50 border-teal-300 text-slate-900"
+                          : "bg-white border-stone-200 text-slate-500 hover:border-stone-300"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-1">
+                        <span
+                          className={`text-[10px] font-mono font-bold uppercase px-1.5 py-0.5 rounded ${
+                            chatStep === "lyrics" || storyInput
+                              ? "bg-teal-600 text-white"
+                              : "bg-stone-200 text-slate-600"
+                          }`}
+                        >
+                          Step 3
+                        </span>
+                        {storyInput && (
+                          <span className="text-[10px] font-medium text-teal-700">✓</span>
+                        )}
+                      </div>
+                      <p className="text-xs font-semibold text-slate-900 mt-1.5 truncate">
+                        Words &amp; Lyrics
+                      </p>
+                      <p className="text-[11px] text-slate-500 truncate">
+                        {storyInput ? storyInput : "Memories or message"}
+                      </p>
+                    </button>
+                  </div>
+                </div>
+
+                {/* Uncluttered Input & Actions (Duplicate Selamat Datang chat box removed) */}
+                <div className="space-y-4 mt-4">
+                  {/* Quick Starter Templates */}
+                  <div className="flex flex-wrap items-center gap-1.5">
+                    <span className="text-[11px] text-slate-500 font-medium mr-1">
+                      Quick fill:
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleQuickPrompt(
+                          "Mom",
+                          "Mother's Day & Gratitude Blessing",
+                          "Thank you for your endless prayers, warm hugs, and guiding light through every season.",
+                          "Acoustic Folk",
+                          selectedLanguage,
+                          "haddi"
+                        )
+                      }
+                      className="text-xs px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border border-stone-200/80 transition-colors cursor-pointer"
+                    >
+                      For Mom
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleQuickPrompt(
+                          "My Beloved Partner",
+                          "Wedding Anniversary",
+                          "Celebrating our anniversary, every laugh we share, and walking hand in hand forever.",
+                          "Indie Pop",
+                          selectedLanguage,
+                          "haddi"
+                        )
+                      }
+                      className="text-xs px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border border-stone-200/80 transition-colors cursor-pointer"
+                    >
+                      Anniversary
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleQuickPrompt(
+                          "My Best Friend",
+                          "Happy Birthday Celebration",
+                          "Wishing you a year filled with joy, laughter, good health, and unforgettable blessings.",
+                          "Acoustic Folk",
+                          selectedLanguage,
+                          "haddi"
+                        )
+                      }
+                      className="text-xs px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border border-stone-200/80 transition-colors cursor-pointer"
+                    >
+                      Birthday
+                    </button>
+                  </div>
+
+                  {/* Step Input Bar */}
+                  <form onSubmit={handleSendChat} className="flex gap-2">
+                    <input
+                      type="text"
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      placeholder={
+                        chatStep === "recipient"
+                          ? "Step 1: Who is this song for? (e.g., Sarah, Mom, Dad)..."
+                          : chatStep === "occasion"
+                          ? "Step 2: What is the occasion? (e.g., Birthday, Anniversary)..."
+                          : chatStep === "lyrics"
+                          ? "Step 3: What words or memories do you want in the lyrics?..."
+                          : "Optional: Add extra words or click Create below..."
+                      }
+                      className="flex-1 bg-white border border-stone-300 focus:border-teal-600 focus:ring-2 focus:ring-teal-500/15 rounded-xl px-4 py-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none transition-all"
+                    />
+                    <button
+                      type="submit"
+                      className="px-4 py-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer shrink-0"
+                    >
+                      <span>
+                        {chatStep === "recipient"
+                          ? "Next Step"
+                          : chatStep === "occasion"
+                          ? "Next Step"
+                          : chatStep === "lyrics"
+                          ? "Save Lyrics"
+                          : "Add"}
+                      </span>
+                      <Send size={13} />
+                    </button>
+                  </form>
+
+                  {/* Primary & Secondary Action Buttons */}
+                  <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const { finalRecipient, finalContext } = buildCombinedContext();
+                        onInitiateSystem({
+                          target: finalRecipient,
+                          context: finalContext,
+                          genre: selectedGenre,
+                          language: selectedLanguage,
+                          artistPersona: "haddi",
+                          autoGenerate: true,
+                          initialSection: "studio",
+                        });
+                      }}
+                      className="py-3 px-4 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs sm:text-sm shadow-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Sparkles size={15} />
+                      <span>
+                        {recipientInput
+                          ? `Create ${recipientInput}'s Song (${selectedLanguage.split(" ")[0]})`
+                          : `Create the Song Now (${selectedLanguage.split(" ")[0]})`}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const { finalRecipient, finalContext, hasUserContent } = buildCombinedContext();
+                        onInitiateSystem({
+                          target: hasUserContent ? finalRecipient : undefined,
+                          context: hasUserContent ? finalContext : undefined,
+                          genre: selectedGenre,
+                          language: selectedLanguage,
+                          artistPersona: "haddi",
+                          autoGenerate: false,
+                          initialSection: "studio",
+                        });
+                      }}
+                      className="py-3 px-4 rounded-xl bg-white hover:bg-stone-50 text-slate-800 border border-stone-300 font-display font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      <Music size={15} className="text-teal-600" />
+                      <span>Full Studio Options</span>
+                      <ArrowRight size={14} />
+                    </button>
+                  </div>
+
+                  {/* HIGH-VISIBILITY FLASHING CHILDREN'S SONG PAGE CALLOUT BANNER */}
+                  <div className="mt-2 p-4 rounded-2xl bg-gradient-to-r from-teal-50 via-emerald-50 to-teal-50 border-2 border-teal-500 shadow-[0_0_20px_rgba(13,148,136,0.2)] flex flex-col sm:flex-row items-center justify-between gap-3 relative overflow-hidden">
+                    <div className="flex items-center gap-3 text-center sm:text-left">
+                      <span className="relative flex items-center justify-center w-10 h-10 rounded-xl bg-teal-600 text-white text-lg shrink-0 shadow-sm animate-bounce">
+                        👦🎸
+                        <span className="absolute -top-1 -right-1 flex h-3 w-3">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-90"></span>
+                          <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-400"></span>
+                        </span>
+                      </span>
+                      <div>
+                        <div className="flex flex-wrap items-center justify-center sm:justify-start gap-1.5">
+                          <span className="text-xs sm:text-sm font-display font-extrabold text-teal-950">
+                            Is this song for a child?
+                          </span>
+                          <span className="px-2 py-0.5 rounded-full bg-amber-300 text-slate-950 text-[10px] font-mono font-extrabold uppercase tracking-wider animate-pulse">
+                            ✨ Kids Page
+                          </span>
+                        </div>
+                        <p className="text-[11px] sm:text-xs text-teal-800 font-medium mt-0.5">
+                          We have a separate page for children with Haddi&apos;s little brother, Yosia!
+                        </p>
+                      </div>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLandingPage("yosia-children");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="w-full sm:w-auto px-4 py-2.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-display font-bold text-xs sm:text-sm shadow-md flex items-center justify-center gap-1.5 cursor-pointer transition-all ring-2 ring-amber-300/80 animate-pulse hover:animate-none shrink-0"
+                    >
+                      <span>Open Yosia&apos;s Children&apos;s Song Page</span>
+                      <ArrowRight size={15} />
+                    </button>
+                  </div>
+
+                  {/* Single Concise 1-Time Redo Note */}
+                  <div className="text-center pt-1">
+                    <span className="text-[11px] text-slate-500">
+                      {oneTimeRedoUsed
+                        ? "1-Time Redo used • Remaining 4 free songs are kept as generated"
+                        : "Includes 1 single song redo option across your 5 free songs"}
+                    </span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </main>
+        )}
+      </div>
+
+      {/* Clean Minimal Footer */}
+      <footer className="w-full border-t border-stone-200/80 bg-white mt-8">
+        <div className="max-w-6xl mx-auto px-4 sm:px-8 py-5 flex flex-wrap items-center justify-between gap-4 text-xs text-slate-500">
+          <span
+            onClick={handleCopyrightClick}
+            className="select-none cursor-default"
           >
-            🎁 First 5 Songs Free
-          </button>
-          <button
-            type="button"
-            onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
-            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
-          >
-            👑 Invite 10 = Lifetime License
-          </button>
-          <button
-            type="button"
-            onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
-            className="text-slate-600 hover:text-amber-700 font-semibold transition-colors cursor-pointer"
-          >
-            🤝 Affiliate Program
-          </button>
+            © 2026 mygiftsong.org • AI Assisted Song Generator
+          </span>
+          <div className="flex flex-wrap items-center gap-5">
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "free-songs" })}
+              className="text-slate-600 hover:text-teal-700 font-medium transition-colors cursor-pointer"
+            >
+              First 5 Songs Free
+            </button>
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
+              className="text-slate-600 hover:text-teal-700 font-medium transition-colors cursor-pointer"
+            >
+              Invite 10 = Lifetime License
+            </button>
+            <button
+              type="button"
+              onClick={() => onInitiateSystem({ initialSection: "affiliate" })}
+              className="text-slate-600 hover:text-teal-700 font-medium transition-colors cursor-pointer"
+            >
+              Affiliate Program
+            </button>
+          </div>
         </div>
       </footer>
     </div>

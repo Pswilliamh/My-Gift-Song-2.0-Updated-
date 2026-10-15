@@ -34,142 +34,6 @@ export const SUPPORTED_SONG_LANGUAGES = [
   { code: "French (Français)", label: "🇫🇷 Français (French)", short: "🇫🇷 Français" },
 ];
 
-export const MR_SONNI_ENGLISH_SONG: SongData = {
-  id: "mr-sonni-en",
-  title: "The Mr. Sonni Song (Making People Happy)",
-  target: "Mr. Sonni",
-  context: "A joyful acoustic guitar song by Yosia & Haddi celebrating Mr. Sonni's kind heart, warm smile, and blessing to everyone around him.",
-  setType: "full",
-  tempo: "Happy Bouncy Guitar Strum (104 BPM)",
-  genre: "Children's Joyful Acoustic Sing-Along",
-  language: "English",
-  artistPersona: "yosia",
-  totalDurationSeconds: 90,
-  artistIntro:
-    "Halo my friends! I'm Yosia, Haddi's little brother! I play guitar too and I love helping make people happy! Big brother Haddi and I wrote this special song by our warm fireplace for our wonderful friend Mr. Sonni!",
-  lyricSections: [
-    {
-      sectionName: "Intro",
-      lines: [
-        "[Yosia & Haddi Cheerful Acoustic Guitar Strumming by the Fireplace]",
-        "[Happy hums and handclaps: La-la-la, thank you Mr. Sonni!]"
-      ],
-      chords: ["G", "C"],
-      timestamps: [0, 4]
-    },
-    {
-      sectionName: "Verse 1",
-      lines: [
-        "Good morning Mr. Sonni, the sun is shining bright,",
-        "Your friendly smile and kindness fill the room with light!",
-        "With a heart of gold and a helping hand to share,",
-        "You spread the joy of Blessing and Grace everywhere."
-      ],
-      chords: ["G", "D", "Em", "C"],
-      timestamps: [8, 14, 20, 26]
-    },
-    {
-      sectionName: "Chorus",
-      lines: [
-        "Oh Mr. Sonni, you make the whole world smile,",
-        "Yosia strums his guitar in a happy island style!",
-        "May God's Covenant Favor and Faithfulness stay,",
-        "Blessing Mr. Sonni each and every single day!"
-      ],
-      chords: ["C", "G", "D", "G"],
-      timestamps: [32, 38, 44, 50]
-    },
-    {
-      sectionName: "Verse 2",
-      lines: [
-        "From Sumatra to Jakarta, the silver strings ring out,",
-        "Praise and pure happiness are what this song's about!",
-        "Every little act of love plants a seed of peace,",
-        "May the joy inside your Sanctuary never, ever cease!"
-      ],
-      chords: ["Em", "C", "G", "D"],
-      timestamps: [56, 62, 68, 74]
-    },
-    {
-      sectionName: "Outro",
-      lines: [
-        "Thank you Mr. Sonni, keep shining warm and true,",
-        "Yosia and Haddi are singing this blessing just for you!"
-      ],
-      chords: ["C", "G"],
-      timestamps: [80, 86]
-    }
-  ]
-};
-
-export const MR_SONNI_INDONESIAN_SONG: SongData = {
-  id: "mr-sonni-id",
-  title: "Lagu Bahagia Pak Sonni (Membawa Senyum & Berkat)",
-  target: "Pak Sonni (Mr. Sonni)",
-  context: "Lagu gitar akustik ceria dari Yosia & Haddi untuk Pak Sonni dalam Bahasa Indonesia, merayakan kebaikan hati, senyum hangat, dan berkat Tuhan.",
-  setType: "full",
-  tempo: "Petikan Gitar Ceria (104 BPM)",
-  genre: "Lagu Anak & Sukacita Akustik",
-  language: "Bahasa Indonesia",
-  artistPersona: "yosia",
-  totalDurationSeconds: 90,
-  artistIntro:
-    "Halo semuanya! Aku Yosia, adik kecil Bang Haddi! Aku suka sekali bermain gitar dan membuat hati semua orang gembira! Lagu dalam Bahasa Indonesia ini khusus kami nyanyikan di dekat perapian hangat untuk Pak Sonni (Mr. Sonni) yang baik hati!",
-  lyricSections: [
-    {
-      sectionName: "Intro",
-      lines: [
-        "[Petikan Gitar Ceria Yosia & Bang Haddi di Depan Perapian]",
-        "[Senandung hangat penuh sukacita: La-la-la, terima kasih Pak Sonni!]"
-      ],
-      chords: ["G", "C"],
-      timestamps: [0, 4]
-    },
-    {
-      sectionName: "Verse 1",
-      lines: [
-        "Selamat pagi Pak Sonni, mentari bersinar cerah,",
-        "Senyummu yang ramah membuat hati kami gembira!",
-        "Dengan hati yang tulus dan tangan yang suka menolong,",
-        "Engkau menabur Berkat dan Kasih Karunia yang agung."
-      ],
-      chords: ["G", "D", "Em", "C"],
-      timestamps: [8, 14, 20, 26]
-    },
-    {
-      sectionName: "Chorus",
-      lines: [
-        "Oh Pak Sonni, engkau membuat dunia tersenyum bahagia,",
-        "Yosia memetik gitarnya dengan irama penuh sukacita!",
-        "Kiranya Berkat Perjanjian dan Kesetiaan Tuhan selalu nyata,",
-        "Memberkati hidup Pak Sonni hari ini dan selamanya!"
-      ],
-      chords: ["C", "G", "D", "G"],
-      timestamps: [32, 38, 44, 50]
-    },
-    {
-      sectionName: "Verse 2",
-      lines: [
-        "Dari Sumatera hingga Jakarta senar gitar berbunyi merdu,",
-        "Pujian dan kebahagiaan murni mengalir di dalam lagu!",
-        "Setiap kebaikan kecil menanam benih damai sejahtera,",
-        "Kiranya sukacita di hatimu bersinar sepanjang masa!"
-      ],
-      chords: ["Em", "C", "G", "D"],
-      timestamps: [56, 62, 68, 74]
-    },
-    {
-      sectionName: "Outro",
-      lines: [
-        "Terima kasih Pak Sonni, tetaplah bersinar hangat selalu,",
-        "Yosia dan Bang Haddi menyanyikan berkat ini khusus untukmu!"
-      ],
-      chords: ["C", "G"],
-      timestamps: [80, 86]
-    }
-  ]
-};
-
 /**
  * Pixar-style warm illustrated SVG portrait of Yosia (Haddi's little brother)
  * matching the uploaded screenshots:
@@ -396,7 +260,6 @@ interface YosiaChildrenSectionProps {
 }
 
 export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
-  variant = "light",
   freeSongsRemaining,
   onBackToMainPage,
   onGenerateYosiaSong,
@@ -416,14 +279,6 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
       return null;
     }
   });
-
-  // Featured Mr. Sonni Song Translator state
-  const [mrSonniLanguage, setMrSonniLanguage] = useState<string>("Bahasa Indonesia");
-  const [mrSonniSong, setMrSonniSong] = useState<SongData>(MR_SONNI_INDONESIAN_SONG);
-  const [isTranslatingMrSonni, setIsTranslatingMrSonni] = useState(false);
-  const [showSideBySide, setShowSideBySide] = useState(true);
-  const [copiedSonni, setCopiedSonni] = useState(false);
-  const [isSpeakingSonni, setIsSpeakingSonni] = useState(false);
 
   // Yosia Custom Children's Song Builder state
   const [childName, setChildName] = useState("");
@@ -457,145 +312,51 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
     reader.readAsDataURL(file);
   };
 
-  const handleTranslateMrSonni = async (targetLang: string) => {
-    setMrSonniLanguage(targetLang);
-    if (targetLang === "English") {
-      setMrSonniSong(MR_SONNI_ENGLISH_SONG);
-      return;
-    }
-    if (targetLang === "Bahasa Indonesia") {
-      setMrSonniSong(MR_SONNI_INDONESIAN_SONG);
-      return;
-    }
-
-    setIsTranslatingMrSonni(true);
-    try {
-      const res = await fetch("/api/translate-song", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          song: MR_SONNI_ENGLISH_SONG,
-          targetLanguage: targetLang,
-        }),
-      });
-      const data = await res.json();
-      if (data.success && data.song) {
-        setMrSonniSong(data.song);
-      }
-    } catch (err) {
-      console.warn("Translation fallback:", err);
-    } finally {
-      setIsTranslatingMrSonni(false);
-    }
-  };
-
-  const handleSpeakMrSonni = () => {
-    if (!("speechSynthesis" in window)) return;
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-      setIsSpeakingSonni(false);
-      return;
-    }
-    const textToSpeak = [
-      mrSonniSong.artistIntro,
-      ...mrSonniSong.lyricSections
-        .filter((s) => s.sectionName !== "Intro")
-        .flatMap((s) => s.lines),
-    ].join(". ");
-
-    const utterance = new SpeechSynthesisUtterance(textToSpeak);
-    const isIndo = mrSonniLanguage.toLowerCase().includes("indonesia");
-    utterance.lang = isIndo ? "id-ID" : "en-US";
-    utterance.pitch = 1.15; // Young joyful Yosia pitch
-    utterance.rate = 0.95;
-    utterance.onstart = () => setIsSpeakingSonni(true);
-    utterance.onend = () => setIsSpeakingSonni(false);
-    utterance.onerror = () => setIsSpeakingSonni(false);
-    window.speechSynthesis.speak(utterance);
-  };
-
-  const handleCopySonniLyrics = () => {
-    const formatted = mrSonniSong.lyricSections
-      .map((s) => `[${s.sectionName}]\n${s.lines.join("\n")}`)
-      .join("\n\n");
-    navigator.clipboard.writeText(`${mrSonniSong.title}\n\n${formatted}`);
-    setCopiedSonni(true);
-    setTimeout(() => setCopiedSonni(false), 2000);
-  };
-
-  const isDark = variant === "dark";
-
   return (
-    <section
-      className={`rounded-2xl border p-6 sm:p-8 space-y-8 transition-all ${
-        isDark
-          ? "bg-[#14110e] border-[#FFD700]/35 text-white shadow-2xl"
-          : "bg-gradient-to-br from-amber-50/70 via-white to-orange-50/50 border-amber-300 text-slate-900 shadow-xl shadow-amber-100/60"
-      }`}
-    >
+    <section className="rounded-2xl border border-stone-200 bg-white p-6 sm:p-8 space-y-8 shadow-sm text-slate-900">
       {/* TOP HEADER: MEET YOSIA (HADDI'S LITTLE BROTHER) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5 border-amber-300/40">
-        <div className="space-y-1">
-          <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5 border-stone-200">
+        <div className="space-y-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
             {onBackToMainPage && (
               <button
                 type="button"
                 onClick={onBackToMainPage}
-                className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer border ${
-                  isDark
-                    ? "bg-white/10 hover:bg-white/20 text-white border-white/20"
-                    : "bg-slate-900 hover:bg-slate-800 text-white border-slate-900 shadow-xs"
-                }`}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-slate-800 border border-stone-200 transition-all cursor-pointer"
               >
                 <ArrowLeft size={13} />
                 <span>Back to Haddi&apos;s Main Page</span>
               </button>
             )}
-            <span className="text-xs font-mono uppercase tracking-widest font-extrabold text-amber-600">
-              👦🎸 Dedicated Children&apos;s Song Page • Multilingual Translator
+            <span className="text-xs font-mono uppercase tracking-wider font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
+              👦🎸 Dedicated Children&apos;s Song Page
             </span>
           </div>
-          <h2
-            className={`text-2xl sm:text-3xl font-display font-bold tracking-tight ${
-              isDark ? "text-white" : "text-slate-900"
-            }`}
-          >
-            Meet <span className="text-amber-500">Yosia</span> — Haddi&apos;s Little Brother!
+          <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900">
+            Meet <span className="text-teal-700">Yosia</span> — Haddi&apos;s Little Brother
           </h2>
-          <p className={`text-xs sm:text-sm max-w-2xl leading-relaxed ${isDark ? "text-white/80" : "text-slate-600"}`}>
-            Welcome to our dedicated Children&apos;s Song Page! Yosia plays acoustic guitar just like his big brother Haddi, and he loves helping make children and families happy! Create joyful children&apos;s songs or translate songs like{" "}
-            <strong className={isDark ? "text-[#FFD700]" : "text-amber-800"}>The Mr. Sonni Song</strong> into{" "}
-            <strong className={isDark ? "text-[#FFD700]" : "text-amber-800"}>Bahasa Indonesia</strong> or 10+ languages.
+          <p className="text-xs sm:text-sm max-w-2xl leading-relaxed text-slate-600">
+            Welcome to our dedicated Children&apos;s Song Page! Yosia plays acoustic guitar just like his big brother Haddi, and he loves helping make children and families happy. Create joyful children&apos;s songs in <strong className="text-teal-800">English</strong>, <strong className="text-teal-800">Bahasa Indonesia</strong>, or 10+ languages.
           </p>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          <span
-            className={`text-xs font-mono font-bold px-3 py-1.5 rounded-xl border flex items-center gap-1.5 ${
-              isDark
-                ? "bg-amber-500/15 border-amber-400/40 text-[#FFD700]"
-                : "bg-amber-100 border-amber-300 text-amber-900"
-            }`}
-          >
-            <Smile size={15} className="text-amber-500" />
-            Making Children Happy!
+          <span className="text-xs font-semibold px-3 py-1.5 rounded-xl border bg-teal-50 border-teal-200 text-teal-800 flex items-center gap-1.5">
+            <Smile size={15} className="text-teal-600" />
+            Making Children Happy
           </span>
         </div>
       </div>
 
-      {/* YOSIA'S TWO STUDIO SHOWCASE CARDS (MATCHING THE 2 UPLOADED IMAGES) */}
+      {/* YOSIA'S TWO STUDIO SHOWCASE CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Card 1: Yosia Standing with Guitar in Studio */}
-        <div
-          className={`rounded-2xl border overflow-hidden flex flex-col justify-between ${
-            isDark ? "bg-black/60 border-[#C5A880]/30" : "bg-white border-slate-200 shadow-md"
-          }`}
-        >
+        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
           <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
             <YosiaStudioArtwork scene="standing" customImageUrl={yosiaPhoto1} />
             <div className="absolute top-3 right-3 flex gap-1.5">
               <label
-                className="px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider border border-amber-400/40 flex items-center gap-1 cursor-pointer backdrop-blur-xs transition-all"
+                className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
                 title="Upload your exact Yosia photo from your device"
               >
                 <Upload size={11} />
@@ -614,7 +375,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
                     setYosiaPhoto1(null);
                     localStorage.removeItem("mygiftsong_yosia_photo_1");
                   }}
-                  className="p-1.5 rounded-lg bg-black/75 text-white hover:text-red-400 border border-white/20 cursor-pointer"
+                  className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
                   title="Reset to studio illustration"
                 >
                   <RotateCcw size={11} />
@@ -623,32 +384,28 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             </div>
           </div>
 
-          <div className="p-4 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-amber-600 font-mono font-bold">
+          <div className="p-5 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
               <span>Yosia • Little Minstrel Guitarist</span>
               <span>·</span>
               <span>Jakarta Studio</span>
             </div>
-            <h3 className={`font-display text-base font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+            <h3 className="font-display text-base font-bold text-slate-900">
               &ldquo;Hi! I&apos;m Yosia, Haddi&apos;s Little Brother!&rdquo;
             </h3>
-            <p className={`text-xs leading-relaxed ${isDark ? "text-white/70" : "text-slate-600"}`}>
+            <p className="text-xs leading-relaxed text-slate-600">
               Wearing his colorful woven cap, golden hoodie, and yellow socks, Yosia strums cheerful guitar chords to put a big smile on every child&apos;s and friend&apos;s face.
             </p>
           </div>
         </div>
 
         {/* Card 2: Yosia Sitting in Wooden Armchair by Fireplace Playing Guitar */}
-        <div
-          className={`rounded-2xl border overflow-hidden flex flex-col justify-between ${
-            isDark ? "bg-black/60 border-[#C5A880]/30" : "bg-white border-slate-200 shadow-md"
-          }`}
-        >
+        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
           <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
             <YosiaStudioArtwork scene="fireside" customImageUrl={yosiaPhoto2} />
             <div className="absolute top-3 right-3 flex gap-1.5">
               <label
-                className="px-2.5 py-1.5 rounded-lg bg-black/75 hover:bg-black text-amber-300 text-[10px] font-mono font-bold uppercase tracking-wider border border-amber-400/40 flex items-center gap-1 cursor-pointer backdrop-blur-xs transition-all"
+                className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
                 title="Upload your exact Yosia fireside photo from your device"
               >
                 <Upload size={11} />
@@ -667,7 +424,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
                     setYosiaPhoto2(null);
                     localStorage.removeItem("mygiftsong_yosia_photo_2");
                   }}
-                  className="p-1.5 rounded-lg bg-black/75 text-white hover:text-red-400 border border-white/20 cursor-pointer"
+                  className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
                   title="Reset to studio illustration"
                 >
                   <RotateCcw size={11} />
@@ -676,243 +433,34 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             </div>
           </div>
 
-          <div className="p-4 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-amber-600 font-mono font-bold">
+          <div className="p-5 space-y-1.5">
+            <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
               <span>Fireside Sing-Along Session</span>
               <span>·</span>
               <span>Joy &amp; Blessing</span>
             </div>
-            <h3 className={`font-display text-base font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
+            <h3 className="font-display text-base font-bold text-slate-900">
               Fireside Children&apos;s Songs &amp; Happy Melodies
             </h3>
-            <p className={`text-xs leading-relaxed ${isDark ? "text-white/70" : "text-slate-600"}`}>
-              Cozy by the fireplace with golden musical notes floating in the air, Yosia and Haddi sing custom songs in English, Bahasa Indonesia, and more!
+            <p className="text-xs leading-relaxed text-slate-600">
+              Cozy by the fireplace with musical notes floating in the air, Yosia and Haddi sing custom songs in English, Bahasa Indonesia, and more!
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* FEATURED SHOWCASE: THE MR. SONNI SONG IN BAHASA INDONESIA & MULTILINGUAL TRANSLATOR */}
-      <div
-        className={`rounded-2xl border-2 p-5 sm:p-6 space-y-5 ${
-          isDark
-            ? "bg-[#1c1611] border-[#FFD700]/50"
-            : "bg-white border-amber-400 shadow-lg shadow-amber-100/50"
-        }`}
-      >
-        <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-4 border-amber-300/30">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono font-bold text-amber-600 uppercase tracking-wider">
-              <Globe size={14} />
-              <span>Featured Song &amp; Live Language Translator</span>
-            </div>
-            <h3 className={`text-xl font-display font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-              🎵 {mrSonniSong.title}
-            </h3>
-            <p className={`text-xs ${isDark ? "text-white/70" : "text-slate-600"}`}>
-              Performed by Yosia &amp; Haddi • Currently showing in{" "}
-              <strong className={isDark ? "text-[#FFD700]" : "text-amber-800"}>{mrSonniLanguage}</strong>
-            </p>
-          </div>
-
-          {/* Language Switcher Buttons for Mr. Sonni Song */}
-          <div className="flex flex-wrap items-center gap-1.5">
-            {SUPPORTED_SONG_LANGUAGES.slice(0, 6).map((lang) => (
-              <button
-                key={lang.code}
-                type="button"
-                onClick={() => handleTranslateMrSonni(lang.code)}
-                disabled={isTranslatingMrSonni}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer ${
-                  mrSonniLanguage === lang.code
-                    ? "bg-amber-500 text-slate-950 shadow-xs"
-                    : isDark
-                    ? "bg-black/60 text-white/80 hover:text-white border border-white/15"
-                    : "bg-slate-100 text-slate-700 hover:bg-amber-50 border border-slate-200"
-                }`}
-              >
-                {lang.short}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Yosia's Spoken Greeting in Selected Language */}
-        <div
-          className={`p-4 rounded-xl border text-xs sm:text-sm italic leading-relaxed ${
-            isDark
-              ? "bg-black/50 border-[#C5A880]/30 text-amber-200"
-              : "bg-amber-50/90 border-amber-200 text-amber-950"
-          }`}
-        >
-          <span className="font-mono font-bold not-italic uppercase text-[11px] block mb-1 text-amber-600">
-            👦🎸 Yosia&apos;s Fireside Intro ({mrSonniLanguage}):
-          </span>
-          &ldquo;{mrSonniSong.artistIntro}&rdquo;
-        </div>
-
-        {/* View Toggle: Side-by-Side (English + Bahasa Indonesia) vs Single Language */}
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => setShowSideBySide(!showSideBySide)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold border cursor-pointer transition-colors ${
-                showSideBySide
-                  ? "bg-emerald-600 text-white border-emerald-600"
-                  : isDark
-                  ? "bg-black/40 text-white/70 border-white/20"
-                  : "bg-slate-100 text-slate-700 border-slate-300"
-              }`}
-            >
-              {showSideBySide ? "✓ Side-by-Side (English + Translation)" : "Show Side-by-Side Comparison"}
-            </button>
-            {isTranslatingMrSonni && (
-              <span className="text-xs font-mono text-amber-500 animate-pulse">
-                Translating Mr. Sonni&apos;s song into {mrSonniLanguage}...
-              </span>
-            )}
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={handleSpeakMrSonni}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold flex items-center gap-1.5 cursor-pointer transition-all ${
-                isSpeakingSonni
-                  ? "bg-red-500 text-white"
-                  : isDark
-                  ? "bg-[#251e19] text-[#FFD700] border border-[#FFD700]/40 hover:bg-[#332922]"
-                  : "bg-amber-100 text-amber-900 border border-amber-300 hover:bg-amber-200"
-              }`}
-            >
-              <Volume2 size={14} />
-              <span>{isSpeakingSonni ? "Stop Voice Preview" : `Hear Yosia Read (${mrSonniLanguage})`}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={handleCopySonniLyrics}
-              className={`px-3 py-1.5 rounded-lg text-xs font-mono font-semibold flex items-center gap-1 cursor-pointer border ${
-                isDark
-                  ? "bg-black/50 text-white border-white/20 hover:bg-black"
-                  : "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-              }`}
-            >
-              {copiedSonni ? <Check size={13} className="text-emerald-500" /> : <Copy size={13} />}
-              <span>{copiedSonni ? "Copied!" : "Copy Lyrics"}</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() =>
-                onGenerateYosiaSong({
-                  target: "Mr. Sonni",
-                  context:
-                    mrSonniLanguage === "Bahasa Indonesia"
-                      ? "Lagu anak dan sukacita akustik dalam Bahasa Indonesia oleh Yosia & Haddi untuk Pak Sonni (Mr. Sonni) yang suka membuat orang bahagia dan penuh berkat."
-                      : `A joyful acoustic guitar song in ${mrSonniLanguage} by Yosia & Haddi for Mr. Sonni celebrating his kindness, warm smile, and blessing.`,
-                  genre: "Children's Joyful Acoustic Sing-Along",
-                  language: mrSonniLanguage,
-                  artistPersona: "yosia",
-                  autoGenerate: true,
-                  preloadedSong: mrSonniSong,
-                })
-              }
-              className="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs uppercase tracking-wider shadow-md flex items-center gap-1.5 cursor-pointer"
-            >
-              <Play size={14} fill="currentColor" />
-              <span>Sing &amp; Play Mr. Sonni Song in {mrSonniLanguage}</span>
-            </button>
-          </div>
-        </div>
-
-        {/* Mr. Sonni Lyrics Display (Side-by-Side or Single) */}
-        <div
-          className={`grid grid-cols-1 ${
-            showSideBySide && mrSonniLanguage !== "English" ? "lg:grid-cols-2" : ""
-          } gap-4 max-h-[340px] overflow-y-auto p-4 rounded-xl border ${
-            isDark ? "bg-black/60 border-white/10" : "bg-slate-50 border-slate-200"
-          }`}
-        >
-          {/* Translated / Active Language Column */}
-          <div className="space-y-3">
-            <div className="flex items-center justify-between border-b pb-1.5 border-amber-400/30">
-              <span className="text-xs font-mono font-extrabold uppercase text-amber-600">
-                🌟 {mrSonniLanguage} Version
-              </span>
-              <span className="text-[11px] font-mono text-slate-400">Chords Included</span>
-            </div>
-            {mrSonniSong.lyricSections.map((sec, idx) => (
-              <div key={idx} className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <span className="text-[10px] font-mono font-bold uppercase text-amber-600">
-                    {sec.sectionName}
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    ({sec.chords.join(" - ")})
-                  </span>
-                </div>
-                {sec.lines.map((line, lIdx) => (
-                  <p
-                    key={lIdx}
-                    className={`text-xs sm:text-sm leading-relaxed font-medium ${
-                      isDark ? "text-white/95" : "text-slate-800"
-                    }`}
-                  >
-                    {line}
-                  </p>
-                ))}
-              </div>
-            ))}
-          </div>
-
-          {/* Original English Reference Column when Side-by-Side is enabled */}
-          {showSideBySide && mrSonniLanguage !== "English" && (
-            <div className="space-y-3 border-t lg:border-t-0 lg:border-l pt-3 lg:pt-0 lg:pl-4 border-slate-300/40">
-              <div className="flex items-center justify-between border-b pb-1.5 border-slate-300/30">
-                <span className="text-xs font-mono font-bold uppercase text-slate-500">
-                  🇺🇸 Original English Reference
-                </span>
-              </div>
-              {MR_SONNI_ENGLISH_SONG.lyricSections.map((sec, idx) => (
-                <div key={idx} className="space-y-1">
-                  <span className="text-[10px] font-mono font-bold uppercase text-slate-400">
-                    {sec.sectionName}
-                  </span>
-                  {sec.lines.map((line, lIdx) => (
-                    <p
-                      key={lIdx}
-                      className={`text-xs sm:text-sm leading-relaxed ${
-                        isDark ? "text-white/65" : "text-slate-600"
-                      }`}
-                    >
-                      {line}
-                    </p>
-                  ))}
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
       {/* CREATE A NEW CHILDREN'S OR MULTILINGUAL SONG WITH YOSIA */}
-      <div
-        className={`rounded-2xl border p-5 sm:p-6 space-y-5 ${
-          isDark ? "bg-black/50 border-[#C5A880]/30" : "bg-white border-slate-200 shadow-sm"
-        }`}
-      >
+      <div className="rounded-2xl border border-stone-200 bg-[#F8FAF9] p-5 sm:p-6 space-y-5">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className={`text-lg font-display font-bold ${isDark ? "text-white" : "text-slate-900"}`}>
-              🎸 Create a Custom Children&apos;s or Family Song with Yosia
+            <h3 className="text-lg font-display font-bold text-slate-900">
+              🎸 Create a Custom Children&apos;s Song with Yosia
             </h3>
-            <p className={`text-xs ${isDark ? "text-white/65" : "text-slate-500"}`}>
-              Pick a quick starter below or type your 3 steps and choose your song language!
+            <p className="text-xs text-slate-500">
+              Pick a quick starter below or type your 3 steps and choose your song language
             </p>
           </div>
-          <span className="text-xs font-mono font-bold text-emerald-600">
+          <span className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
             <Gift size={13} className="inline mr-1" />
             {freeSongsRemaining} of 5 Free Songs Available
           </span>
@@ -920,21 +468,9 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
 
         {/* 1-Click Starter Templates */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-mono uppercase tracking-wider font-bold text-amber-600">
-            1-Click Yosia Starters:
+          <span className="text-xs font-medium text-slate-500">
+            Quick starters:
           </span>
-          <button
-            type="button"
-            onClick={() => {
-              setChildName("Pak Sonni (Mr. Sonni)");
-              setChildOccasion("Membawa Senyum & Kebahagiaan (Making People Happy)");
-              setChildWords("Terima kasih Pak Sonni atas senyum hangat, kebaikan hati, dan semangat yang memberkati semua orang.");
-              setSelectedLanguage("Bahasa Indonesia");
-            }}
-            className="text-xs px-3 py-1.5 rounded-lg bg-amber-100 hover:bg-amber-200 text-amber-950 font-semibold border border-amber-300 transition-colors cursor-pointer"
-          >
-            🇮🇩 Mr. Sonni (Bahasa Indonesia)
-          </button>
           <button
             type="button"
             onClick={() => {
@@ -943,11 +479,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               setChildWords("Loves dinosaurs, playing guitar like Yosia, big hugs, and making everyone laugh!");
               setSelectedLanguage("English");
             }}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-              isDark
-                ? "bg-white/10 hover:bg-white/20 text-white border-white/15"
-                : "bg-slate-100 hover:bg-amber-50 text-slate-700 border-slate-200"
-            }`}
+            className="text-xs px-3 py-1.5 rounded-lg border bg-white hover:bg-teal-50 text-slate-700 border-stone-200 transition-colors cursor-pointer"
           >
             🎂 Kids Birthday Song
           </button>
@@ -959,13 +491,9 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               setChildWords("Tidur nyenyak bintang kecil, Tuhan menjaga mimpimu dengan penuh kasih dan damai.");
               setSelectedLanguage("Bahasa Indonesia");
             }}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-              isDark
-                ? "bg-white/10 hover:bg-white/20 text-white border-white/15"
-                : "bg-slate-100 hover:bg-amber-50 text-slate-700 border-slate-200"
-            }`}
+            className="text-xs px-3 py-1.5 rounded-lg border bg-white hover:bg-teal-50 text-slate-700 border-stone-200 transition-colors cursor-pointer"
           >
-            🌙 Bedtime Lullaby (Indonesia)
+            🌙 Bedtime Lullaby (Bahasa Indonesia)
           </button>
           <button
             type="button"
@@ -975,11 +503,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               setChildWords("Clap your hands, share your smile, help your friends, and shine God's love today!");
               setSelectedLanguage("Bilingual (English & Bahasa Indonesia)");
             }}
-            className={`text-xs px-3 py-1.5 rounded-lg border transition-colors cursor-pointer ${
-              isDark
-                ? "bg-white/10 hover:bg-white/20 text-white border-white/15"
-                : "bg-slate-100 hover:bg-amber-50 text-slate-700 border-slate-200"
-            }`}
+            className="text-xs px-3 py-1.5 rounded-lg border bg-white hover:bg-teal-50 text-slate-700 border-stone-200 transition-colors cursor-pointer"
           >
             ☀️ Bilingual Kids Joy Song
           </button>
@@ -988,68 +512,52 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
         {/* 3-Step Form + Language Selector */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           <div className="space-y-1">
-            <label className="text-[11px] font-mono font-bold uppercase text-amber-600 block">
-              Step 1: Who Is It For?
+            <label className="text-xs font-semibold text-teal-800 block">
+              Step 1: Child&apos;s Name
             </label>
             <input
               type="text"
               value={childName}
               onChange={(e) => setChildName(e.target.value)}
-              placeholder="e.g., Mr. Sonni, Toby, Maya..."
-              className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border focus:outline-none ${
-                isDark
-                  ? "bg-black/80 border-[#C5A880]/40 text-white focus:border-[#FFD700]"
-                  : "bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500"
-              }`}
+              placeholder="e.g., Toby, Maya, Noah..."
+              className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono font-bold uppercase text-amber-600 block">
-              Step 2: What&apos;s the Occasion?
+            <label className="text-xs font-semibold text-teal-800 block">
+              Step 2: Occasion
             </label>
             <input
               type="text"
               value={childOccasion}
               onChange={(e) => setChildOccasion(e.target.value)}
-              placeholder="e.g., Birthday, Making People Happy..."
-              className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border focus:outline-none ${
-                isDark
-                  ? "bg-black/80 border-[#C5A880]/40 text-white focus:border-[#FFD700]"
-                  : "bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500"
-              }`}
+              placeholder="e.g., Birthday, Bedtime, Encouragement..."
+              className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono font-bold uppercase text-amber-600 block">
-              Step 3: Words &amp; Lyrics Wanted
+            <label className="text-xs font-semibold text-teal-800 block">
+              Step 3: Words &amp; Lyrics
             </label>
             <input
               type="text"
               value={childWords}
               onChange={(e) => setChildWords(e.target.value)}
-              placeholder="Favorite things, smile, kindness..."
-              className={`w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border focus:outline-none ${
-                isDark
-                  ? "bg-black/80 border-[#C5A880]/40 text-white focus:border-[#FFD700]"
-                  : "bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500"
-              }`}
+              placeholder="Favorite toys, hobbies, smile..."
+              className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-[11px] font-mono font-bold uppercase text-amber-600 block">
+            <label className="text-xs font-semibold text-teal-800 block">
               🌐 Song Language
             </label>
             <select
               value={selectedLanguage}
               onChange={(e) => setSelectedLanguage(e.target.value)}
-              className={`w-full rounded-xl px-3 py-2.5 text-xs sm:text-sm border font-medium focus:outline-none ${
-                isDark
-                  ? "bg-black/80 border-[#C5A880]/40 text-white focus:border-[#FFD700]"
-                  : "bg-slate-50 border-slate-300 text-slate-900 focus:border-amber-500"
-              }`}
+              className="w-full rounded-xl px-3 py-2.5 text-xs sm:text-sm border font-medium bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             >
               {SUPPORTED_SONG_LANGUAGES.map((lang) => (
                 <option key={lang.code} value={lang.code}>
@@ -1064,7 +572,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           <button
             type="button"
             onClick={() => {
-              const targetVal = childName.trim() || "Mr. Sonni";
+              const targetVal = childName.trim() || "Our Special Child";
               const contextVal = [
                 childOccasion.trim() ? `Occasion: ${childOccasion.trim()}.` : "Occasion: Joyful Children's & Family Blessing.",
                 childWords.trim() ? `Desired Words & Lyrics: ${childWords.trim()}` : "Make it cheerful, warm, and full of smiles with Yosia's acoustic guitar!",
@@ -1078,11 +586,11 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
                 autoGenerate: true,
               });
             }}
-            className="px-5 py-3 rounded-xl bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:brightness-105 text-slate-950 font-display font-extrabold text-xs sm:text-sm uppercase tracking-wider shadow-md flex items-center gap-2 cursor-pointer transition-all"
+            className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs sm:text-sm shadow-xs flex items-center gap-2 cursor-pointer transition-all"
           >
             <Sparkles size={16} />
             <span>
-              Create {childName.trim() ? `${childName.trim()}'s` : "Yosia's"} Song in {selectedLanguage} (Free)
+              Create {childName.trim() ? `${childName.trim()}'s` : "Children's"} Song in {selectedLanguage} (Free)
             </span>
             <ArrowRight size={15} />
           </button>
