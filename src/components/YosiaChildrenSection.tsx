@@ -1,21 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import {
   Music,
   Sparkles,
   Play,
+  Pause,
   Globe,
   Heart,
   Smile,
   Upload,
   RotateCcw,
   Volume2,
+  VolumeX,
   Check,
   Copy,
   ArrowRight,
   ArrowLeft,
-  Gift
+  Gift,
+  Video,
+  ExternalLink,
+  HelpCircle,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react";
 import { SongData } from "../types";
+
+export const DEFAULT_YOSIA_DRIVE_FILE_ID = "1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y";
+export const DEFAULT_YOSIA_DRIVE_VIEW_URL =
+  "https://drive.google.com/file/d/1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y/view?usp=drivesdk";
+
+function extractGoogleDriveFileId(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  const matchSlashD = trimmed.match(/\/file\/d\/([a-zA-Z0-9_-]+)/);
+  if (matchSlashD?.[1]) return matchSlashD[1];
+  const matchIdParam = trimmed.match(/[?&]id=([a-zA-Z0-9_-]+)/);
+  if (matchIdParam?.[1]) return matchIdParam[1];
+  if (/^[a-zA-Z0-9_-]{20,}$/.test(trimmed)) return trimmed;
+  return null;
+}
 
 export const SUPPORTED_SONG_LANGUAGES = [
   { code: "Bahasa Indonesia", label: "🇮🇩 Bahasa Indonesia", short: "🇮🇩 Indonesia" },
@@ -264,6 +286,62 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
   onBackToMainPage,
   onGenerateYosiaSong,
 }) => {
+  // Video player state for Yosia's Google Drive featured video
+  const yosiaVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [isYosiaVideoPlaying, setIsYosiaVideoPlaying] = useState(false);
+  const [isYosiaVideoMuted, setIsYosiaVideoMuted] = useState(false);
+  const [videoPlaybackMode, setVideoPlaybackMode] = useState<"native" | "gdrive">("native");
+  const [customDriveUrlInput, setCustomDriveUrlInput] = useState("");
+  const [activeDriveFileId, setActiveDriveFileId] = useState<string>(() => {
+    try {
+      return localStorage.getItem("mygiftsong_yosia_drive_id") || DEFAULT_YOSIA_DRIVE_FILE_ID;
+    } catch {
+      return DEFAULT_YOSIA_DRIVE_FILE_ID;
+    }
+  });
+  const [showDriveLinkEditor, setShowDriveLinkEditor] = useState(false);
+  const [showAnimationGuide, setShowAnimationGuide] = useState(false);
+
+  const handleToggleYosiaVideo = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      vid.play().catch(() => {});
+    } else {
+      vid.pause();
+    }
+  };
+
+  const handleToggleYosiaMute = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    vid.muted = !vid.muted;
+    setIsYosiaVideoMuted(vid.muted);
+  };
+
+  const handleRestartYosiaVideo = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    vid.currentTime = 0;
+    vid.play().catch(() => {});
+  };
+
+  const handleApplyDriveUrl = (e: React.FormEvent) => {
+    e.preventDefault();
+    const extractedId = extractGoogleDriveFileId(customDriveUrlInput);
+    if (extractedId) {
+      setActiveDriveFileId(extractedId);
+      setVideoPlaybackMode("gdrive");
+      try {
+        localStorage.setItem("mygiftsong_yosia_drive_id", extractedId);
+      } catch {
+        // ignore storage errors
+      }
+      setCustomDriveUrlInput("");
+      setShowDriveLinkEditor(false);
+    }
+  };
+
   // Persisted custom Yosia photos if the user uploads their screenshots
   const [yosiaPhoto1, setYosiaPhoto1] = useState<string | null>(() => {
     try {
@@ -346,6 +424,229 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             Making Children Happy
           </span>
         </div>
+      </div>
+
+      {/* FEATURED YOSIA ANIMATED CHILDREN'S VIDEO SHOWCASE (FROM GOOGLE DRIVE) */}
+      <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50/70 via-white to-stone-50 p-5 sm:p-6 space-y-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse" />
+            <div>
+              <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                <Video size={18} className="text-teal-600" />
+                <span>Yosia&apos;s Animated Children&apos;s Song Showcase</span>
+              </h3>
+              <p className="text-xs text-slate-500">
+                Watch Yosia perform on acoustic guitar • Connected to Google Drive Video
+              </p>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Switch between Direct Instant MP4 & Google Drive Player */}
+            <div className="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200">
+              <button
+                type="button"
+                onClick={() => setVideoPlaybackMode("native")}
+                className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                  videoPlaybackMode === "native"
+                    ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Studio HD Player
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (yosiaVideoRef.current) yosiaVideoRef.current.pause();
+                  setVideoPlaybackMode("gdrive");
+                }}
+                className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                  videoPlaybackMode === "gdrive"
+                    ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                Google Drive Player
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowDriveLinkEditor(!showDriveLinkEditor)}
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-stone-50 text-teal-800 border border-stone-200 transition-colors cursor-pointer"
+            >
+              {showDriveLinkEditor ? "Close Link Input" : "Update Drive Link"}
+            </button>
+
+            <a
+              href={`https://drive.google.com/file/d/${activeDriveFileId}/view?usp=drivesdk`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-teal-50 text-slate-700 border border-stone-200 flex items-center gap-1 transition-colors"
+              title="Open video in Google Drive"
+            >
+              <span>Drive</span>
+              <ExternalLink size={11} />
+            </a>
+          </div>
+        </div>
+
+        {/* Optional Google Drive Link Updater */}
+        {showDriveLinkEditor && (
+          <form
+            onSubmit={handleApplyDriveUrl}
+            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-3 rounded-xl border border-teal-200"
+          >
+            <input
+              type="text"
+              value={customDriveUrlInput}
+              onChange={(e) => setCustomDriveUrlInput(e.target.value)}
+              placeholder="Paste Google Drive video link (e.g., https://drive.google.com/file/d/.../view)"
+              className="flex-1 rounded-lg px-3 py-2 text-xs border border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
+            />
+            <div className="flex items-center gap-2">
+              <button
+                type="submit"
+                className="px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold cursor-pointer"
+              >
+                Load Drive Video
+              </button>
+              {activeDriveFileId !== DEFAULT_YOSIA_DRIVE_FILE_ID && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveDriveFileId(DEFAULT_YOSIA_DRIVE_FILE_ID);
+                    setVideoPlaybackMode("native");
+                    localStorage.removeItem("mygiftsong_yosia_drive_id");
+                  }}
+                  className="px-3 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-slate-700 text-xs font-medium cursor-pointer"
+                >
+                  Reset Default
+                </button>
+              )}
+            </div>
+          </form>
+        )}
+
+        {/* Video Frame */}
+        <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-950 aspect-video max-w-3xl mx-auto shadow-md">
+          {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID ? (
+            <>
+              <video
+                ref={yosiaVideoRef}
+                src="/video/yosia-children.mp4"
+                controls
+                playsInline
+                preload="metadata"
+                onPlay={() => setIsYosiaVideoPlaying(true)}
+                onPause={() => setIsYosiaVideoPlaying(false)}
+                onEnded={() => setIsYosiaVideoPlaying(false)}
+                className="w-full h-full object-contain bg-slate-950"
+              />
+              {!isYosiaVideoPlaying && (
+                <button
+                  type="button"
+                  onClick={handleToggleYosiaVideo}
+                  className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
+                  title="Watch Yosia's Children's Song Video"
+                >
+                  <div className="w-16 h-16 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                    <Play size={28} fill="currentColor" className="ml-1" />
+                  </div>
+                  <span className="px-3.5 py-1.5 rounded-full bg-white/95 text-teal-900 text-xs font-bold shadow-sm">
+                    ▶ Watch Yosia&apos;s Children&apos;s Song Video
+                  </span>
+                </button>
+              )}
+            </>
+          ) : (
+            <iframe
+              src={`https://drive.google.com/file/d/${activeDriveFileId}/preview`}
+              title="Yosia Animated Children's Song Video"
+              allow="autoplay; fullscreen"
+              className="w-full h-full border-0"
+            />
+          )}
+        </div>
+
+        {/* Controls & Animated Video Production Guide Toggle */}
+        <div className="flex flex-wrap items-center justify-between gap-3 max-w-3xl mx-auto pt-1">
+          <div className="flex items-center gap-2">
+            {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID && (
+              <>
+                <button
+                  type="button"
+                  onClick={handleToggleYosiaVideo}
+                  className="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                >
+                  {isYosiaVideoPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                  <span>{isYosiaVideoPlaying ? "Pause Video" : "Play Video"}</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleToggleYosiaMute}
+                  className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
+                  title={isYosiaVideoMuted ? "Unmute Video" : "Mute Video"}
+                >
+                  {isYosiaVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleRestartYosiaVideo}
+                  className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
+                  title="Restart Video"
+                >
+                  <RotateCcw size={15} />
+                </button>
+              </>
+            )}
+          </div>
+
+          <button
+            type="button"
+            onClick={() => setShowAnimationGuide(!showAnimationGuide)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 transition-colors cursor-pointer"
+          >
+            <HelpCircle size={14} className="text-amber-600" />
+            <span>How to Create Realistic Animated Children&apos;s Videos</span>
+            {showAnimationGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+          </button>
+        </div>
+
+        {/* Collapsible Studio Guide: How to Create Realistic Animated Children's Videos */}
+        {showAnimationGuide && (
+          <div className="max-w-3xl mx-auto mt-3 rounded-xl border border-amber-200 bg-white p-4 sm:p-5 space-y-3 text-xs text-slate-700 shadow-2xs">
+            <h4 className="font-display font-bold text-sm text-slate-900 flex items-center gap-2">
+              <Sparkles size={15} className="text-teal-600" />
+              <span>3-Step Studio Recipe for Realistic 3D Animated Children&apos;s Videos (Like Yosia!)</span>
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                <div className="font-bold text-teal-800">1. Consistent 3D Character Image</div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  Start with one high-resolution 3D Pixar-style character image of Yosia (using <strong>Google Gemini Imagen / Nano Banana</strong>, Midjourney, or Leonardo AI). Keep the same reference image so his face, woven cap, and yellow hoodie stay 100% consistent.
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                <div className="font-bold text-teal-800">2. Generate the Song Audio</div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  Create your complete song here on <strong>mygiftsong.org</strong> and click <strong>Download Song</strong> to save the audio track, or trim a 15–60 second chorus clip for your video scene.
+                </p>
+              </div>
+              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                <div className="font-bold text-teal-800">3. Animate Singing &amp; Guitar Motion</div>
+                <p className="text-[11px] leading-relaxed text-slate-600">
+                  • <strong>For Lip-Sync Singing:</strong> Upload Yosia&apos;s image + song audio to <strong>Hedra (Character-3)</strong>, <strong>Kling AI Lip-Sync</strong>, <strong>HeyGen Avatar IV</strong>, or <strong>Runway Act-One</strong>.<br />
+                  • <strong>For 3D Guitar Action Scenes:</strong> Use <strong>Google Veo 3.1</strong> or <strong>Kling AI Image-to-Video</strong> with Yosia&apos;s photo as the starting frame!
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* YOSIA'S TWO STUDIO SHOWCASE CARDS */}
