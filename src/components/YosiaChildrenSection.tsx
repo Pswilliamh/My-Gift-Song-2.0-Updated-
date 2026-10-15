@@ -22,7 +22,7 @@ import {
   ChevronDown,
   ChevronUp
 } from "lucide-react";
-import { SongData } from "../types";
+import { SongData, SetType } from "../types";
 
 export const DEFAULT_YOSIA_DRIVE_FILE_ID = "1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y";
 export const DEFAULT_YOSIA_DRIVE_VIEW_URL =
@@ -144,21 +144,69 @@ export const YosiaStudioArtwork: React.FC<{
       <rect x="385" y="102" width="195" height="18" rx="4" fill="#451a03" stroke="#92400e" strokeWidth="2" />
       {/* Fireplace Hearth Arch */}
       <path d="M 425 350 L 425 215 Q 482 175 540 215 L 540 350 Z" fill="#1c0a04" stroke="#f59e0b" strokeWidth="2" />
-      {/* Glowing Flames */}
-      <path d="M 450 345 Q 465 255 482 230 Q 505 265 515 345 Z" fill="#f97316" />
-      <path d="M 462 345 Q 475 275 485 255 Q 498 285 505 345 Z" fill="#fbbf24" />
-      <path d="M 472 345 Q 482 300 486 282 Q 492 305 496 345 Z" fill="#fef08a" />
+      {/* Glowing Animated Flames */}
+      <g>
+        <path d="M 450 345 Q 465 255 482 230 Q 505 265 515 345 Z" fill="#f97316">
+          <animateTransform
+            attributeName="transform"
+            type="scale"
+            values="1 1; 1 1.05; 1 0.97; 1 1"
+            dur="1.4s"
+            repeatCount="indefinite"
+          />
+        </path>
+        <path d="M 462 345 Q 475 275 485 255 Q 498 285 505 345 Z" fill="#fbbf24">
+          <animate opacity="0.85;1;0.85" dur="0.9s" repeatCount="indefinite" />
+        </path>
+        <path d="M 472 345 Q 482 300 486 282 Q 492 305 496 345 Z" fill="#fef08a" />
+      </g>
 
       {/* Studio Wooden Floor & Warm Rug */}
       <rect x="0" y="345" width="600" height="75" fill="#2e190e" />
       <ellipse cx="295" cy="378" rx="210" ry="28" fill="#9a3412" stroke="#fbbf24" strokeWidth="2" opacity="0.85" />
 
-      {/* Floating Golden Musical Notes */}
+      {/* Floating Animated Golden Musical Notes */}
       <g fill="#fde047" opacity="0.92">
-        <text x="195" y="110" fontSize="28" fontWeight="bold">♪</text>
-        <text x="360" y="95" fontSize="32" fontWeight="bold">♫</text>
-        <text x="415" y="155" fontSize="24" fontWeight="bold">♬</text>
-        <text x="175" y="210" fontSize="22" fontWeight="bold">♪</text>
+        <text x="195" y="110" fontSize="28" fontWeight="bold">
+          ♪
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,0; 0,-12; 0,0"
+            dur="2.2s"
+            repeatCount="indefinite"
+          />
+        </text>
+        <text x="360" y="95" fontSize="32" fontWeight="bold">
+          ♫
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,0; 0,-15; 0,0"
+            dur="2.6s"
+            repeatCount="indefinite"
+          />
+        </text>
+        <text x="415" y="155" fontSize="24" fontWeight="bold">
+          ♬
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,0; 0,-10; 0,0"
+            dur="1.9s"
+            repeatCount="indefinite"
+          />
+        </text>
+        <text x="175" y="210" fontSize="22" fontWeight="bold">
+          ♪
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,0; 0,-11; 0,0"
+            dur="2.4s"
+            repeatCount="indefinite"
+          />
+        </text>
       </g>
 
       {/* Wooden Armchair if Fireside Scene */}
@@ -251,7 +299,15 @@ export const YosiaStudioArtwork: React.FC<{
         </g>
 
         {/* Yosia's Hands Strumming */}
-        <circle cx="276" cy="258" r="11" fill="#d99b66" />
+        <circle cx="276" cy="258" r="11" fill="#d99b66">
+          <animateTransform
+            attributeName="transform"
+            type="translate"
+            values="0,-5; 0,8; 0,-5"
+            dur="0.55s"
+            repeatCount="indefinite"
+          />
+        </circle>
         <circle cx="358" cy="246" r="10" fill="#d99b66" />
       </g>
 
@@ -275,6 +331,7 @@ interface YosiaChildrenSectionProps {
     context: string;
     genre: string;
     language: string;
+    setType?: SetType;
     artistPersona: "yosia";
     autoGenerate: boolean;
     preloadedSong?: SongData;
@@ -363,6 +420,29 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
   const [childOccasion, setChildOccasion] = useState("");
   const [childWords, setChildWords] = useState("");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [selectedChildGenre, setSelectedChildGenre] = useState("Children's Joyful Acoustic Sing-Along");
+  const [selectedSetType, setSelectedSetType] = useState<SetType>("full");
+
+  const buildYosiaParams = (autoGenerate: boolean) => {
+    const targetVal = childName.trim() || "Our Special Child";
+    const contextVal = [
+      childOccasion.trim()
+        ? `Occasion: ${childOccasion.trim()}.`
+        : "Occasion: Joyful Children's & Family Blessing.",
+      childWords.trim()
+        ? `Desired Words & Lyrics: ${childWords.trim()}`
+        : "Make it cheerful, warm, and full of smiles with Yosia's acoustic guitar!",
+    ].join(" ");
+    return {
+      target: targetVal,
+      context: contextVal,
+      genre: selectedChildGenre,
+      language: selectedLanguage,
+      setType: selectedSetType,
+      artistPersona: "yosia" as const,
+      autoGenerate,
+    };
+  };
 
   const handlePhotoUpload = (slot: 1 | 2, e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -392,30 +472,22 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
 
   return (
     <section className="rounded-2xl border border-stone-200 bg-white p-6 sm:p-8 space-y-8 shadow-sm text-slate-900">
-      {/* TOP HEADER: MEET YOSIA (HADDI'S LITTLE BROTHER) */}
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5 border-stone-200">
-        <div className="space-y-1.5">
-          <div className="flex flex-wrap items-center gap-2.5">
-            {onBackToMainPage && (
-              <button
-                type="button"
-                onClick={onBackToMainPage}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-slate-800 border border-stone-200 transition-all cursor-pointer"
-              >
-                <ArrowLeft size={13} />
-                <span>Back to Haddi&apos;s Main Page</span>
-              </button>
-            )}
-            <span className="text-xs font-mono uppercase tracking-wider font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-0.5 rounded-full">
-              👦🎸 Dedicated Children&apos;s Song Page
-            </span>
-          </div>
-          <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900">
-            Meet <span className="text-teal-700">Yosia</span> — Haddi&apos;s Little Brother
-          </h2>
-          <p className="text-xs sm:text-sm max-w-2xl leading-relaxed text-slate-600">
-            Welcome to our dedicated Children&apos;s Song Page! Yosia plays acoustic guitar just like his big brother Haddi, and he loves helping make children and families happy. Create joyful children&apos;s songs in <strong className="text-teal-800">English</strong>, <strong className="text-teal-800">Bahasa Indonesia</strong>, or 10+ languages.
-          </p>
+      {/* TOP NAVIGATION BAR FOR CHILDREN'S PAGE */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-4 border-stone-200">
+        <div className="flex flex-wrap items-center gap-2.5">
+          {onBackToMainPage && (
+            <button
+              type="button"
+              onClick={onBackToMainPage}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-stone-100 hover:bg-stone-200 text-slate-800 border border-stone-200 transition-all cursor-pointer"
+            >
+              <ArrowLeft size={13} />
+              <span>Back to Haddi&apos;s Main Page</span>
+            </button>
+          )}
+          <span className="text-xs font-mono uppercase tracking-wider font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-full">
+            👦🎸 Dedicated Children&apos;s Song Page
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
@@ -423,342 +495,27 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             <Smile size={15} className="text-teal-600" />
             Making Children Happy
           </span>
-        </div>
-      </div>
-
-      {/* FEATURED YOSIA ANIMATED CHILDREN'S VIDEO SHOWCASE (FROM GOOGLE DRIVE) */}
-      <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50/70 via-white to-stone-50 p-5 sm:p-6 space-y-4 shadow-xs">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse" />
-            <div>
-              <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
-                <Video size={18} className="text-teal-600" />
-                <span>Yosia&apos;s Animated Children&apos;s Song Showcase</span>
-              </h3>
-              <p className="text-xs text-slate-500">
-                Watch Yosia perform on acoustic guitar • Connected to Google Drive Video
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Switch between Direct Instant MP4 & Google Drive Player */}
-            <div className="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200">
-              <button
-                type="button"
-                onClick={() => setVideoPlaybackMode("native")}
-                className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
-                  videoPlaybackMode === "native"
-                    ? "bg-white text-teal-800 shadow-2xs font-semibold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Studio HD Player
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  if (yosiaVideoRef.current) yosiaVideoRef.current.pause();
-                  setVideoPlaybackMode("gdrive");
-                }}
-                className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
-                  videoPlaybackMode === "gdrive"
-                    ? "bg-white text-teal-800 shadow-2xs font-semibold"
-                    : "text-slate-600 hover:text-slate-900"
-                }`}
-              >
-                Google Drive Player
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setShowDriveLinkEditor(!showDriveLinkEditor)}
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-stone-50 text-teal-800 border border-stone-200 transition-colors cursor-pointer"
-            >
-              {showDriveLinkEditor ? "Close Link Input" : "Update Drive Link"}
-            </button>
-
-            <a
-              href={`https://drive.google.com/file/d/${activeDriveFileId}/view?usp=drivesdk`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-teal-50 text-slate-700 border border-stone-200 flex items-center gap-1 transition-colors"
-              title="Open video in Google Drive"
-            >
-              <span>Drive</span>
-              <ExternalLink size={11} />
-            </a>
-          </div>
-        </div>
-
-        {/* Optional Google Drive Link Updater */}
-        {showDriveLinkEditor && (
-          <form
-            onSubmit={handleApplyDriveUrl}
-            className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-3 rounded-xl border border-teal-200"
-          >
-            <input
-              type="text"
-              value={customDriveUrlInput}
-              onChange={(e) => setCustomDriveUrlInput(e.target.value)}
-              placeholder="Paste Google Drive video link (e.g., https://drive.google.com/file/d/.../view)"
-              className="flex-1 rounded-lg px-3 py-2 text-xs border border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
-            />
-            <div className="flex items-center gap-2">
-              <button
-                type="submit"
-                className="px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold cursor-pointer"
-              >
-                Load Drive Video
-              </button>
-              {activeDriveFileId !== DEFAULT_YOSIA_DRIVE_FILE_ID && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setActiveDriveFileId(DEFAULT_YOSIA_DRIVE_FILE_ID);
-                    setVideoPlaybackMode("native");
-                    localStorage.removeItem("mygiftsong_yosia_drive_id");
-                  }}
-                  className="px-3 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-slate-700 text-xs font-medium cursor-pointer"
-                >
-                  Reset Default
-                </button>
-              )}
-            </div>
-          </form>
-        )}
-
-        {/* Video Frame */}
-        <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-950 aspect-video max-w-3xl mx-auto shadow-md">
-          {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID ? (
-            <>
-              <video
-                ref={yosiaVideoRef}
-                src="/video/yosia-children.mp4"
-                controls
-                playsInline
-                preload="metadata"
-                onPlay={() => setIsYosiaVideoPlaying(true)}
-                onPause={() => setIsYosiaVideoPlaying(false)}
-                onEnded={() => setIsYosiaVideoPlaying(false)}
-                className="w-full h-full object-contain bg-slate-950"
-              />
-              {!isYosiaVideoPlaying && (
-                <button
-                  type="button"
-                  onClick={handleToggleYosiaVideo}
-                  className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
-                  title="Watch Yosia's Children's Song Video"
-                >
-                  <div className="w-16 h-16 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
-                    <Play size={28} fill="currentColor" className="ml-1" />
-                  </div>
-                  <span className="px-3.5 py-1.5 rounded-full bg-white/95 text-teal-900 text-xs font-bold shadow-sm">
-                    ▶ Watch Yosia&apos;s Children&apos;s Song Video
-                  </span>
-                </button>
-              )}
-            </>
-          ) : (
-            <iframe
-              src={`https://drive.google.com/file/d/${activeDriveFileId}/preview`}
-              title="Yosia Animated Children's Song Video"
-              allow="autoplay; fullscreen"
-              className="w-full h-full border-0"
-            />
-          )}
-        </div>
-
-        {/* Controls & Animated Video Production Guide Toggle */}
-        <div className="flex flex-wrap items-center justify-between gap-3 max-w-3xl mx-auto pt-1">
-          <div className="flex items-center gap-2">
-            {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID && (
-              <>
-                <button
-                  type="button"
-                  onClick={handleToggleYosiaVideo}
-                  className="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                >
-                  {isYosiaVideoPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-                  <span>{isYosiaVideoPlaying ? "Pause Video" : "Play Video"}</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleToggleYosiaMute}
-                  className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
-                  title={isYosiaVideoMuted ? "Unmute Video" : "Mute Video"}
-                >
-                  {isYosiaVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleRestartYosiaVideo}
-                  className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
-                  title="Restart Video"
-                >
-                  <RotateCcw size={15} />
-                </button>
-              </>
-            )}
-          </div>
-
           <button
             type="button"
-            onClick={() => setShowAnimationGuide(!showAnimationGuide)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 transition-colors cursor-pointer"
+            onClick={() => onGenerateYosiaSong(buildYosiaParams(false))}
+            className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
           >
-            <HelpCircle size={14} className="text-amber-600" />
-            <span>How to Create Realistic Animated Children&apos;s Videos</span>
-            {showAnimationGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            <Music size={14} />
+            <span>Jump Into Full Studio</span>
+            <ArrowRight size={13} />
           </button>
         </div>
-
-        {/* Collapsible Studio Guide: How to Create Realistic Animated Children's Videos */}
-        {showAnimationGuide && (
-          <div className="max-w-3xl mx-auto mt-3 rounded-xl border border-amber-200 bg-white p-4 sm:p-5 space-y-3 text-xs text-slate-700 shadow-2xs">
-            <h4 className="font-display font-bold text-sm text-slate-900 flex items-center gap-2">
-              <Sparkles size={15} className="text-teal-600" />
-              <span>3-Step Studio Recipe for Realistic 3D Animated Children&apos;s Videos (Like Yosia!)</span>
-            </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
-                <div className="font-bold text-teal-800">1. Consistent 3D Character Image</div>
-                <p className="text-[11px] leading-relaxed text-slate-600">
-                  Start with one high-resolution 3D Pixar-style character image of Yosia (using <strong>Google Gemini Imagen / Nano Banana</strong>, Midjourney, or Leonardo AI). Keep the same reference image so his face, woven cap, and yellow hoodie stay 100% consistent.
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
-                <div className="font-bold text-teal-800">2. Generate the Song Audio</div>
-                <p className="text-[11px] leading-relaxed text-slate-600">
-                  Create your complete song here on <strong>mygiftsong.org</strong> and click <strong>Download Song</strong> to save the audio track, or trim a 15–60 second chorus clip for your video scene.
-                </p>
-              </div>
-              <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
-                <div className="font-bold text-teal-800">3. Animate Singing &amp; Guitar Motion</div>
-                <p className="text-[11px] leading-relaxed text-slate-600">
-                  • <strong>For Lip-Sync Singing:</strong> Upload Yosia&apos;s image + song audio to <strong>Hedra (Character-3)</strong>, <strong>Kling AI Lip-Sync</strong>, <strong>HeyGen Avatar IV</strong>, or <strong>Runway Act-One</strong>.<br />
-                  • <strong>For 3D Guitar Action Scenes:</strong> Use <strong>Google Veo 3.1</strong> or <strong>Kling AI Image-to-Video</strong> with Yosia&apos;s photo as the starting frame!
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* YOSIA'S TWO STUDIO SHOWCASE CARDS */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Card 1: Yosia Standing with Guitar in Studio */}
-        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
-          <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
-            <YosiaStudioArtwork scene="standing" customImageUrl={yosiaPhoto1} />
-            <div className="absolute top-3 right-3 flex gap-1.5">
-              <label
-                className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
-                title="Upload your exact Yosia photo from your device"
-              >
-                <Upload size={11} />
-                <span>{yosiaPhoto1 ? "Change Photo 1" : "Use Your Photo 1"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(1, e)}
-                  className="hidden"
-                />
-              </label>
-              {yosiaPhoto1 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setYosiaPhoto1(null);
-                    localStorage.removeItem("mygiftsong_yosia_photo_1");
-                  }}
-                  className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
-                  title="Reset to studio illustration"
-                >
-                  <RotateCcw size={11} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="p-5 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
-              <span>Yosia • Little Minstrel Guitarist</span>
-              <span>·</span>
-              <span>Jakarta Studio</span>
-            </div>
-            <h3 className="font-display text-base font-bold text-slate-900">
-              &ldquo;Hi! I&apos;m Yosia, Haddi&apos;s Little Brother!&rdquo;
-            </h3>
-            <p className="text-xs leading-relaxed text-slate-600">
-              Wearing his colorful woven cap, golden hoodie, and yellow socks, Yosia strums cheerful guitar chords to put a big smile on every child&apos;s and friend&apos;s face.
-            </p>
-          </div>
-        </div>
-
-        {/* Card 2: Yosia Sitting in Wooden Armchair by Fireplace Playing Guitar */}
-        <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
-          <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
-            <YosiaStudioArtwork scene="fireside" customImageUrl={yosiaPhoto2} />
-            <div className="absolute top-3 right-3 flex gap-1.5">
-              <label
-                className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
-                title="Upload your exact Yosia fireside photo from your device"
-              >
-                <Upload size={11} />
-                <span>{yosiaPhoto2 ? "Change Photo 2" : "Use Your Photo 2"}</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={(e) => handlePhotoUpload(2, e)}
-                  className="hidden"
-                />
-              </label>
-              {yosiaPhoto2 && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setYosiaPhoto2(null);
-                    localStorage.removeItem("mygiftsong_yosia_photo_2");
-                  }}
-                  className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
-                  title="Reset to studio illustration"
-                >
-                  <RotateCcw size={11} />
-                </button>
-              )}
-            </div>
-          </div>
-
-          <div className="p-5 space-y-1.5">
-            <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
-              <span>Fireside Sing-Along Session</span>
-              <span>·</span>
-              <span>Joy &amp; Blessing</span>
-            </div>
-            <h3 className="font-display text-base font-bold text-slate-900">
-              Fireside Children&apos;s Songs &amp; Happy Melodies
-            </h3>
-            <p className="text-xs leading-relaxed text-slate-600">
-              Cozy by the fireplace with musical notes floating in the air, Yosia and Haddi sing custom songs in English, Bahasa Indonesia, and more!
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* CREATE A NEW CHILDREN'S OR MULTILINGUAL SONG WITH YOSIA */}
-      <div className="rounded-2xl border border-stone-200 bg-[#F8FAF9] p-5 sm:p-6 space-y-5">
+      {/* SECTION 1 (ABOVE): CREATE A CUSTOM CHILDREN'S OR MULTILINGUAL SONG WITH YOSIA */}
+      <div className="rounded-2xl border border-stone-200 bg-[#F8FAF9] p-5 sm:p-6 space-y-5 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div>
-            <h3 className="text-lg font-display font-bold text-slate-900">
+            <h2 className="text-xl sm:text-2xl font-display font-bold text-slate-900">
               🎸 Create a Custom Children&apos;s Song with Yosia
-            </h3>
-            <p className="text-xs text-slate-500">
-              Pick a quick starter below or type your 3 steps and choose your song language
+            </h2>
+            <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+              Pick a quick starter below or enter your 3 steps and choose your song language
             </p>
           </div>
           <span className="text-xs font-semibold text-teal-700 bg-teal-50 border border-teal-200 px-2.5 py-1 rounded-lg">
@@ -800,13 +557,14 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             type="button"
             onClick={() => {
               setChildName("Sunday School Kids");
-              setChildOccasion("Joyful Morning Praise & Kindness Song");
-              setChildWords("Clap your hands, share your smile, help your friends, and shine God's love today!");
+              setChildOccasion("Joyful Morning Praise & Worship Song");
+              setChildWords("Clap your hands, share your smile, praise the Lord, and shine God's love today!");
+              setSelectedChildGenre("Modern Worship");
               setSelectedLanguage("Bilingual (English & Bahasa Indonesia)");
             }}
             className="text-xs px-3 py-1.5 rounded-lg border bg-white hover:bg-teal-50 text-slate-700 border-stone-200 transition-colors cursor-pointer"
           >
-            ☀️ Bilingual Kids Joy Song
+            🙏 Kids Worship &amp; Praise Song
           </button>
         </div>
 
@@ -833,7 +591,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               type="text"
               value={childOccasion}
               onChange={(e) => setChildOccasion(e.target.value)}
-              placeholder="e.g., Birthday, Bedtime, Encouragement..."
+              placeholder="e.g., Birthday, Worship, Bedtime..."
               className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             />
           </div>
@@ -846,7 +604,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               type="text"
               value={childWords}
               onChange={(e) => setChildWords(e.target.value)}
-              placeholder="Favorite toys, hobbies, smile..."
+              placeholder="Exact words, hobbies, birthday wish..."
               className="w-full rounded-xl px-3.5 py-2.5 text-xs sm:text-sm border bg-white border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
             />
           </div>
@@ -869,32 +627,424 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center justify-end gap-3 pt-1">
+        {/* Musical Style (Worship, Sing-Along, Birthday, Lullaby) & Song Length ($1.99 Longer Song vs Quick) */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1 border-t border-stone-200/80">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-teal-800 block">
+              🎶 Musical Style (Choose Worship, Sing-Along, or Birthday):
+            </label>
+            <div className="flex flex-wrap gap-1.5">
+              {[
+                { id: "Modern Worship", label: "🙏 Worship & Praise" },
+                { id: "Children's Joyful Acoustic Sing-Along", label: "🎸 Joyful Sing-Along" },
+                { id: "Birthday Acoustic Celebration", label: "🎂 Birthday Song" },
+                { id: "Acoustic Bedtime Lullaby", label: "🌙 Bedtime Lullaby" },
+                { id: "Acoustic Folk", label: "☀️ Acoustic Folk" },
+              ].map((style) => (
+                <button
+                  key={style.id}
+                  type="button"
+                  onClick={() => setSelectedChildGenre(style.id)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                    selectedChildGenre === style.id
+                      ? "bg-teal-700 text-white border-teal-700 shadow-2xs"
+                      : "bg-white text-slate-700 border-stone-200 hover:border-teal-300"
+                  }`}
+                >
+                  {style.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-teal-800 block">
+              ⏱️ Song Length &amp; Package (60s or Longer 2-Min $1.99 Packet):
+            </label>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-1.5">
+              {[
+                { id: "quick" as SetType, title: "Quick (60s)", sub: "1-Min Song" },
+                { id: "full" as SetType, title: "Longer Song ($1.99)", sub: "2-Min Full Multi-Verse" },
+                { id: "premium" as SetType, title: "Premium ($4.99)", sub: "2-Min + 3 Variations" },
+              ].map((pkg) => (
+                <button
+                  key={pkg.id}
+                  type="button"
+                  onClick={() => setSelectedSetType(pkg.id)}
+                  className={`p-2 rounded-xl border text-left transition-all cursor-pointer ${
+                    selectedSetType === pkg.id
+                      ? "bg-teal-50 border-teal-600 text-teal-950 ring-2 ring-teal-500/15"
+                      : "bg-white border-stone-200 text-slate-700 hover:border-teal-300"
+                  }`}
+                >
+                  <div className="text-xs font-bold">{pkg.title}</div>
+                  <div className="text-[10px] text-slate-500">{pkg.sub}</div>
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Action Buttons: Create Song Immediately OR Jump Into Full Studio */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button
             type="button"
-            onClick={() => {
-              const targetVal = childName.trim() || "Our Special Child";
-              const contextVal = [
-                childOccasion.trim() ? `Occasion: ${childOccasion.trim()}.` : "Occasion: Joyful Children's & Family Blessing.",
-                childWords.trim() ? `Desired Words & Lyrics: ${childWords.trim()}` : "Make it cheerful, warm, and full of smiles with Yosia's acoustic guitar!",
-              ].join(" ");
-              onGenerateYosiaSong({
-                target: targetVal,
-                context: contextVal,
-                genre: "Children's Joyful Acoustic Sing-Along",
-                language: selectedLanguage,
-                artistPersona: "yosia",
-                autoGenerate: true,
-              });
-            }}
+            onClick={() => onGenerateYosiaSong(buildYosiaParams(false))}
+            className="px-4 py-3 rounded-xl bg-white hover:bg-teal-50 text-teal-900 border border-teal-300 font-display font-semibold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
+          >
+            <Music size={15} className="text-teal-700" />
+            <span>Jump Into Full Studio (Worship, Longer Song &amp; More Options)</span>
+            <ArrowRight size={14} />
+          </button>
+
+          <button
+            type="button"
+            onClick={() => onGenerateYosiaSong(buildYosiaParams(true))}
             className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs sm:text-sm shadow-xs flex items-center gap-2 cursor-pointer transition-all"
           >
             <Sparkles size={16} />
             <span>
-              Create {childName.trim() ? `${childName.trim()}'s` : "Children's"} Song in {selectedLanguage} (Free)
+              Create {childName.trim() ? `${childName.trim()}'s` : "Children's"}{" "}
+              {selectedSetType === "full" ? "2-Min Full" : selectedSetType === "premium" ? "Premium" : "60s"} Song Now
             </span>
             <ArrowRight size={15} />
           </button>
+        </div>
+      </div>
+
+      {/* SECTION 2 (BELOW): MEET YOSIA — HADDI'S LITTLE BROTHER, VIDEO SHOWCASE & STUDIO IMAGES */}
+      <div className="pt-4 border-t border-stone-200 space-y-6">
+        <div className="space-y-1.5">
+          <h2 className="text-2xl sm:text-3xl font-display font-bold tracking-tight text-slate-900">
+            Meet <span className="text-teal-700">Yosia</span> — Haddi&apos;s Little Brother
+          </h2>
+          <p className="text-xs sm:text-sm max-w-2xl leading-relaxed text-slate-600">
+            Welcome to our dedicated Children&apos;s Song Page! Yosia plays acoustic guitar just like his big brother Haddi, and he loves helping make children and families happy. Create joyful children&apos;s songs in <strong className="text-teal-800">English</strong>, <strong className="text-teal-800">Bahasa Indonesia</strong>, or 10+ languages.
+          </p>
+        </div>
+
+        {/* FEATURED YOSIA ANIMATED CHILDREN'S VIDEO SHOWCASE (FROM GOOGLE DRIVE) */}
+        <div className="rounded-2xl border border-teal-200 bg-gradient-to-br from-teal-50/70 via-white to-stone-50 p-5 sm:p-6 space-y-4 shadow-xs">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse" />
+              <div>
+                <h3 className="font-display text-base sm:text-lg font-bold text-slate-900 flex items-center gap-2">
+                  <Video size={18} className="text-teal-600" />
+                  <span>Yosia&apos;s Animated Children&apos;s Song Showcase</span>
+                </h3>
+                <p className="text-xs text-slate-500">
+                  Watch Yosia perform on acoustic guitar • Connected to Google Drive Video
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Switch between Direct Instant MP4 & Google Drive Player */}
+              <div className="inline-flex bg-stone-100 p-0.5 rounded-lg border border-stone-200">
+                <button
+                  type="button"
+                  onClick={() => setVideoPlaybackMode("native")}
+                  className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                    videoPlaybackMode === "native"
+                      ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Studio HD Player
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (yosiaVideoRef.current) yosiaVideoRef.current.pause();
+                    setVideoPlaybackMode("gdrive");
+                  }}
+                  className={`py-1 px-2.5 rounded-md text-[11px] font-medium transition-all cursor-pointer ${
+                    videoPlaybackMode === "gdrive"
+                      ? "bg-white text-teal-800 shadow-2xs font-semibold"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  Google Drive Player
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowDriveLinkEditor(!showDriveLinkEditor)}
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-stone-50 text-teal-800 border border-stone-200 transition-colors cursor-pointer"
+              >
+                {showDriveLinkEditor ? "Close Link Input" : "Update Drive Link"}
+              </button>
+
+              <a
+                href={`https://drive.google.com/file/d/${activeDriveFileId}/view?usp=drivesdk`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-white hover:bg-teal-50 text-slate-700 border border-stone-200 flex items-center gap-1 transition-colors"
+                title="Open video in Google Drive"
+              >
+                <span>Drive</span>
+                <ExternalLink size={11} />
+              </a>
+            </div>
+          </div>
+
+          {/* Optional Google Drive Link Updater */}
+          {showDriveLinkEditor && (
+            <form
+              onSubmit={handleApplyDriveUrl}
+              className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-white p-3 rounded-xl border border-teal-200"
+            >
+              <input
+                type="text"
+                value={customDriveUrlInput}
+                onChange={(e) => setCustomDriveUrlInput(e.target.value)}
+                placeholder="Paste Google Drive video link (e.g., https://drive.google.com/file/d/.../view)"
+                className="flex-1 rounded-lg px-3 py-2 text-xs border border-stone-300 text-slate-900 focus:outline-none focus:border-teal-600"
+              />
+              <div className="flex items-center gap-2">
+                <button
+                  type="submit"
+                  className="px-3.5 py-2 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold cursor-pointer"
+                >
+                  Load Drive Video
+                </button>
+                {activeDriveFileId !== DEFAULT_YOSIA_DRIVE_FILE_ID && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setActiveDriveFileId(DEFAULT_YOSIA_DRIVE_FILE_ID);
+                      setVideoPlaybackMode("native");
+                      localStorage.removeItem("mygiftsong_yosia_drive_id");
+                    }}
+                    className="px-3 py-2 rounded-lg bg-stone-100 hover:bg-stone-200 text-slate-700 text-xs font-medium cursor-pointer"
+                  >
+                    Reset Default
+                  </button>
+                )}
+              </div>
+            </form>
+          )}
+
+          {/* Video Frame */}
+          <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-950 aspect-video max-w-3xl mx-auto shadow-md">
+            {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID ? (
+              <>
+                <video
+                  ref={yosiaVideoRef}
+                  src="/video/yosia-children.mp4"
+                  controls
+                  playsInline
+                  preload="metadata"
+                  onPlay={() => setIsYosiaVideoPlaying(true)}
+                  onPause={() => setIsYosiaVideoPlaying(false)}
+                  onEnded={() => setIsYosiaVideoPlaying(false)}
+                  className="w-full h-full object-contain bg-slate-950"
+                />
+                {!isYosiaVideoPlaying && (
+                  <button
+                    type="button"
+                    onClick={handleToggleYosiaVideo}
+                    className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
+                    title="Watch Yosia's Children's Song Video"
+                  >
+                    <div className="w-16 h-16 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                      <Play size={28} fill="currentColor" className="ml-1" />
+                    </div>
+                    <span className="px-3.5 py-1.5 rounded-full bg-white/95 text-teal-900 text-xs font-bold shadow-sm">
+                      ▶ Watch Yosia&apos;s Children&apos;s Song Video
+                    </span>
+                  </button>
+                )}
+              </>
+            ) : (
+              <iframe
+                src={`https://drive.google.com/file/d/${activeDriveFileId}/preview`}
+                title="Yosia Animated Children's Song Video"
+                allow="autoplay; fullscreen"
+                className="w-full h-full border-0"
+              />
+            )}
+          </div>
+
+          {/* Controls & Animated Video Production Guide Toggle */}
+          <div className="flex flex-wrap items-center justify-between gap-3 max-w-3xl mx-auto pt-1">
+            <div className="flex items-center gap-2">
+              {videoPlaybackMode === "native" && activeDriveFileId === DEFAULT_YOSIA_DRIVE_FILE_ID && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleToggleYosiaVideo}
+                    className="px-3.5 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                  >
+                    {isYosiaVideoPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                    <span>{isYosiaVideoPlaying ? "Pause Video" : "Play Video"}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleToggleYosiaMute}
+                    className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
+                    title={isYosiaVideoMuted ? "Unmute Video" : "Mute Video"}
+                  >
+                    {isYosiaVideoMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleRestartYosiaVideo}
+                    className="p-1.5 rounded-lg bg-white hover:bg-stone-100 text-slate-700 border border-stone-200 transition-colors cursor-pointer"
+                    title="Restart Video"
+                  >
+                    <RotateCcw size={15} />
+                  </button>
+                </>
+              )}
+            </div>
+
+            <button
+              type="button"
+              onClick={() => setShowAnimationGuide(!showAnimationGuide)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-200 transition-colors cursor-pointer"
+            >
+              <HelpCircle size={14} className="text-amber-600" />
+              <span>How to Create Realistic Animated Children&apos;s Videos</span>
+              {showAnimationGuide ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+            </button>
+          </div>
+
+          {/* Collapsible Studio Guide: How to Create Realistic Animated Children's Videos */}
+          {showAnimationGuide && (
+            <div className="max-w-3xl mx-auto mt-3 rounded-xl border border-amber-200 bg-white p-4 sm:p-5 space-y-3 text-xs text-slate-700 shadow-2xs">
+              <h4 className="font-display font-bold text-sm text-slate-900 flex items-center gap-2">
+                <Sparkles size={15} className="text-teal-600" />
+                <span>3-Step Studio Recipe for Realistic 3D Animated Children&apos;s Videos (Like Yosia!)</span>
+              </h4>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                  <div className="font-bold text-teal-800">1. Consistent 3D Character Image</div>
+                  <p className="text-[11px] leading-relaxed text-slate-600">
+                    Start with one high-resolution 3D Pixar-style character image of Yosia (using <strong>Google Gemini Imagen / Nano Banana</strong>, Midjourney, or Leonardo AI). Keep the same reference image so his face, woven cap, and yellow hoodie stay 100% consistent.
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                  <div className="font-bold text-teal-800">2. Generate the Song Audio</div>
+                  <p className="text-[11px] leading-relaxed text-slate-600">
+                    Create your complete song here on <strong>mygiftsong.org</strong> and click <strong>Download Song</strong> to save the audio track, or trim a 15–60 second chorus clip for your video scene.
+                  </p>
+                </div>
+                <div className="p-3 rounded-lg bg-stone-50 border border-stone-200 space-y-1">
+                  <div className="font-bold text-teal-800">3. Animate Singing &amp; Guitar Motion</div>
+                  <p className="text-[11px] leading-relaxed text-slate-600">
+                    • <strong>For Lip-Sync Singing:</strong> Upload Yosia&apos;s image + song audio to <strong>Hedra (Character-3)</strong>, <strong>Kling AI Lip-Sync</strong>, <strong>HeyGen Avatar IV</strong>, or <strong>Runway Act-One</strong>.<br />
+                    • <strong>For 3D Guitar Action Scenes:</strong> Use <strong>Google Veo 3.1</strong> or <strong>Kling AI Image-to-Video</strong> with Yosia&apos;s photo as the starting frame!
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* YOSIA'S TWO STUDIO SHOWCASE CARDS */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Card 1: Yosia Standing with Guitar in Studio */}
+          <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
+            <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
+              <YosiaStudioArtwork scene="standing" customImageUrl={yosiaPhoto1} />
+              <div className="absolute top-3 right-3 flex gap-1.5">
+                <label
+                  className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
+                  title="Upload your exact Yosia photo from your device"
+                >
+                  <Upload size={11} />
+                  <span>{yosiaPhoto1 ? "Change Photo 1" : "Use Your Photo 1"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoUpload(1, e)}
+                    className="hidden"
+                  />
+                </label>
+                {yosiaPhoto1 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setYosiaPhoto1(null);
+                      localStorage.removeItem("mygiftsong_yosia_photo_1");
+                    }}
+                    className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
+                    title="Reset to studio illustration"
+                  >
+                    <RotateCcw size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="p-5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
+                <span>Yosia • Little Minstrel Guitarist</span>
+                <span>·</span>
+                <span>Jakarta Studio</span>
+              </div>
+              <h3 className="font-display text-base font-bold text-slate-900">
+                &ldquo;Hi! I&apos;m Yosia, Haddi&apos;s Little Brother!&rdquo;
+              </h3>
+              <p className="text-xs leading-relaxed text-slate-600">
+                Wearing his colorful woven cap, golden hoodie, and yellow socks, Yosia strums cheerful guitar chords to put a big smile on every child&apos;s and friend&apos;s face.
+              </p>
+            </div>
+          </div>
+
+          {/* Card 2: Yosia Sitting in Wooden Armchair by Fireplace Playing Guitar */}
+          <div className="rounded-2xl border border-stone-200 bg-white overflow-hidden flex flex-col justify-between shadow-2xs">
+            <div className="relative aspect-4/3 w-full bg-slate-950 overflow-hidden">
+              <YosiaStudioArtwork scene="fireside" customImageUrl={yosiaPhoto2} />
+              <div className="absolute top-3 right-3 flex gap-1.5">
+                <label
+                  className="px-2.5 py-1.5 rounded-lg bg-white/90 hover:bg-white text-teal-900 text-[10px] font-semibold uppercase tracking-wider border border-stone-200 flex items-center gap-1 cursor-pointer shadow-xs transition-all"
+                  title="Upload your exact Yosia fireside photo from your device"
+                >
+                  <Upload size={11} />
+                  <span>{yosiaPhoto2 ? "Change Photo 2" : "Use Your Photo 2"}</span>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => handlePhotoUpload(2, e)}
+                    className="hidden"
+                  />
+                </label>
+                {yosiaPhoto2 && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setYosiaPhoto2(null);
+                      localStorage.removeItem("mygiftsong_yosia_photo_2");
+                    }}
+                    className="p-1.5 rounded-lg bg-white/90 text-slate-700 hover:text-red-600 border border-stone-200 cursor-pointer"
+                    title="Reset to studio illustration"
+                  >
+                    <RotateCcw size={11} />
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="p-5 space-y-1.5">
+              <div className="flex items-center justify-between text-xs text-teal-700 font-medium">
+                <span>Fireside Sing-Along Session</span>
+                <span>·</span>
+                <span>Joy &amp; Blessing</span>
+              </div>
+              <h3 className="font-display text-base font-bold text-slate-900">
+                Fireside Children&apos;s Songs &amp; Happy Melodies
+              </h3>
+              <p className="text-xs leading-relaxed text-slate-600">
+                Cozy by the fireplace with musical notes floating in the air, Yosia and Haddi sing custom songs in English, Bahasa Indonesia, and more!
+              </p>
+            </div>
+          </div>
         </div>
       </div>
     </section>

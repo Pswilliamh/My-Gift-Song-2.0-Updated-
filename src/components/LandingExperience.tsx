@@ -20,7 +20,7 @@ import {
 import { motion, AnimatePresence } from "motion/react";
 import { PWAInstallButton } from "./PWAInstallButton";
 import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./YosiaChildrenSection";
-import { SongData } from "../types";
+import { SongData, SetType } from "../types";
 
 interface ChatMessage {
   id: string;
@@ -47,6 +47,7 @@ interface LandingExperienceProps {
     context?: string;
     genre?: string;
     language?: string;
+    setType?: SetType;
     artistPersona?: "haddi" | "yosia";
     preloadedSong?: SongData;
     autoGenerate?: boolean;
@@ -80,6 +81,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   const [storyInput, setStoryInput] = useState("");
   const [selectedGenre, setSelectedGenre] = useState("Acoustic Folk");
   const [selectedLanguage, setSelectedLanguage] = useState("English");
+  const [selectedSetType, setSelectedSetType] = useState<SetType>("full");
   const [selectedPersona, setSelectedPersona] = useState<"haddi" | "yosia">("haddi");
   const [chatStep, setChatStep] = useState<"recipient" | "occasion" | "lyrics" | "ready">("recipient");
   const [chatInput, setChatInput] = useState("");
@@ -555,6 +557,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                   context: params.context,
                   genre: params.genre,
                   language: params.language,
+                  setType: params.setType,
                   artistPersona: params.artistPersona,
                   preloadedSong: params.preloadedSong,
                   autoGenerate: params.autoGenerate,
@@ -999,6 +1002,22 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                     >
                       Birthday
                     </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        handleQuickPrompt(
+                          "Our Family & Church",
+                          "Morning Worship & Covenant Blessing",
+                          "Lifting hands in gratitude for His unfailing grace, peace, and faithfulness over our home.",
+                          "Modern Worship",
+                          selectedLanguage,
+                          "haddi"
+                        )
+                      }
+                      className="text-xs px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-teal-50 text-slate-700 hover:text-teal-800 border border-stone-200/80 transition-colors cursor-pointer"
+                    >
+                      🙏 Worship
+                    </button>
                   </div>
 
                   {/* Step Input Bar */}
@@ -1035,6 +1054,68 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                     </button>
                   </form>
 
+                  {/* Musical Style (Worship, Acoustic Folk, etc.) & Song Package ($1.99 Longer Song vs Quick 60s) */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 p-3 rounded-xl bg-stone-50/90 border border-stone-200/80">
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-teal-900 block">
+                        🎶 Musical Style:
+                      </span>
+                      <div className="flex flex-wrap gap-1">
+                        {[
+                          { id: "Acoustic Folk", label: "🎸 Acoustic Folk" },
+                          { id: "Modern Worship", label: "🙏 Worship" },
+                          { id: "Indie Pop", label: "✨ Indie Pop" },
+                          { id: "Lofi Acoustic", label: "🌿 Lofi" },
+                        ].map((g) => (
+                          <button
+                            key={g.id}
+                            type="button"
+                            onClick={() => setSelectedGenre(g.id)}
+                            className={`px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition-all cursor-pointer ${
+                              selectedGenre === g.id
+                                ? "bg-teal-700 text-white border-teal-700"
+                                : "bg-white text-slate-700 border-stone-200 hover:border-teal-300"
+                            }`}
+                          >
+                            {g.label}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <span className="text-[11px] font-bold text-teal-900 block">
+                        ⏱️ Song Length &amp; Packet:
+                      </span>
+                      <div className="grid grid-cols-2 gap-1.5">
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSetType("quick")}
+                          className={`p-1.5 rounded-lg border text-left transition-all cursor-pointer ${
+                            selectedSetType === "quick"
+                              ? "bg-teal-50 border-teal-600 text-teal-950 font-bold"
+                              : "bg-white border-stone-200 text-slate-600 hover:border-teal-300"
+                          }`}
+                        >
+                          <div className="text-[11px] font-bold">Quick (60s)</div>
+                          <div className="text-[10px] text-slate-500">1-Min Song ($0.99)</div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setSelectedSetType("full")}
+                          className={`p-1.5 rounded-lg border text-left transition-all cursor-pointer ${
+                            selectedSetType === "full"
+                              ? "bg-teal-50 border-teal-600 text-teal-950 font-bold"
+                              : "bg-white border-stone-200 text-slate-600 hover:border-teal-300"
+                          }`}
+                        >
+                          <div className="text-[11px] font-bold">Full Song ($1.99)</div>
+                          <div className="text-[10px] text-teal-700 font-semibold">2-Min Longer Song</div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Primary & Secondary Action Buttons */}
                   <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button
@@ -1046,6 +1127,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                           context: finalContext,
                           genre: selectedGenre,
                           language: selectedLanguage,
+                          setType: selectedSetType,
                           artistPersona: "haddi",
                           autoGenerate: true,
                           initialSection: "studio",
@@ -1056,8 +1138,8 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       <Sparkles size={15} />
                       <span>
                         {recipientInput
-                          ? `Create ${recipientInput}'s Song (${selectedLanguage.split(" ")[0]})`
-                          : `Create the Song Now (${selectedLanguage.split(" ")[0]})`}
+                          ? `Create ${recipientInput}'s ${selectedSetType === "full" ? "2-Min Full" : "60s"} Song`
+                          : `Create ${selectedSetType === "full" ? "2-Min Full ($1.99)" : "60s"} Song Now`}
                       </span>
                     </button>
 
@@ -1070,6 +1152,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                           context: hasUserContent ? finalContext : undefined,
                           genre: selectedGenre,
                           language: selectedLanguage,
+                          setType: selectedSetType,
                           artistPersona: "haddi",
                           autoGenerate: false,
                           initialSection: "studio",
@@ -1078,7 +1161,7 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       className="py-3 px-4 rounded-xl bg-white hover:bg-stone-50 text-slate-800 border border-stone-300 font-display font-semibold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all cursor-pointer"
                     >
                       <Music size={15} className="text-teal-600" />
-                      <span>Full Studio Options</span>
+                      <span>Jump Into Full Studio Options</span>
                       <ArrowRight size={14} />
                     </button>
                   </div>

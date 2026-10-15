@@ -32,8 +32,9 @@ export default function App() {
   const [audioUrl, setAudioUrl] = useState<string | null>(null);
   const [lyriaAudioUrl, setLyriaAudioUrl] = useState<string | null>(null);
   const [narrationAudioUrl, setNarrationAudioUrl] = useState<string | null>(null);
-  const [audioGenerationMode, setAudioGenerationMode] = useState<"lyria" | "narration" | "both">("both");
+  const [audioGenerationMode, setAudioGenerationMode] = useState<"lyria" | "narration" | "both">("lyria");
   const [activeTrackType, setActiveTrackType] = useState<"lyria" | "narration">("lyria");
+  const [isSwitchingTrack, setIsSwitchingTrack] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [sunoStatus, setSunoStatus] = useState<"idle" | "generating" | "success" | "error">("idle");
@@ -53,14 +54,56 @@ export default function App() {
     setIsAudioPlaying(true);
   };
 
-  const handleSelectTrackType = (type: "lyria" | "narration") => {
+  const handleSelectTrackType = async (type: "lyria" | "narration") => {
     setActiveTrackType(type);
-    const nextUrl = type === "narration" ? (narrationAudioUrl || lyriaAudioUrl) : (lyriaAudioUrl || narrationAudioUrl);
-    if (nextUrl) {
-      setAudioSource(nextUrl);
+    const existingUrl = type === "narration" ? narrationAudioUrl : lyriaAudioUrl;
+    if (existingUrl) {
+      setAudioSource(existingUrl);
+      return;
+    }
+
+    // If user clicked Sung Song or Narration and that variant hasn't been rendered yet, generate it on demand
+    if (currentSong && !isSwitchingTrack) {
+      setIsSwitchingTrack(true);
+      try {
+        const compiledLyrics =
+          currentSong.lyricSections
+            ?.filter((s) => s.sectionName !== "Intro")
+            .flatMap((s) => s.lines)
+            .join("\n") || currentSong.context;
+
+        const res = await fetch("/api/generate-haddi-audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: currentSong.context || `A heartfelt ${currentSong.genre} song for ${currentSong.target}`,
+            mode: type,
+            target: currentSong.target,
+            customGenre: currentSong.genre || customGenre,
+            setType: currentSong.setType || setType,
+            lyrics: compiledLyrics,
+            language: currentSong.language || songLanguage,
+            artistPersona: currentSong.artistPersona || artistPersona,
+          }),
+        });
+        const data = await res.json();
+        if (type === "lyria" && (data.lyriaAudioUrl || data.audioUrl)) {
+          const url = data.lyriaAudioUrl || data.audioUrl;
+          setLyriaAudioUrl(url);
+          setAudioSource(url);
+        } else if (type === "narration" && (data.narrationAudioUrl || data.audioUrl)) {
+          const url = data.narrationAudioUrl || data.audioUrl;
+          setNarrationAudioUrl(url);
+          setAudioSource(url);
+        }
+      } catch (err) {
+        console.warn("On-demand track switch generation error:", err);
+      } finally {
+        setIsSwitchingTrack(false);
+      }
     }
   };
-  const [setType, setSetType] = useState<SetType>("quick");
+  const [setType, setSetType] = useState<SetType>("full");
   const [customGenre, setCustomGenre] = useState("Acoustic Folk");
   const [songLanguage, setSongLanguage] = useState("English");
   const [artistPersona, setArtistPersona] = useState<"haddi" | "yosia">("haddi");
@@ -685,6 +728,11 @@ export default function App() {
   ) => {
     setError("");
     setIsRendering(true);
+    setLyriaAudioUrl(null);
+    setNarrationAudioUrl(null);
+    setAudioUrl(null);
+    setAudioSourceState(null);
+    setActiveTrackType("lyria");
     setStage(2); // Jump to Avatar loader Screen
     setLoadingStep(0);
 
@@ -739,11 +787,13 @@ export default function App() {
         }
       }
 
-      // 2. Generate Real AI Audio Track (Lyria 3 Sung Song, Haddi/Yosia Narration, or Both)
+      // 2. Generate Real AI Sung Music Track via Lyria 3 by default
       const compiledLyrics = returnedSong.lyricSections
         ?.filter(s => s.sectionName !== "Intro")
         .flatMap(s => s.lines)
         .join("\n") || contextVal;
+
+      const requestedMode = audioGenerationMode === "narration" ? "narration" : "lyria";
 
       try {
         const audioRes = await fetch("/api/generate-haddi-audio", {
@@ -751,7 +801,7 @@ export default function App() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             prompt: contextVal.trim() || `A special ${customGenreVal} blessing song for ${targetVal.trim()}`,
-            mode: audioGenerationMode,
+            mode: requestedMode,
             target: targetVal.trim(),
             customGenre: customGenreVal,
             setType: setTypeVal,
@@ -765,9 +815,10 @@ export default function App() {
         if (audioData.audioUrl) {
           if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
           if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
-          const initType = audioGenerationMode === "narration" && audioData.narrationAudioUrl ? "narration" : audioData.lyriaAudioUrl ? "lyria" : "narration";
+          const initType = requestedMode === "narration" && audioData.narrationAudioUrl ? "narration" : audioData.lyriaAudioUrl ? "lyria" : "narration";
+          const primaryPlayUrl = initType === "lyria" ? (audioData.lyriaAudioUrl || audioData.audioUrl) : (audioData.narrationAudioUrl || audioData.audioUrl);
           setActiveTrackType(initType);
-          setAudioSource(audioData.audioUrl);
+          setAudioSource(primaryPlayUrl);
         }
       } catch (audioGenErr) {
         console.warn("AI audio track generation warning:", audioGenErr);
@@ -860,6 +911,7 @@ export default function App() {
     context?: string;
     genre?: string;
     language?: string;
+    setType?: SetType;
     artistPersona?: "haddi" | "yosia";
     preloadedSong?: SongData;
     autoGenerate?: boolean;
@@ -874,6 +926,7 @@ export default function App() {
     if (prefill?.context) setContext(prefill.context);
     if (prefill?.genre) setCustomGenre(prefill.genre);
     if (prefill?.language) setSongLanguage(prefill.language);
+    if (prefill?.setType) setSetType(prefill.setType);
     if (prefill?.artistPersona) setArtistPersona(prefill.artistPersona);
 
     if (prefill?.initialSection) {
@@ -894,7 +947,7 @@ export default function App() {
       triggerSongGeneration(
         prefill.target,
         storyText,
-        setType,
+        prefill.setType || setType,
         prefill.genre || customGenre,
         prefill.language || songLanguage,
         prefill.artistPersona || artistPersona,
@@ -937,6 +990,11 @@ export default function App() {
     setError("");
     setIsGenerating(true);
     setIsRendering(true);
+    setLyriaAudioUrl(null);
+    setNarrationAudioUrl(null);
+    setAudioUrl(null);
+    setAudioSourceState(null);
+    setActiveTrackType(audioGenerationMode === "narration" ? "narration" : "lyria");
     setStage(2);
     setLoadingStep(0);
 
@@ -982,7 +1040,7 @@ export default function App() {
         setActiveVariationIdx(0);
       }
 
-      // 2. Generate Real AI Audio via Google AI Studio (Lyria 3 Sung Studio Song, Haddi/Yosia Narration, or Both!)
+      // 2. Generate Real AI Audio via Google AI Studio (Lyria 3 Sung Studio Song by default!)
       const compiledLyrics = returnedSong.lyricSections
         ?.filter(s => s.sectionName !== "Intro")
         .flatMap(s => s.lines)
@@ -1009,8 +1067,9 @@ export default function App() {
         if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
         if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
         const initType = audioGenerationMode === "narration" && audioData.narrationAudioUrl ? "narration" : audioData.lyriaAudioUrl ? "lyria" : "narration";
+        const primaryPlayUrl = initType === "lyria" ? (audioData.lyriaAudioUrl || audioData.audioUrl) : (audioData.narrationAudioUrl || audioData.audioUrl);
         setActiveTrackType(initType);
-        setAudioSource(audioData.audioUrl);
+        setAudioSource(primaryPlayUrl);
       }
 
       recordFreeSongUsage(returnedSong.title, returnedSong.target);
@@ -1073,7 +1132,7 @@ export default function App() {
     setCurrentTime(0);
     setTarget("");
     setContext("");
-    setSetType("quick");
+    setSetType("full");
     setStage(1);
   };
 
@@ -1377,6 +1436,7 @@ export default function App() {
                     context: params.context,
                     genre: params.genre,
                     language: params.language,
+                    setType: params.setType,
                     artistPersona: params.artistPersona,
                     preloadedSong: params.preloadedSong,
                     autoGenerate: params.autoGenerate,
@@ -1633,7 +1693,9 @@ export default function App() {
                                 context ||
                                 "A gentle melody of blessings and remembrance, plucked upon silver strings with honor and grace."
                               }
+                              userWords={currentSong?.context || context}
                               recipientName={currentSong?.target || target || "Someone Special"}
+                              artistPersona={currentSong?.artistPersona || artistPersona}
                             />
                           </div>
                         )}
@@ -1738,19 +1800,28 @@ export default function App() {
                             <label className="text-xs font-bold text-teal-800 uppercase tracking-wider block">
                               Step 3: Musical Style & Language
                             </label>
-                            <div className="grid grid-cols-3 gap-2">
-                              {["Acoustic Folk", "Bluegrass", "Rustic Lute", "Modern Worship", "Lofi Acoustic", "Indie Pop"].map((genre) => (
+                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                              {[
+                                { id: "Acoustic Folk", label: "🎸 Acoustic Folk" },
+                                { id: "Modern Worship", label: "🙏 Worship" },
+                                { id: "Children's Joyful Acoustic Sing-Along", label: "👦 Kids Sing-Along" },
+                                { id: "Birthday Acoustic Celebration", label: "🎂 Birthday Song" },
+                                { id: "Bluegrass", label: "🪕 Bluegrass" },
+                                { id: "Rustic Lute", label: "🎶 Rustic Lute" },
+                                { id: "Lofi Acoustic", label: "🌿 Lofi Acoustic" },
+                                { id: "Indie Pop", label: "✨ Indie Pop" },
+                              ].map((genreItem) => (
                                 <button
-                                  key={genre}
+                                  key={genreItem.id}
                                   type="button"
-                                  onClick={() => setCustomGenre(genre)}
+                                  onClick={() => setCustomGenre(genreItem.id)}
                                   className={`px-2.5 py-2 text-xs font-semibold rounded-xl border text-center transition-all cursor-pointer ${
-                                    customGenre === genre
+                                    customGenre === genreItem.id
                                       ? "bg-teal-700 text-white border-teal-700 shadow-xs"
                                       : "bg-stone-50 text-slate-700 border-stone-200 hover:border-teal-300"
                                   }`}
                                 >
-                                  {genre === "Modern Worship" ? "Worship" : genre}
+                                  {genreItem.label}
                                 </button>
                               ))}
                             </div>
@@ -1838,14 +1909,14 @@ export default function App() {
 
                             <div className="space-y-1.5">
                               <label className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider block">
-                                Dedicated Set
+                                Dedicated Set &amp; Song Length
                               </label>
                               <div className="grid grid-cols-2 gap-1.5">
                                 {[
-                                  { id: "quick", label: "Quick ($0.99)" },
-                                  { id: "full", label: "Full ($1.99)" },
-                                  { id: "premium", label: "Video ($4.99)" },
-                                  { id: "legacy", label: "Legacy ($12.99)" },
+                                  { id: "quick", label: "Quick ($0.99 • 60s)" },
+                                  { id: "full", label: "Full ($1.99 • 2-Min)" },
+                                  { id: "premium", label: "Video ($4.99 • 2-Min)" },
+                                  { id: "legacy", label: "Legacy ($12.99 • 2-Min)" },
                                 ].map((s) => (
                                   <button
                                     key={s.id}
@@ -1853,7 +1924,7 @@ export default function App() {
                                     onClick={() => setSetType(s.id as SetType)}
                                     className={`py-1.5 px-2 rounded-lg border text-[11px] font-semibold transition-all cursor-pointer ${
                                       setType === s.id
-                                        ? "border-teal-700 bg-teal-50 text-teal-900"
+                                        ? "border-teal-700 bg-teal-50 text-teal-900 ring-1 ring-teal-600/30"
                                         : "border-stone-200 bg-stone-50 text-slate-600 hover:border-stone-300"
                                     }`}
                                   >
@@ -2062,9 +2133,16 @@ export default function App() {
                       {/* Left side: Now playing title & Complete Song Player */}
                       <div className="lg:col-span-5 space-y-6">
                         <div className="bg-white border border-stone-200 rounded-2xl p-6 text-center space-y-3 shadow-xs">
-                          <span className="inline-block text-[11px] font-mono text-teal-800 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full uppercase font-semibold">
-                            🎵 Dedicated to {currentSong.target}
-                          </span>
+                          <div className="flex flex-wrap items-center justify-center gap-1.5">
+                            <span className="inline-block text-[11px] font-mono text-teal-800 bg-teal-50 border border-teal-200 px-3 py-0.5 rounded-full uppercase font-semibold">
+                              🎵 Dedicated to {currentSong.target}
+                            </span>
+                            <span className="inline-block text-[11px] font-mono text-amber-900 bg-amber-50 border border-amber-200 px-2.5 py-0.5 rounded-full uppercase font-bold">
+                              {currentSong.setType === "quick"
+                                ? "⏱️ 60s Quick Strum ($0.99)"
+                                : "🎶 2:00 Full Longer Song ($1.99 Packet)"}
+                            </span>
+                          </div>
 
                           <h3 className="text-2xl font-display font-bold text-slate-900">
                             {currentSong.title}
@@ -2074,6 +2152,29 @@ export default function App() {
                             <Disc size={14} className={isPlaying ? "animate-spin text-teal-700" : "text-teal-700"} />
                             {currentSong.genre} • {currentSong.tempo}
                           </div>
+
+                          {currentSong.setType === "quick" && (
+                            <div className="pt-1">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSetType("full");
+                                  triggerSongGeneration(
+                                    currentSong.target,
+                                    currentSong.context,
+                                    "full",
+                                    currentSong.genre || customGenre,
+                                    currentSong.language || songLanguage,
+                                    currentSong.artistPersona || artistPersona
+                                  );
+                                }}
+                                className="px-3.5 py-1.5 rounded-xl bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold inline-flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+                              >
+                                <Sparkles size={13} />
+                                <span>Extend to 2-Minute Longer Song ($1.99 Packet)</span>
+                              </button>
+                            </div>
+                          )}
                         </div>
 
                         {/* Complete AI Studio Song Player Console */}
@@ -2094,26 +2195,30 @@ export default function App() {
                               <button
                                 type="button"
                                 onClick={() => handleSelectTrackType("lyria")}
-                                disabled={!lyriaAudioUrl}
-                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
-                                  activeTrackType === "lyria" && lyriaAudioUrl
+                                disabled={isSwitchingTrack}
+                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
+                                  activeTrackType === "lyria"
                                     ? "bg-teal-700 text-white shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                                 }`}
                               >
-                                🎸 Complete Sung Song
+                                {isSwitchingTrack && activeTrackType === "lyria" && !lyriaAudioUrl
+                                  ? "⏳ Rendering Music..."
+                                  : "🎸 Complete Sung Song"}
                               </button>
                               <button
                                 type="button"
                                 onClick={() => handleSelectTrackType("narration")}
-                                disabled={!narrationAudioUrl}
-                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-40 ${
-                                  activeTrackType === "narration" && narrationAudioUrl
+                                disabled={isSwitchingTrack}
+                                className={`py-2 px-3 rounded-lg text-xs font-semibold transition-all cursor-pointer disabled:opacity-50 ${
+                                  activeTrackType === "narration"
                                     ? "bg-teal-700 text-white shadow-xs"
                                     : "text-slate-600 hover:text-slate-900"
                                 }`}
                               >
-                                🎙️ Haddi Narration
+                                {isSwitchingTrack && activeTrackType === "narration" && !narrationAudioUrl
+                                  ? "⏳ Recording Voice..."
+                                  : "🎙️ Haddi Narration"}
                               </button>
                             </div>
                           )}
@@ -2245,7 +2350,9 @@ export default function App() {
                               .flatMap(s => s.lines)
                               .join("\n")
                           }
+                          userWords={currentSong.context || context}
                           recipientName={currentSong.target}
+                          artistPersona={currentSong.artistPersona || artistPersona}
                         />
 
                         {/* Strict 1-Time Redo Policy Controls */}
