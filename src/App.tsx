@@ -9,8 +9,10 @@ import {
   Music, Sparkles, Share2, Play, Pause, Volume2, VolumeX, 
   RefreshCw, Download, User, Calendar, Sliders, ChevronRight,
   Disc, Star, Phone, Instagram, Send, Info, Check, Copy, X, Clock,
-  Gift, Crown, Users, TrendingUp, ArrowLeft, ShieldCheck, RotateCcw, Globe, Smile
+  Gift, Crown, Users, TrendingUp, ArrowLeft, ShieldCheck, RotateCcw, Globe, Smile,
+  QrCode, Printer
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 import { SongData, SetType, LyricSection } from "./types";
 import { LyricCanvas } from "./components/LyricCanvas";
 import { luteEngineInstance } from "./components/AudioEngine";
@@ -377,6 +379,8 @@ export default function App() {
   // --- Keepsake Modal State ---
   const [showKeepsake, setShowKeepsake] = useState(false);
   const [copiedLyrics, setCopiedLyrics] = useState(false);
+  const [keepsakeQrTarget, setKeepsakeQrTarget] = useState<"song" | "audio">("song");
+  const [isOpenedFromSharedLink, setIsOpenedFromSharedLink] = useState(false);
   const [isVocalizing, setIsVocalizing] = useState(false);
 
   const trackerRef = useRef<number | null>(null);
@@ -483,7 +487,15 @@ export default function App() {
               setLyriaAudioUrl(fullAudioUrl);
               setAudioSource(fullAudioUrl);
             }
+            setIsOpenedFromSharedLink(true);
             setStage(3);
+            setTimeout(() => {
+              if (audioRef.current) {
+                audioRef.current.play().catch(() => {
+                  // Mobile browsers may require 1 tap to unmute; the prominent banner handles this
+                });
+              }
+            }, 350);
           } else {
             setStage(1);
           }
@@ -2339,7 +2351,7 @@ export default function App() {
                           onClick={() => setShowKeepsake(true)}
                           className="flex items-center gap-1.5 text-xs text-teal-900 bg-teal-50 hover:bg-teal-100 border border-teal-200 px-3.5 py-2 rounded-xl font-semibold transition-all cursor-pointer"
                         >
-                          <Download size={14} /> Printable Keepsake Card
+                          <QrCode size={14} className="text-teal-700" /> Printable Keepsake Card (with QR Code)
                         </button>
                         <button
                           type="button"
@@ -2350,6 +2362,31 @@ export default function App() {
                         </button>
                       </div>
                     </div>
+
+                    {/* Instant Play Welcome Banner when opened via Scanned QR Code or Shared Link */}
+                    {isOpenedFromSharedLink && !isAudioPlaying && !isPlaying && (
+                      <div
+                        onClick={togglePlayback}
+                        className="bg-gradient-to-r from-teal-700 via-teal-600 to-emerald-600 text-white rounded-2xl p-4 shadow-md flex flex-wrap items-center justify-between gap-3 cursor-pointer hover:brightness-105 transition-all"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-11 h-11 rounded-full bg-white text-teal-800 flex items-center justify-center shadow-xs shrink-0">
+                            <Play size={20} fill="currentColor" className="ml-0.5" />
+                          </div>
+                          <div>
+                            <p className="text-xs font-mono uppercase tracking-wider text-teal-100 font-bold">
+                              🎁 Personal Gift Song for {currentSong.target}
+                            </p>
+                            <p className="text-sm font-display font-bold">
+                              Tap Here to Play &ldquo;{currentSong.title}&rdquo; Immediately
+                            </p>
+                          </div>
+                        </div>
+                        <span className="px-3.5 py-1.5 rounded-xl bg-white/20 border border-white/30 text-xs font-bold">
+                          ▶ Play Song Now
+                        </span>
+                      </div>
+                    )}
 
                     {/* Main Performance Center Block */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -2580,6 +2617,7 @@ export default function App() {
                           recipientName={currentSong.target}
                           artistPersona={currentSong.artistPersona || artistPersona}
                           onUpdateLyrics={handleUpdateSongLyrics}
+                          onOpenPrintableCard={() => setShowKeepsake(true)}
                         />
 
                         {/* Strict 1-Time Redo Policy Controls */}
@@ -2662,20 +2700,22 @@ export default function App() {
 
       {/* --- KEEPSAKE MODAL --- */}
       {showKeepsake && currentSong && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
           <motion.div
+            id="printable-keepsake-card"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0, scale: 0.95 }}
-            className="bg-white text-slate-900 w-full max-w-lg rounded-2xl shadow-xl border border-stone-200 overflow-hidden relative"
+            className="bg-white text-slate-900 w-full max-w-xl rounded-2xl shadow-xl border-2 border-teal-700/30 overflow-hidden relative my-6"
           >
-            <div className="absolute top-4 right-4 flex gap-2">
+            <div className="no-print absolute top-4 right-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => window.print()}
-                className="px-3 py-1 bg-teal-50 hover:bg-teal-100 text-teal-800 border border-teal-200 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+                className="px-3.5 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               >
-                Print Card
+                <Printer size={13} />
+                <span>Print Card with QR Code</span>
               </button>
               <button
                 type="button"
@@ -2686,50 +2726,108 @@ export default function App() {
               </button>
             </div>
 
-            <div className="p-8 md:p-10 space-y-6 pt-12 text-center">
+            <div className="p-6 md:p-8 space-y-5 pt-12 text-center">
               <div className="space-y-1">
                 <p className="text-[10px] font-mono tracking-widest text-teal-700 uppercase font-bold">
-                  A Custom Acoustic Gift Song
+                  A Custom Acoustic Gift Song • www.mygiftsong.org
                 </p>
                 <h3 className="text-2xl font-display font-bold text-slate-900">{currentSong.title}</h3>
-                <div className="w-16 h-0.5 bg-teal-600/30 mx-auto my-3"></div>
-                <p className="text-xs uppercase font-mono tracking-wider font-semibold text-slate-500">
-                  Dedicated to {currentSong.target}
+                <div className="w-16 h-0.5 bg-teal-600/30 mx-auto my-2.5"></div>
+                <p className="text-xs uppercase font-mono tracking-wider font-semibold text-teal-800">
+                  Dedicated with Love to {currentSong.target}
                 </p>
               </div>
 
-              {/* Direct Link to Song Audio & Song Page inside Printable Keepsake Gift Card */}
-              <div className="rounded-xl bg-teal-50 border border-teal-200 p-4 text-left space-y-2">
-                <p className="text-[11px] font-mono uppercase tracking-wider text-teal-900 font-bold">
-                  🔊 Listen to Your Custom Song Audio:
-                </p>
-                <div className="space-y-1 text-xs">
-                  <p className="font-mono text-[11px] text-teal-800 break-all">
-                    <strong>Audio Link:</strong>{" "}
-                    <a
-                      href={getCanonicalSongLinks(currentSong.id).audioLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-teal-950"
-                    >
-                      {getCanonicalSongLinks(currentSong.id).audioLink}
-                    </a>
-                  </p>
-                  <p className="font-mono text-[11px] text-teal-800 break-all">
-                    <strong>Song Page:</strong>{" "}
-                    <a
-                      href={getCanonicalSongLinks(currentSong.id).songLink}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="underline hover:text-teal-950"
-                    >
-                      {getCanonicalSongLinks(currentSong.id).songLink}
-                    </a>
-                  </p>
+              {/* Scannable QR Code + Direct Audio Link Box for Printed Physical Cards */}
+              <div className="rounded-2xl bg-gradient-to-br from-teal-50 via-white to-amber-50/50 border-2 border-teal-600/40 p-4 text-left shadow-2xs">
+                <div className="flex flex-col sm:flex-row items-center gap-4">
+                  {/* High-Contrast Scannable QR Code */}
+                  <div className="bg-white p-2.5 rounded-xl border-2 border-teal-700 shadow-xs shrink-0 flex flex-col items-center">
+                    <QRCodeSVG
+                      value={
+                        keepsakeQrTarget === "song"
+                          ? `${getCanonicalSongLinks(currentSong.id).songLink}${
+                              getCanonicalSongLinks(currentSong.id).songLink.includes("?") ? "&" : "?"
+                            }autoplay=1`
+                          : getCanonicalSongLinks(currentSong.id).audioLink
+                      }
+                      size={116}
+                      level="M"
+                      includeMargin={false}
+                      fgColor="#0f766e"
+                      bgColor="#ffffff"
+                    />
+                    <span className="mt-1.5 text-[9px] font-mono font-bold uppercase tracking-wider text-teal-900">
+                      📱 Scan to Play Song
+                    </span>
+                  </div>
+
+                  {/* Instructions & Direct Links */}
+                  <div className="flex-1 min-w-0 space-y-2 text-center sm:text-left">
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-700 text-white text-[10px] font-bold uppercase tracking-wider">
+                      <QrCode size={11} />
+                      <span>Scan with Phone Camera</span>
+                    </div>
+                    <p className="text-xs font-bold text-slate-900 leading-snug">
+                      Open your phone camera and point it at this QR code to hear your custom gift song play immediately!
+                    </p>
+
+                    {/* Screen-only toggle between QR for Song Page vs QR for Direct Audio */}
+                    <div className="no-print flex flex-wrap items-center justify-center sm:justify-start gap-1.5 pt-0.5">
+                      <span className="text-[10px] font-semibold text-slate-500">QR scans to:</span>
+                      <button
+                        type="button"
+                        onClick={() => setKeepsakeQrTarget("song")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                          keepsakeQrTarget === "song"
+                            ? "bg-teal-700 text-white"
+                            : "bg-stone-100 text-slate-600 hover:bg-stone-200"
+                        }`}
+                      >
+                        Song Player + Lyrics
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setKeepsakeQrTarget("audio")}
+                        className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                          keepsakeQrTarget === "audio"
+                            ? "bg-teal-700 text-white"
+                            : "bg-stone-100 text-slate-600 hover:bg-stone-200"
+                        }`}
+                      >
+                        Direct Audio File
+                      </button>
+                    </div>
+
+                    <div className="pt-1 border-t border-teal-200/80 space-y-0.5 text-[10px] font-mono text-teal-900 break-all">
+                      <p>
+                        <strong>Song Link:</strong>{" "}
+                        <a
+                          href={getCanonicalSongLinks(currentSong.id).songLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-teal-950"
+                        >
+                          {getCanonicalSongLinks(currentSong.id).songLink}
+                        </a>
+                      </p>
+                      <p>
+                        <strong>Audio Link:</strong>{" "}
+                        <a
+                          href={getCanonicalSongLinks(currentSong.id).audioLink}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="underline hover:text-teal-950"
+                        >
+                          {getCanonicalSongLinks(currentSong.id).audioLink}
+                        </a>
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <div className="border border-stone-200 rounded-xl p-5 bg-stone-50/70 max-h-[210px] overflow-y-auto text-left space-y-4">
+              <div className="print-full-lyrics border border-stone-200 rounded-xl p-5 bg-stone-50/70 max-h-[210px] overflow-y-auto text-left space-y-4">
                 {currentSong.lyricSections.filter(s => s.sectionName !== "Intro").map((section, idx) => (
                   <div key={idx} className="space-y-1 text-xs">
                     <p className="font-mono text-[10px] text-teal-700 font-bold uppercase">{section.sectionName}</p>
@@ -2740,12 +2838,20 @@ export default function App() {
                 ))}
               </div>
 
-              <div className="flex justify-between items-center pt-4 border-t border-stone-200 text-[10px] font-mono text-slate-400">
-                <span>AI ASSISTED SONG GENERATOR</span>
-                <span className="uppercase">www.mygiftsong.org • {currentSong.genre}</span>
+              <div className="flex justify-between items-center pt-3 border-t border-stone-200 text-[10px] font-mono text-slate-500">
+                <span>MYGIFTSONG.ORG • CUSTOM GIFT SONG</span>
+                <span className="uppercase">{currentSong.genre} • SCAN QR TO LISTEN</span>
               </div>
 
-              <div className="pt-2 flex flex-wrap justify-center gap-2.5">
+              <div className="no-print pt-1 flex flex-wrap justify-center gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => window.print()}
+                  className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                >
+                  <Printer size={14} />
+                  <span>Print Physical Gift Card</span>
+                </button>
                 <button
                   type="button"
                   onClick={handleCopyLyrics}

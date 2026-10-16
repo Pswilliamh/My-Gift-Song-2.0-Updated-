@@ -15,7 +15,10 @@ import {
   Link2,
   Copy,
   Volume2,
+  QrCode,
+  Printer,
 } from "lucide-react";
+import { QRCodeSVG } from "qrcode.react";
 
 interface GiftSongCardProps {
   songId?: string;
@@ -32,6 +35,7 @@ interface GiftSongCardProps {
   onSelectTrackType?: (type: "lyria" | "narration") => void;
   artistPersona?: "haddi" | "yosia";
   onUpdateLyrics?: (newLyrics: string, resingAudio?: boolean) => void;
+  onOpenPrintableCard?: () => void;
 }
 
 function extractCleanUserWords(rawContext?: string): string {
@@ -76,11 +80,13 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   onSelectTrackType,
   artistPersona = "haddi",
   onUpdateLyrics,
+  onOpenPrintableCard,
 }) => {
   const [selectedTrack, setSelectedTrack] = useState<"lyria" | "narration">(activeTrackType);
   const [copiedSongLink, setCopiedSongLink] = useState(false);
   const [copiedAudioLink, setCopiedAudioLink] = useState(false);
   const [copiedCardWithAudio, setCopiedCardWithAudio] = useState(false);
+  const [cardQrTarget, setCardQrTarget] = useState<"song" | "audio">("song");
 
   // Lyrics editor state inside GiftSongCard
   const [isEditingCardLyrics, setIsEditingCardLyrics] = useState(false);
@@ -1022,6 +1028,66 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
             >
               {copiedAudioLink ? "✓ Copied" : "Copy"}
             </button>
+          </div>
+        </div>
+
+        {/* Scannable QR Code Badge for Physical Card / Phone Camera */}
+        <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-teal-200 shadow-2xs">
+          <div className="p-1.5 bg-white rounded-lg border border-stone-200 shrink-0">
+            <QRCodeSVG
+              value={
+                cardQrTarget === "song"
+                  ? `${resolvedShareableSongUrl}${resolvedShareableSongUrl.includes("?") ? "&" : "?"}autoplay=1`
+                  : resolvedDirectAudioLink
+              }
+              size={76}
+              level="M"
+              fgColor="#0f766e"
+              bgColor="#ffffff"
+            />
+          </div>
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <div className="flex items-center gap-1 text-[11px] font-bold text-teal-950">
+              <QrCode size={13} className="text-teal-700 shrink-0" />
+              <span>Scan with Phone Camera to Play Song</span>
+            </div>
+            <p className="text-[10px] text-slate-600 leading-snug">
+              Included automatically on your Printable Keepsake Gift Card for physical birthday or blessing envelopes.
+            </p>
+            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
+              <button
+                type="button"
+                onClick={() => setCardQrTarget("song")}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  cardQrTarget === "song"
+                    ? "bg-teal-700 text-white"
+                    : "bg-stone-100 text-slate-600 hover:bg-stone-200"
+                }`}
+              >
+                QR: Song + Lyrics
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardQrTarget("audio")}
+                className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                  cardQrTarget === "audio"
+                    ? "bg-teal-700 text-white"
+                    : "bg-stone-100 text-slate-600 hover:bg-stone-200"
+                }`}
+              >
+                QR: Direct Audio
+              </button>
+              {onOpenPrintableCard && (
+                <button
+                  type="button"
+                  onClick={onOpenPrintableCard}
+                  className="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <Printer size={10} />
+                  <span>Printable QR Card</span>
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>

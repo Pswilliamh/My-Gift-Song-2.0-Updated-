@@ -157,3 +157,33 @@
   border-radius: 6px;
   display: inline-block;
 }
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #printable-keepsake-card,
+  #printable-keepsake-card * {
+    visibility: visible;
+  }
+  #printable-keepsake-card {
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 24px !important;
+    box-shadow: none !important;
+    border: 2px solid #0f766e !important;
+    background: #ffffff !important;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-full-lyrics {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
