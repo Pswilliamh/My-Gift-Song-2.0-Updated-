@@ -19,7 +19,11 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { PWAInstallButton } from "./PWAInstallButton";
-import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./YosiaChildrenSection";
+import {
+  YosiaChildrenSection,
+  SUPPORTED_SONG_LANGUAGES,
+  DEFAULT_YOSIA_DRIVE_FILE_ID,
+} from "./YosiaChildrenSection";
 import { SongData, SetType } from "../types";
 
 interface ChatMessage {
@@ -96,16 +100,17 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   // Yosia Video Player state (underneath Haddi's media player)
   const [isYosiaPlaying, setIsYosiaPlaying] = useState(false);
   const [isYosiaMuted, setIsYosiaMuted] = useState(false);
+  const [yosiaUseDriveFallback, setYosiaUseDriveFallback] = useState(false);
   const yosiaVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const videoSources = {
     flagship: {
-      src: "/video/song-gift.mp4",
+      src: "/video/song-gift.mp4?v=2",
       title: "Haddi Performing: The Gift of a Song",
       subtitle: "mygiftsong.org • AI Assisted Song Generator Showcase",
     },
     encore: {
-      src: "/video/premium-preview.mp4",
+      src: "/video/premium-preview.mp4?v=2",
       title: "Haddi Encore: Acoustic Blessing Serenade",
       subtitle: "Custom Gift Song Video Showcase • Performed by Haddi",
     },
@@ -822,39 +827,51 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       </span>
                     </button>
 
-                    {/* Yosia Video Frame */}
+                    {/* Yosia Video Frame (with automatic Google Drive Cloud Fallback for Vercel) */}
                     <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-900 aspect-video group">
-                      <video
-                        ref={yosiaVideoRef}
-                        src="/video/yosia-children.mp4"
-                        controls
-                        playsInline
-                        preload="metadata"
-                        onPlay={() => {
-                          if (videoRef.current && !videoRef.current.paused) {
-                            videoRef.current.pause();
-                          }
-                          setIsYosiaPlaying(true);
-                        }}
-                        onPause={() => setIsYosiaPlaying(false)}
-                        onEnded={() => setIsYosiaPlaying(false)}
-                        className="w-full h-full object-cover"
-                      />
+                      {!yosiaUseDriveFallback ? (
+                        <>
+                          <video
+                            ref={yosiaVideoRef}
+                            src="/video/yosia-children.mp4?v=2"
+                            controls
+                            playsInline
+                            preload="metadata"
+                            onError={() => setYosiaUseDriveFallback(true)}
+                            onPlay={() => {
+                              if (videoRef.current && !videoRef.current.paused) {
+                                videoRef.current.pause();
+                              }
+                              setIsYosiaPlaying(true);
+                            }}
+                            onPause={() => setIsYosiaPlaying(false)}
+                            onEnded={() => setIsYosiaPlaying(false)}
+                            className="w-full h-full object-cover"
+                          />
 
-                      {!isYosiaPlaying && (
-                        <button
-                          type="button"
-                          onClick={handleToggleYosiaPlay}
-                          className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
-                          title="Watch & Listen to Yosia Playing Children's Song"
-                        >
-                          <div className="w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
-                            <Play size={24} fill="currentColor" className="ml-0.5" />
-                          </div>
-                          <span className="px-3 py-1 rounded-full bg-white/95 text-teal-900 text-xs font-semibold shadow-sm">
-                            Watch Yosia Play
-                          </span>
-                        </button>
+                          {!isYosiaPlaying && (
+                            <button
+                              type="button"
+                              onClick={handleToggleYosiaPlay}
+                              className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
+                              title="Watch & Listen to Yosia Playing Children's Song"
+                            >
+                              <div className="w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                                <Play size={24} fill="currentColor" className="ml-0.5" />
+                              </div>
+                              <span className="px-3 py-1 rounded-full bg-white/95 text-teal-900 text-xs font-semibold shadow-sm">
+                                Watch Yosia Play
+                              </span>
+                            </button>
+                          )}
+                        </>
+                      ) : (
+                        <iframe
+                          src={`https://drive.google.com/file/d/${DEFAULT_YOSIA_DRIVE_FILE_ID}/preview`}
+                          title="Yosia Performing Children's Song Showcase"
+                          allow="autoplay; fullscreen"
+                          className="w-full h-full border-0"
+                        />
                       )}
                     </div>
 
@@ -870,31 +887,43 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       </div>
 
                       <div className="flex items-center gap-1.5 shrink-0">
-                        <button
-                          type="button"
-                          onClick={handleToggleYosiaPlay}
-                          className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
-                        >
-                          {isYosiaPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-                          <span>{isYosiaPlaying ? "Pause" : "Play"}</span>
-                        </button>
+                        {!yosiaUseDriveFallback && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={handleToggleYosiaPlay}
+                              className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                            >
+                              {isYosiaPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                              <span>{isYosiaPlaying ? "Pause" : "Play"}</span>
+                            </button>
 
-                        <button
-                          type="button"
-                          onClick={handleToggleYosiaMute}
-                          className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
-                          title={isYosiaMuted ? "Unmute Yosia Video" : "Mute Yosia Video"}
-                        >
-                          {isYosiaMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
-                        </button>
+                            <button
+                              type="button"
+                              onClick={handleToggleYosiaMute}
+                              className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                              title={isYosiaMuted ? "Unmute Yosia Video" : "Mute Yosia Video"}
+                            >
+                              {isYosiaMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                            </button>
 
+                            <button
+                              type="button"
+                              onClick={handleRestartYosiaVideo}
+                              className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                              title="Restart Yosia Video"
+                            >
+                              <RotateCcw size={15} />
+                            </button>
+                          </>
+                        )}
                         <button
                           type="button"
-                          onClick={handleRestartYosiaVideo}
-                          className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
-                          title="Restart Yosia Video"
+                          onClick={() => setYosiaUseDriveFallback((prev) => !prev)}
+                          className="px-2.5 py-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-700 border border-stone-200 text-[11px] font-semibold transition-colors cursor-pointer"
+                          title="Switch between Direct MP4 and Google Drive Cloud Video"
                         >
-                          <RotateCcw size={15} />
+                          {yosiaUseDriveFallback ? "Studio MP4" : "Cloud Player"}
                         </button>
                       </div>
                     </div>

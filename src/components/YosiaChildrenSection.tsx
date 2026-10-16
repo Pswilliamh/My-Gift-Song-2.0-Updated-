@@ -855,10 +855,11 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
               <>
                 <video
                   ref={yosiaVideoRef}
-                  src="/video/yosia-children.mp4"
+                  src="/video/yosia-children.mp4?v=2"
                   controls
                   playsInline
                   preload="metadata"
+                  onError={() => setVideoPlaybackMode("gdrive")}
                   onPlay={() => setIsYosiaVideoPlaying(true)}
                   onPause={() => setIsYosiaVideoPlaying(false)}
                   onEnded={() => setIsYosiaVideoPlaying(false)}
