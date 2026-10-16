@@ -491,6 +491,20 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              const text = encodeURIComponent(
+                `🎁🎵 Check out this awesome Gift Song App — www.mygiftsong.org!\n\n` +
+                  `You can create personalized acoustic gift songs and children's songs (with Haddi & his little brother Yosia) in 60 seconds — and your first 5 custom songs are 100% FREE!\n\n` +
+                  `👉 Try it now at:\nhttps://www.mygiftsong.org 🌟`
+              );
+              window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+            }}
+            className="text-xs font-bold px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1.5 shadow-2xs transition-all cursor-pointer"
+          >
+            <span>💬 Share App on WhatsApp</span>
+          </button>
           <span className="text-xs font-semibold px-3 py-1.5 rounded-xl border bg-teal-50 border-teal-200 text-teal-800 flex items-center gap-1.5">
             <Smile size={15} className="text-teal-600" />
             Making Children Happy

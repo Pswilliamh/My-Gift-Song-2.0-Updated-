@@ -30,6 +30,14 @@ interface StoredSongRecord {
   narrationFileName?: string;
   greetingFileName?: string;
   externalAudioUrl?: string;
+  reactions?: Array<{
+    id: string;
+    emoji: string;
+    label: string;
+    note?: string;
+    fromName?: string;
+    createdAt: string;
+  }>;
 }
 
 const memorySongStore = new Map<string, StoredSongRecord>();
@@ -83,6 +91,7 @@ function saveSharedSongRecord(
   if (updates.recipientName) existing.recipientName = updates.recipientName;
   if (updates.songTitle) existing.songTitle = updates.songTitle;
   if (updates.artistPersona) existing.artistPersona = updates.artistPersona;
+  if (updates.reactions) existing.reactions = updates.reactions;
 
   if (updates.lyriaDataUrl) {
     const parsed = parseDataUrlToBuffer(updates.lyriaDataUrl);
@@ -2129,6 +2138,40 @@ app.get("/api/songs/:shareId", (req, res) => {
     lyriaAudioUrl: directAudioUrl,
     narrationAudioUrl: hasNarration ? `/api/songs/${record.shareId}/narration.wav` : null,
     greetingAudioUrl: hasGreeting ? `/api/songs/${record.shareId}/greeting.wav` : null,
+    reactions: record.reactions || [],
+  });
+});
+
+app.post("/api/songs/:shareId/react", (req, res) => {
+  const { shareId } = req.params;
+  const { emoji, label, note, fromName } = req.body || {};
+  const existing = loadSharedSongRecord(shareId);
+  const newReaction = {
+    id: `react-${Date.now().toString(36)}-${crypto.randomBytes(2).toString("hex")}`,
+    emoji: (emoji || "❤️").trim().slice(0, 8),
+    label: (label || "Loved It!").trim().slice(0, 60),
+    note: note ? String(note).trim().slice(0, 500) : undefined,
+    fromName: fromName ? String(fromName).trim().slice(0, 80) : undefined,
+    createdAt: new Date().toISOString(),
+  };
+
+  if (existing) {
+    existing.reactions = [newReaction, ...(existing.reactions || [])].slice(0, 50);
+    saveSharedSongRecord(shareId, { reactions: existing.reactions });
+    return res.json({
+      success: true,
+      reaction: newReaction,
+      reactions: existing.reactions,
+    });
+  }
+
+  const created = saveSharedSongRecord(shareId, {
+    reactions: [newReaction],
+  });
+  return res.json({
+    success: true,
+    reaction: newReaction,
+    reactions: created.reactions || [newReaction],
   });
 });
 
@@ -2342,6 +2385,267 @@ app.post("/api/create-checkout-session", async (req, res) => {
       warning: "Stripe connection failed, using high-fidelity fallback sandbox checkout simulation."
     });
   }
+});
+
+// ============================================================================
+// 4. MEMBER & CHURCH ACCOUNT LOGIN + STRICT MONTHLY RESET (NO ROLLOVER) ENGINE
+// ============================================================================
+export type AccountPlanTier =
+  | "lifetime_basic"
+  | "lifetime_premium"
+  | "church_starter"
+  | "church_300"
+  | "church_large";
+
+export interface AuthorizedCoordinator {
+  name: string;
+  role: string;
+  email: string;
+}
+
+export interface StoredMemberAccount {
+  email: string;
+  displayName: string;
+  organizationName?: string;
+  accessCode: string;
+  planTier: AccountPlanTier;
+  planLabel: string;
+  monthlySongLimit: number;
+  currentMonthKey: string; // e.g., "2026-10"
+  songsUsedThisMonth: number;
+  topUpBonusSongs: number; // Only paid $7.99 10-song top-ups persist; monthly plan songs NEVER roll over
+  coordinators: AuthorizedCoordinator[];
+  lastResetDate: string;
+  createdAt: string;
+}
+
+const ACCOUNTS_FILE_PATH = path.join(SHARED_SONGS_DIR, "_member_accounts.json");
+
+function getCurrentMonthKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+}
+
+const PLAN_CONFIG: Record<
+  AccountPlanTier,
+  { label: string; monthlyLimit: number; isChurch: boolean }
+> = {
+  lifetime_basic: {
+    label: "👑 Lifetime $0.99 Pass (10 Referrals / One-Time)",
+    monthlyLimit: 5,
+    isChurch: false,
+  },
+  lifetime_premium: {
+    label: "👑 Lifetime Premium Pass (10 Referrals / One-Time)",
+    monthlyLimit: 15,
+    isChurch: false,
+  },
+  church_starter: {
+    label: "⛪ Small Church & Youth Plan (10 Songs/Mo)",
+    monthlyLimit: 10,
+    isChurch: true,
+  },
+  church_300: {
+    label: "⛪ 300-Member Church & Sponsor Plan (30 Songs/Mo)",
+    monthlyLimit: 30,
+    isChurch: true,
+  },
+  church_large: {
+    label: "🌍 Large Church & Missions Plan (100 Songs/Mo)",
+    monthlyLimit: 100,
+    isChurch: true,
+  },
+};
+
+function loadAccountsMap(): Record<string, StoredMemberAccount> {
+  try {
+    if (fs.existsSync(ACCOUNTS_FILE_PATH)) {
+      return JSON.parse(fs.readFileSync(ACCOUNTS_FILE_PATH, "utf-8"));
+    }
+  } catch {
+    // ignore read error
+  }
+  const monthKey = getCurrentMonthKey();
+  // Seed default ready-to-test demo accounts for Lifetime Pass & Church Ministry
+  const seeded: Record<string, StoredMemberAccount> = {
+    "pastor@gracechurch.org": {
+      email: "pastor@gracechurch.org",
+      displayName: "Pastor William & Ministry Team",
+      organizationName: "Grace Fellowship & Child Sponsorship Ministry",
+      accessCode: "GRACE-100",
+      planTier: "church_large",
+      planLabel: PLAN_CONFIG.church_large.label,
+      monthlySongLimit: 100,
+      currentMonthKey: monthKey,
+      songsUsedThisMonth: 16,
+      topUpBonusSongs: 0,
+      coordinators: [
+        { name: "Pastor William", role: "Senior Pastor (Admin)", email: "pastor@gracechurch.org" },
+        { name: "Sister Hannah", role: "Church Secretary", email: "office@gracechurch.org" },
+        { name: "Brother Lukas", role: "Child Sponsorship Coordinator", email: "sponsors@gracechurch.org" },
+      ],
+      lastResetDate: `${monthKey}-01`,
+      createdAt: new Date().toISOString(),
+    },
+    "vip@mygiftsong.org": {
+      email: "vip@mygiftsong.org",
+      displayName: "Lifetime Referral VIP Member",
+      accessCode: "VIP-5SONGS",
+      planTier: "lifetime_basic",
+      planLabel: PLAN_CONFIG.lifetime_basic.label,
+      monthlySongLimit: 5,
+      currentMonthKey: monthKey,
+      songsUsedThisMonth: 1,
+      topUpBonusSongs: 0,
+      coordinators: [],
+      lastResetDate: `${monthKey}-01`,
+      createdAt: new Date().toISOString(),
+    },
+  };
+  saveAccountsMap(seeded);
+  return seeded;
+}
+
+function saveAccountsMap(map: Record<string, StoredMemberAccount>) {
+  try {
+    fs.writeFileSync(ACCOUNTS_FILE_PATH, JSON.stringify(map, null, 2), "utf-8");
+  } catch (e) {
+    console.warn("Could not write accounts file:", e);
+  }
+}
+
+// Enforce strict monthly reset on the 1st of each month (NO ROLLOVER)
+function enforceMonthlyResetNoRollover(account: StoredMemberAccount): StoredMemberAccount {
+  const activeMonth = getCurrentMonthKey();
+  if (account.currentMonthKey !== activeMonth) {
+    // New month detected: Reset used count to 0 (unused songs from last month do NOT roll over!)
+    account.currentMonthKey = activeMonth;
+    account.songsUsedThisMonth = 0;
+    account.lastResetDate = `${activeMonth}-01`;
+  }
+  return account;
+}
+
+app.post("/api/accounts/login", (req, res) => {
+  const { email, accessCode, displayName, organizationName, planTier } = req.body || {};
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  if (!cleanEmail || !cleanEmail.includes("@")) {
+    return res.status(400).json({ error: "Please enter a valid email address to log in." });
+  }
+
+  const accounts = loadAccountsMap();
+  let account = accounts[cleanEmail];
+  const selectedTier: AccountPlanTier =
+    planTier && PLAN_CONFIG[planTier as AccountPlanTier]
+      ? (planTier as AccountPlanTier)
+      : "lifetime_basic";
+
+  if (!account) {
+    const tierCfg = PLAN_CONFIG[selectedTier];
+    const monthKey = getCurrentMonthKey();
+    account = {
+      email: cleanEmail,
+      displayName: (displayName || cleanEmail.split("@")[0]).trim(),
+      organizationName: tierCfg.isChurch
+        ? (organizationName || "Grace Fellowship Church").trim()
+        : undefined,
+      accessCode: (accessCode || "MINSTREL-2026").trim(),
+      planTier: selectedTier,
+      planLabel: tierCfg.label,
+      monthlySongLimit: tierCfg.monthlyLimit,
+      currentMonthKey: monthKey,
+      songsUsedThisMonth: 0,
+      topUpBonusSongs: 0,
+      coordinators: tierCfg.isChurch
+        ? [
+            {
+              name: (displayName || "Pastor / Ministry Admin").trim(),
+              role: "Primary Ministry Admin",
+              email: cleanEmail,
+            },
+            {
+              name: "Church Secretary",
+              role: "Authorized Song Coordinator",
+              email: `office@${cleanEmail.split("@")[1] || "church.org"}`,
+            },
+          ]
+        : [],
+      lastResetDate: `${monthKey}-01`,
+      createdAt: new Date().toISOString(),
+    };
+  } else {
+    // Allow switching plan tier if requested during login/upgrade
+    if (planTier && PLAN_CONFIG[planTier as AccountPlanTier] && account.planTier !== planTier) {
+      const tierCfg = PLAN_CONFIG[planTier as AccountPlanTier];
+      account.planTier = planTier as AccountPlanTier;
+      account.planLabel = tierCfg.label;
+      account.monthlySongLimit = tierCfg.monthlyLimit;
+      if ( account.songsUsedThisMonth > account.monthlySongLimit ) {
+        account.songsUsedThisMonth = 0;
+      }
+    }
+    if (displayName && displayName.trim()) account.displayName = displayName.trim();
+    if (organizationName && organizationName.trim()) account.organizationName = organizationName.trim();
+  }
+
+  account = enforceMonthlyResetNoRollover(account);
+  accounts[cleanEmail] = account;
+  saveAccountsMap(accounts);
+
+  return res.json({
+    success: true,
+    account,
+    songsRemainingThisMonth: Math.max(0, account.monthlySongLimit - account.songsUsedThisMonth),
+    policyNote:
+      "Strict Monthly Reset Policy: Unused monthly songs do NOT roll over. On the 1st of every month, your allowance resets back to your exact plan limit.",
+  });
+});
+
+app.post("/api/accounts/simulate-month-reset", (req, res) => {
+  const { email, simulatedUsedCount } = req.body || {};
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const accounts = loadAccountsMap();
+  const account = accounts[cleanEmail];
+  if (!account) {
+    return res.status(404).json({ error: "Account not found." });
+  }
+
+  if (typeof simulatedUsedCount === "number") {
+    account.songsUsedThisMonth = Math.min(account.monthlySongLimit, Math.max(0, simulatedUsedCount));
+  } else {
+    // Simulate the 1st of the next month: reset back to 0 used (100% of plan limit, NO rollover!)
+    account.songsUsedThisMonth = 0;
+    account.currentMonthKey = getCurrentMonthKey();
+    account.lastResetDate = `${account.currentMonthKey}-01`;
+  }
+
+  accounts[cleanEmail] = account;
+  saveAccountsMap(accounts);
+
+  return res.json({
+    success: true,
+    account,
+    songsRemainingThisMonth: Math.max(0, account.monthlySongLimit - account.songsUsedThisMonth),
+  });
+});
+
+app.post("/api/accounts/update-coordinators", (req, res) => {
+  const { email, coordinators } = req.body || {};
+  const cleanEmail = String(email || "").trim().toLowerCase();
+  const accounts = loadAccountsMap();
+  const account = accounts[cleanEmail];
+  if (!account) {
+    return res.status(404).json({ error: "Account not found." });
+  }
+  if (Array.isArray(coordinators)) {
+    account.coordinators = coordinators.slice(0, 3);
+    accounts[cleanEmail] = account;
+    saveAccountsMap(accounts);
+  }
+  return res.json({
+    success: true,
+    account,
+  });
 });
 
 // Setup Vite Dev Server / Static Ingress inside bootstrapper to support esbuild CommonJS formats

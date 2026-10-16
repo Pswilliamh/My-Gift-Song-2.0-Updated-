@@ -10,7 +10,7 @@ import {
   RefreshCw, Download, User, Calendar, Sliders, ChevronRight,
   Disc, Star, Phone, Instagram, Send, Info, Check, Copy, X, Clock,
   Gift, Crown, Users, TrendingUp, ArrowLeft, ShieldCheck, RotateCcw, Globe, Smile,
-  QrCode, Printer
+  QrCode, Printer, Heart
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
 import { SongData, SetType, LyricSection } from "./types";
@@ -22,6 +22,8 @@ import { RewardsAndAffiliateSections, ReferralEntry } from "./components/Rewards
 import { PWAInstallButton, OfflineIndicator } from "./components/PWAInstallButton";
 import { AdminAccountDashboard, AdminUser, MASTER_ADMIN_EMAIL } from "./components/AdminAccountDashboard";
 import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./components/YosiaChildrenSection";
+import { MinistryAndSponsorPackages } from "./components/MinistryAndSponsorPackages";
+import { RecipientReactionAndThankYouCard } from "./components/RecipientReactionAndThankYouCard";
 
 const FREE_SONGS_RESET_VERSION = "mygiftsong_free_reset_v2_2026_10";
 
@@ -193,7 +195,7 @@ export default function App() {
       params.has("session_id")
     );
   });
-  const [activeSystemTab, setActiveSystemTab] = useState<"studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin">(() => {
+  const [activeSystemTab, setActiveSystemTab] = useState<"studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "ministry" | "admin">(() => {
     const params = new URLSearchParams(window.location.search);
     if (params.get("admin") === "true" || window.location.hash === "#admin") {
       return "admin";
@@ -237,18 +239,29 @@ export default function App() {
 
   const basic099ReferralCount = referrals.filter((r) => (r.tier || "basic_099") === "basic_099").length;
   const premiumReferralCount = referrals.filter((r) => r.tier === "premium").length;
+  const isAdminUnlimited = Boolean(adminUser.isAuthenticated && adminUser.unlimitedBypass);
+  const lifetimeMonthlyCap = premiumReferralCount >= 10 ? 15 : basic099ReferralCount >= 10 ? 5 : 0;
+
+  // Track monthly song allowance for Lifetime Pass holders (auto-resets on the 1st of each month)
+  const currentMonthKey = `mygiftsong_lifetime_used_${new Date().getFullYear()}_${new Date().getMonth() + 1}`;
+  const [lifetimeSongsUsedThisMonth, setLifetimeSongsUsedThisMonth] = useState<number>(() => {
+    const saved = localStorage.getItem(currentMonthKey);
+    return saved ? Math.max(0, parseInt(saved, 10)) : 0;
+  });
+
   const isLifetimeUnlocked =
-    basic099ReferralCount >= 10 ||
-    premiumReferralCount >= 10 ||
-    (adminUser.isAuthenticated && adminUser.unlimitedBypass);
+    isAdminUnlimited ||
+    (lifetimeMonthlyCap > 0 && lifetimeSongsUsedThisMonth < lifetimeMonthlyCap);
 
   const handleResetFreeSongs = () => {
     setFreeSongsRemaining(5);
     setFreeSongsUsedHistory([]);
     setOneTimeRedoUsed(false);
+    setLifetimeSongsUsedThisMonth(0);
     localStorage.setItem("mygiftsong_free_remaining", "5");
     localStorage.setItem("mygiftsong_free_history", JSON.stringify([]));
     localStorage.setItem("mygiftsong_one_time_redo_used_v1", "false");
+    localStorage.setItem(currentMonthKey, "0");
     localStorage.setItem(FREE_SONGS_RESET_VERSION, "done");
   };
 
@@ -278,7 +291,15 @@ export default function App() {
   };
 
   const recordFreeSongUsage = (songTitle: string, recipientName: string) => {
-    if (isLifetimeUnlocked) return; // Lifetime License or Admin Unlimited Bypass = no deduction
+    if (isAdminUnlimited) return; // Master Admin Unlimited Bypass = no deduction
+    if (lifetimeMonthlyCap > 0 && lifetimeSongsUsedThisMonth < lifetimeMonthlyCap) {
+      setLifetimeSongsUsedThisMonth((prev) => {
+        const next = prev + 1;
+        localStorage.setItem(currentMonthKey, String(next));
+        return next;
+      });
+      return;
+    }
     setFreeSongsRemaining((prev) => {
       const next = Math.max(0, prev - 1);
       localStorage.setItem("mygiftsong_free_remaining", String(next));
@@ -1019,7 +1040,7 @@ export default function App() {
     artistPersona?: "haddi" | "yosia";
     preloadedSong?: SongData;
     autoGenerate?: boolean;
-    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin";
+    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "ministry" | "admin";
   }) => {
     if (isPlaying) {
       luteEngineInstance.stopLutePlayback();
@@ -1267,6 +1288,15 @@ export default function App() {
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
+  const handleShareAppWhatsApp = () => {
+    const text = encodeURIComponent(
+      `🎁🎵 Check out this awesome Gift Song App — www.mygiftsong.org!\n\n` +
+      `You can create personalized acoustic gift songs and children's songs (with Haddi & his little brother Yosia) in 60 seconds — and your first 5 custom songs are 100% FREE!\n\n` +
+      `👉 Try it now at:\nhttps://www.mygiftsong.org 🌟`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
+  };
+
   const handleCopyLyrics = () => {
     if (!currentSong) return;
     const { songLink, audioLink } = getCanonicalSongLinks(currentSong.id);
@@ -1510,6 +1540,22 @@ export default function App() {
 
                 <button
                   type="button"
+                  onClick={() => setActiveSystemTab("ministry")}
+                  className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
+                    activeSystemTab === "ministry"
+                      ? "text-teal-800"
+                      : "text-slate-600 hover:text-teal-700"
+                  }`}
+                >
+                  <Heart size={15} className="text-teal-600" />
+                  <span>Church &amp; Sponsors</span>
+                  {activeSystemTab === "ministry" && (
+                    <span className="absolute bottom-0 inset-x-0 h-0.5 bg-teal-600 rounded-full" />
+                  )}
+                </button>
+
+                <button
+                  type="button"
                   onClick={() => setActiveSystemTab("affiliate")}
                   className={`py-5 text-sm font-semibold transition-colors relative cursor-pointer flex items-center gap-1.5 ${
                     activeSystemTab === "affiliate"
@@ -1544,6 +1590,16 @@ export default function App() {
                     <span>Admin</span>
                   </button>
                 )}
+
+                <button
+                  type="button"
+                  onClick={handleShareAppWhatsApp}
+                  className="px-3 py-1.5 rounded-lg text-xs font-semibold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
+                  title="Share this awesome Gift Song App on WhatsApp"
+                >
+                  <Send size={12} />
+                  <span className="hidden sm:inline">Share App</span>
+                </button>
 
                 <button
                   type="button"
@@ -1605,6 +1661,17 @@ export default function App() {
               </button>
               <button
                 type="button"
+                onClick={() => setActiveSystemTab("ministry")}
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
+                  activeSystemTab === "ministry"
+                    ? "bg-teal-700 text-white"
+                    : "bg-white text-slate-700 border border-stone-200"
+                }`}
+              >
+                ⛪ Church &amp; Sponsors
+              </button>
+              <button
+                type="button"
                 onClick={() => setActiveSystemTab("affiliate")}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer ${
                   activeSystemTab === "affiliate"
@@ -1613,6 +1680,14 @@ export default function App() {
                 }`}
               >
                 Affiliate Hub
+              </button>
+              <button
+                type="button"
+                onClick={handleShareAppWhatsApp}
+                className="px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap bg-emerald-600 hover:bg-emerald-700 text-white flex items-center gap-1 cursor-pointer"
+              >
+                <Send size={11} />
+                <span>Share App</span>
               </button>
             </div>
           </header>
@@ -1665,6 +1740,22 @@ export default function App() {
                     setType: params.setType,
                     artistPersona: params.artistPersona,
                     preloadedSong: params.preloadedSong,
+                    autoGenerate: params.autoGenerate,
+                    initialSection: "studio",
+                  });
+                }}
+              />
+            ) : activeSystemTab === "ministry" ? (
+              <MinistryAndSponsorPackages
+                freeSongsRemaining={freeSongsRemaining}
+                onGenerateMinistrySong={(params) => {
+                  handleInitiateSystem({
+                    target: params.target,
+                    context: params.context,
+                    genre: params.genre,
+                    language: params.language,
+                    setType: params.setType,
+                    artistPersona: params.artistPersona,
                     autoGenerate: params.autoGenerate,
                     initialSection: "studio",
                   });
@@ -1945,6 +2036,15 @@ export default function App() {
                                 Kids Songs →
                               </button>
                             </div>
+
+                            <button
+                              type="button"
+                              onClick={handleShareAppWhatsApp}
+                              className="w-full py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer"
+                            >
+                              <Send size={13} />
+                              <span>💬 Share This Awesome Gift Song App on WhatsApp</span>
+                            </button>
                           </div>
                         )}
 
@@ -2430,6 +2530,28 @@ export default function App() {
                         </span>
                       </div>
                     )}
+
+                    {/* Recipient "Reaction / Thank You" Button & Viral "Bless Someone Else in 60s" Prompt */}
+                    <RecipientReactionAndThankYouCard
+                      songId={currentSong.id}
+                      songTitle={currentSong.title}
+                      recipientName={currentSong.target}
+                      songShareUrl={getCanonicalSongLinks(currentSong.id).songLink}
+                      gifterEmail={gifterEmail}
+                      isSharedRecipientView={isOpenedFromSharedLink}
+                      onCreateNewSongForSomeoneElse={() => {
+                        setIsOpenedFromSharedLink(false);
+                        if (window.location.search.includes("song=")) {
+                          window.history.replaceState(null, "", window.location.pathname);
+                        }
+                        handleReset();
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                        setTimeout(() => {
+                          const inputEl = document.getElementById("target_recipient_input");
+                          if (inputEl) inputEl.focus();
+                        }, 150);
+                      }}
+                    />
 
                     {/* Main Performance Center Block */}
                     <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">

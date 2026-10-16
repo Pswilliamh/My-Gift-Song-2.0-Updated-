@@ -15,7 +15,9 @@ import {
   DollarSign,
   ShieldCheck,
   ExternalLink,
-  RotateCcw
+  RotateCcw,
+  Lock,
+  KeyRound
 } from "lucide-react";
 
 export interface ReferralEntry {
@@ -64,6 +66,63 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
   const [affiliateJoined, setAffiliateJoined] = useState(false);
   const [copiedAffLink, setCopiedAffLink] = useState(false);
   const [copiedPromoText, setCopiedPromoText] = useState(false);
+
+  // Personal Lifetime Pass Member Login & Monthly Quota Reset (No Rollover) state
+  const [memberLoginEmail, setMemberLoginEmail] = useState("vip@mygiftsong.org");
+  const [memberAccessCode, setMemberAccessCode] = useState("VIP-5SONGS");
+  const [memberPlanTier, setMemberPlanTier] = useState<"lifetime_basic" | "lifetime_premium">("lifetime_basic");
+  const [memberMonthlyLimit, setMemberMonthlyLimit] = useState<number>(5);
+  const [memberUsedThisMonth, setMemberUsedThisMonth] = useState<number>(1);
+  const [memberLoginNotice, setMemberLoginNotice] = useState<string | null>(null);
+
+  const handleMemberAccountLogin = async (
+    e?: React.FormEvent,
+    overrideTier?: "lifetime_basic" | "lifetime_premium"
+  ) => {
+    if (e) e.preventDefault();
+    const tierToUse = overrideTier || memberPlanTier;
+    try {
+      const res = await fetch("/api/accounts/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: memberLoginEmail,
+          accessCode: memberAccessCode,
+          planTier: tierToUse,
+        }),
+      });
+      const data = await res.json();
+      if (data.success && data.account) {
+        setMemberMonthlyLimit(data.account.monthlySongLimit);
+        setMemberUsedThisMonth(data.account.songsUsedThisMonth);
+        setMemberLoginNotice(
+          `✓ Logged in as ${data.account.email} (${data.account.monthlySongLimit - data.account.songsUsedThisMonth} / ${data.account.monthlySongLimit} songs available this month • Resets on the 1st, No Rollover)`
+        );
+        setTimeout(() => setMemberLoginNotice(null), 5000);
+      }
+    } catch {
+      const limit = tierToUse === "lifetime_premium" ? 15 : 5;
+      setMemberMonthlyLimit(limit);
+    }
+  };
+
+  const handleSimulateMemberMonthReset = async () => {
+    try {
+      await fetch("/api/accounts/simulate-month-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: memberLoginEmail }),
+      });
+    } catch {
+      // ignore
+    }
+    const unused = Math.max(0, memberMonthlyLimit - memberUsedThisMonth);
+    setMemberUsedThisMonth(0);
+    setMemberLoginNotice(
+      `✓ 1st-of-Month Reset Complete! (${unused} unused songs did NOT roll over — balance cleanly reset back to ${memberMonthlyLimit} / ${memberMonthlyLimit} songs for the new month!)`
+    );
+    setTimeout(() => setMemberLoginNotice(null), 5500);
+  };
 
   // Separate $0.99 cent user referrals vs Premium account referrals
   const basic099Referrals = referrals.filter((r) => (r.tier || "basic_099") === "basic_099");
@@ -586,7 +645,7 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   </div>
                 </div>
 
-                <button
+                  <button
                   type="submit"
                   className="w-full py-3 rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs shadow-2xs transition-all cursor-pointer flex items-center justify-center gap-2"
                 >
@@ -598,6 +657,264 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                   </span>
                 </button>
               </form>
+            </div>
+
+            {/* HOW LIFETIME SONG LIMITS & PERSONAL MEMBER LOGINS WORK (NO ROLLOVER) */}
+            <div className="rounded-2xl bg-amber-50/70 border border-amber-200 p-5 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck size={18} className="text-teal-700 shrink-0" />
+                  <h3 className="text-sm sm:text-base font-display font-bold text-slate-900">
+                    How Lifetime Pass Logins &amp; Monthly Resets Work (No Rollover Policy)
+                  </h3>
+                </div>
+                <span className="text-[11px] font-mono font-bold uppercase px-2.5 py-0.5 rounded-full bg-teal-700 text-white w-fit">
+                  ✓ Includes Personal Member Login
+                </span>
+              </div>
+              <p className="text-xs text-slate-700 leading-relaxed">
+                When someone unlocks a <strong>Lifetime Pass</strong> (either by referring 10 people or via one-time purchase), they receive their own{" "}
+                <strong className="text-teal-900">Personal Member Login (Email + Passkey)</strong>. Every month on the <strong>1st of the month</strong>, their account balance <strong>resets back to their monthly limit (5 or 15 songs) — unused songs do NOT roll over</strong>:
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+                <div className="bg-white rounded-xl p-3.5 border border-amber-200/80 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-teal-900">
+                      👑 Lifetime $0.99 Cent Account
+                    </span>
+                    <span className="text-[11px] font-mono font-bold bg-teal-50 text-teal-800 px-2 py-0.5 rounded border border-teal-200">
+                      Resets to 5 Songs / Mo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    Unlocked free with <strong>10 x $0.99 referrals</strong> (or <strong>$29.99 one-time</strong>). Includes a <strong>Personal Login</strong> with <strong>5 custom 60s songs/month</strong>. Resets to 5 on the 1st (no rollover).
+                  </p>
+                </div>
+
+                <div className="bg-white rounded-xl p-3.5 border border-teal-300 space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-teal-900">
+                      👑 Lifetime Premium Account
+                    </span>
+                    <span className="text-[11px] font-mono font-bold bg-teal-700 text-white px-2 py-0.5 rounded">
+                      Resets to 15 Songs / Mo
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-600">
+                    Unlocked free with <strong>10 x Premium referrals</strong> (or <strong>$79.99 one-time</strong>). Includes a <strong>Personal Login</strong> with <strong>15 Full 2-Minute &amp; Video songs/month</strong>. Resets to 15 on the 1st (no rollover).
+                  </p>
+                </div>
+              </div>
+
+              {/* Interactive Personal Lifetime Member Login & Monthly Quota Reset Box */}
+              <div className="bg-white rounded-xl border border-teal-300 p-4 space-y-3">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <KeyRound size={15} className="text-teal-700" />
+                    <span className="text-xs font-display font-bold text-slate-900">
+                      Lifetime Member Login &amp; Monthly Allowance Tracker
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs font-mono font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
+                      {Math.max(0, memberMonthlyLimit - memberUsedThisMonth)} / {memberMonthlyLimit} Songs Available This Month
+                    </span>
+                    <button
+                      type="button"
+                      onClick={handleSimulateMemberMonthReset}
+                      className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw size={11} />
+                      <span>Simulate 1st-of-Month Reset</span>
+                    </button>
+                  </div>
+                </div>
+
+                {memberLoginNotice && (
+                  <div className="p-2.5 rounded-lg bg-emerald-50 border border-emerald-300 text-emerald-900 text-xs font-medium">
+                    {memberLoginNotice}
+                  </div>
+                )}
+
+                <form
+                  onSubmit={(e) => handleMemberAccountLogin(e)}
+                  className="grid grid-cols-1 sm:grid-cols-4 gap-2.5 items-end"
+                >
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      Member Login Email
+                    </label>
+                    <input
+                      type="email"
+                      value={memberLoginEmail}
+                      onChange={(e) => setMemberLoginEmail(e.target.value)}
+                      className="w-full bg-[#F8FAF9] border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      Lifetime Passkey
+                    </label>
+                    <input
+                      type="text"
+                      value={memberAccessCode}
+                      onChange={(e) => setMemberAccessCode(e.target.value)}
+                      className="w-full bg-[#F8FAF9] border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-slate-900"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-medium text-slate-600 mb-1">
+                      Lifetime Tier
+                    </label>
+                    <select
+                      value={memberPlanTier}
+                      onChange={(e) => {
+                        const val = e.target.value as "lifetime_basic" | "lifetime_premium";
+                        setMemberPlanTier(val);
+                        setMemberMonthlyLimit(val === "lifetime_premium" ? 15 : 5);
+                        handleMemberAccountLogin(undefined, val);
+                      }}
+                      className="w-full bg-[#F8FAF9] border border-stone-300 rounded-lg px-2.5 py-1.5 text-xs text-slate-900"
+                    >
+                      <option value="lifetime_basic">5 Songs/Mo (10 Referrals / $29.99)</option>
+                      <option value="lifetime_premium">15 Songs/Mo (10 Premium / $79.99)</option>
+                    </select>
+                  </div>
+                  <button
+                    type="submit"
+                    className="py-1.5 px-3 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    <Lock size={12} />
+                    <span>Verify Member Login</span>
+                  </button>
+                </form>
+              </div>
+            </div>
+
+            {/* COMPLETE OUTLINE OF ALL PLANS CURRENTLY OFFERED ON MYGIFTSONG.ORG */}
+            <div className="pt-4 border-t border-stone-200 space-y-4">
+              <div>
+                <span className="text-[11px] font-mono uppercase tracking-wider text-teal-700 font-bold">
+                  📋 Master Plan &amp; Pricing Directory
+                </span>
+                <h3 className="text-lg font-display font-bold text-slate-900">
+                  Complete Outline of All Plans, Logins &amp; No-Rollover Monthly Reset Rules
+                </h3>
+              </div>
+
+              <div className="overflow-x-auto rounded-xl border border-stone-200">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-stone-100 text-slate-700 border-b border-stone-200">
+                      <th className="py-3 px-4 font-bold">Category &amp; Plan Name</th>
+                      <th className="py-3 px-4 font-bold">Price / Billing Type</th>
+                      <th className="py-3 px-4 font-bold">Monthly Limit &amp; Reset Rule</th>
+                      <th className="py-3 px-4 font-bold">Who Gets a Login &amp; What&apos;s Included</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-stone-200 bg-white">
+                    <tr>
+                      <td className="py-3 px-4 font-bold text-teal-900">
+                        🎁 1. Free Starter Pass
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-emerald-700">
+                        $0.00 (100% Free)
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                        5 Free Songs Total + 1 Redo
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>Instant Access (No Login Required)</strong>. 5 custom songs free + 1 single redo option across the 5 songs.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        🎵 2. Pay-Per-Song (Individual)
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        $0.99 / $1.99 / $4.99 / $12.99
+                      </td>
+                      <td className="py-3 px-4 font-mono text-slate-800">
+                        1 Song Bundle per Purchase
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>No Login Needed to Buy or Listen</strong>.<br />
+                        • <strong>$0.99 Quick</strong> (60s) • <strong>$1.99 Full</strong> (2-Min) • <strong>$4.99 Premium Video</strong> • <strong>$12.99 Legacy</strong>
+                      </td>
+                    </tr>
+                    <tr className="bg-teal-50/40">
+                      <td className="py-3 px-4 font-bold text-teal-950">
+                        👑 3. Lifetime Basic Pass
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-teal-800">
+                        10 x $0.99 Referrals OR $29.99 One-Time
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-teal-900">
+                        5 Songs/Mo • Resets 1st of Mo (No Rollover)
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>1 Personal Member Login (Email + Passkey)</strong>. Resets to 5 songs on the 1st of every month for life (unused songs do not roll over).
+                      </td>
+                    </tr>
+                    <tr className="bg-teal-50/40">
+                      <td className="py-3 px-4 font-bold text-teal-950">
+                        👑 4. Lifetime Premium Pass
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-teal-800">
+                        10 x Premium Referrals OR $79.99 One-Time
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-teal-900">
+                        15 Songs/Mo • Resets 1st of Mo (No Rollover)
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>1 Personal Member Login (Email + Passkey)</strong>. Resets to 15 Full 2-Min &amp; Video songs on the 1st of every month (no rollover).
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        ⛪ 5. Church &amp; Sponsor Starter
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        $9.99 / Month
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                        10 Songs/Mo • Resets 1st of Mo (No Rollover)
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>1 Shared Church Account (Up to 3 Coordinator Logins)</strong>. Members receiving songs need NO login. Add 10-Song Top-Ups ($7.99) anytime.
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        ⛪ 6. 300-Member Church &amp; Sponsor Plan
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        $24.99 / Month
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                        30 Songs/Mo • Resets 1st of Mo (No Rollover)
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>1 Shared Church Account (Up to 3 Coordinator Logins: Pastor, Secretary, Sponsor Dir.)</strong>. Resets back to 30 on the 1st (no rollover).
+                      </td>
+                    </tr>
+                    <tr>
+                      <td className="py-3 px-4 font-bold text-slate-900">
+                        🌍 7. Large Ministry &amp; Missions Plan
+                      </td>
+                      <td className="py-3 px-4 font-semibold text-slate-800">
+                        $59.99 / Month
+                      </td>
+                      <td className="py-3 px-4 font-mono font-bold text-slate-800">
+                        100 Songs/Mo • Resets 1st of Mo (No Rollover)
+                      </td>
+                      <td className="py-3 px-4 text-slate-600">
+                        <strong>1 Shared Church Account (Up to 3 Coordinator Logins)</strong>. If 16 or 60 are used, it resets back to 100 on the 1st (never stacks to 140).
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
         </div>

@@ -51,7 +51,7 @@ interface LandingExperienceProps {
     artistPersona?: "haddi" | "yosia";
     preloadedSong?: SongData;
     autoGenerate?: boolean;
-    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "admin";
+    initialSection?: "studio" | "yosia-kids" | "free-songs" | "lifetime" | "affiliate" | "ministry" | "admin";
   }) => void;
 }
 
@@ -228,6 +228,15 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     vid.muted = false;
     setIsYosiaMuted(false);
     vid.play().catch(console.warn);
+  };
+
+  const handleShareAppWhatsApp = () => {
+    const text = encodeURIComponent(
+      `🎁🎵 Check out this awesome Gift Song App — www.mygiftsong.org!\n\n` +
+        `You can create personalized acoustic gift songs and children's songs (with Haddi & his little brother Yosia) in 60 seconds — and your first 5 custom songs are 100% FREE!\n\n` +
+        `👉 Try it now at:\nhttps://www.mygiftsong.org 🌟`
+    );
+    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
   const [secretClicks, setSecretClicks] = useState(0);
@@ -478,6 +487,14 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
 
             <button
               type="button"
+              onClick={() => onInitiateSystem({ initialSection: "ministry" })}
+              className="py-5 border-b-2 border-transparent hover:text-teal-700 transition-colors cursor-pointer"
+            >
+              ⛪ Church &amp; Sponsors
+            </button>
+
+            <button
+              type="button"
               onClick={() => onInitiateSystem({ initialSection: "lifetime" })}
               className="py-5 border-b-2 border-transparent hover:text-teal-700 transition-colors cursor-pointer"
             >
@@ -497,6 +514,16 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
             >
               <Gift size={13} className="text-teal-600" />
               <span>{freeSongsRemaining}/5 Free</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={handleShareAppWhatsApp}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+              title="Share this awesome Gift Song App on WhatsApp"
+            >
+              <Send size={12} />
+              <span>Share App</span>
             </button>
 
             <button
@@ -578,11 +605,32 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
               type="button"
               onClick={() => {
                 setMobileMenuOpen(false);
+                onInitiateSystem({ initialSection: "ministry" });
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-stone-50 cursor-pointer"
+            >
+              ⛪ Church &amp; Child-Sponsorship Packages
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
                 onInitiateSystem({ initialSection: "affiliate" });
               }}
               className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 hover:bg-stone-50 cursor-pointer"
             >
               🤝 Affiliate Partner Hub
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMobileMenuOpen(false);
+                handleShareAppWhatsApp();
+              }}
+              className="w-full text-left px-3 py-2.5 rounded-lg text-sm font-bold text-white bg-emerald-600 hover:bg-emerald-700 flex items-center justify-between cursor-pointer mt-1"
+            >
+              <span>💬 Share This Gift Song App on WhatsApp</span>
+              <Send size={14} />
             </button>
           </div>
         )}
@@ -925,6 +973,32 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       <p className="text-[11px] text-slate-500">Partner rewards</p>
                     </button>
                   </div>
+
+                  <button
+                    type="button"
+                    onClick={() => onInitiateSystem({ initialSection: "ministry" })}
+                    className="w-full p-2.5 rounded-xl bg-teal-50/80 hover:bg-teal-100/80 border border-teal-200 flex items-center justify-between gap-2 text-left transition-colors cursor-pointer"
+                  >
+                    <div>
+                      <p className="text-xs font-bold text-teal-900">
+                        ⛪ Church &amp; Child-Sponsorship Packages
+                      </p>
+                      <p className="text-[11px] text-teal-700">
+                        Automated birthday &amp; sponsor blessing songs for ministries
+                      </p>
+                    </div>
+                    <ArrowRight size={14} className="text-teal-700 shrink-0" />
+                  </button>
+
+                  {/* Share This Awesome Gift Song App on WhatsApp Button */}
+                  <button
+                    type="button"
+                    onClick={handleShareAppWhatsApp}
+                    className="w-full py-2.5 px-3.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-display font-bold text-xs flex items-center justify-center gap-2 shadow-2xs transition-all cursor-pointer"
+                  >
+                    <Send size={14} />
+                    <span>💬 Share This Awesome Gift Song App on WhatsApp</span>
+                  </button>
                 </div>
               </motion.div>
 
@@ -1409,6 +1483,14 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
               className="text-slate-600 hover:text-teal-700 font-medium transition-colors cursor-pointer"
             >
               Affiliate Program
+            </button>
+            <button
+              type="button"
+              onClick={handleShareAppWhatsApp}
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white font-semibold transition-colors cursor-pointer"
+            >
+              <Send size={12} />
+              <span>Share App on WhatsApp</span>
             </button>
           </div>
         </div>
