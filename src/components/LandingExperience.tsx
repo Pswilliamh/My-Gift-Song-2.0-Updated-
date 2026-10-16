@@ -93,6 +93,11 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   const [isVideoMuted, setIsVideoMuted] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
+  // Yosia Video Player state (underneath Haddi's media player)
+  const [isYosiaPlaying, setIsYosiaPlaying] = useState(false);
+  const [isYosiaMuted, setIsYosiaMuted] = useState(false);
+  const yosiaVideoRef = useRef<HTMLVideoElement | null>(null);
+
   const videoSources = {
     flagship: {
       src: "/video/song-gift.mp4",
@@ -145,6 +150,9 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
     const vid = videoRef.current;
     if (!vid) return;
     if (vid.paused) {
+      if (yosiaVideoRef.current && !yosiaVideoRef.current.paused) {
+        yosiaVideoRef.current.pause();
+      }
       vid.muted = false;
       setIsVideoMuted(false);
       vid.play().catch((err) => {
@@ -166,6 +174,9 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
   const handleRestartVideo = () => {
     const vid = videoRef.current;
     if (!vid) return;
+    if (yosiaVideoRef.current && !yosiaVideoRef.current.paused) {
+      yosiaVideoRef.current.pause();
+    }
     vid.currentTime = 0;
     vid.muted = false;
     setIsVideoMuted(false);
@@ -180,6 +191,43 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
         videoRef.current.load();
       }
     }, 50);
+  };
+
+  const handleToggleYosiaPlay = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    if (vid.paused) {
+      if (videoRef.current && !videoRef.current.paused) {
+        videoRef.current.pause();
+      }
+      vid.muted = false;
+      setIsYosiaMuted(false);
+      vid.play().catch((err) => {
+        console.warn("Yosia video play fallback:", err);
+      });
+    } else {
+      vid.pause();
+    }
+  };
+
+  const handleToggleYosiaMute = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    const nextMute = !vid.muted;
+    vid.muted = nextMute;
+    setIsYosiaMuted(nextMute);
+  };
+
+  const handleRestartYosiaVideo = () => {
+    const vid = yosiaVideoRef.current;
+    if (!vid) return;
+    if (videoRef.current && !videoRef.current.paused) {
+      videoRef.current.pause();
+    }
+    vid.currentTime = 0;
+    vid.muted = false;
+    setIsYosiaMuted(false);
+    vid.play().catch(console.warn);
   };
 
   const [secretClicks, setSecretClicks] = useState(0);
@@ -697,6 +745,110 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                       >
                         <RotateCcw size={15} />
                       </button>
+                    </div>
+                  </div>
+
+                  {/* ==========================================================
+                      YOSIA MEDIA PLAYER UNDERNEATH HADDI'S MEDIA PLAYER
+                      With statement: "Check out our Children's Song Section"
+                  ========================================================== */}
+                  <div className="pt-4 mt-2 border-t border-stone-200/90 space-y-3">
+                    {/* Prominent Statement Banner */}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setActiveLandingPage("yosia-children");
+                        window.scrollTo({ top: 0, behavior: "smooth" });
+                      }}
+                      className="w-full text-left px-3.5 py-2.5 rounded-xl bg-gradient-to-r from-teal-50 via-emerald-50 to-amber-50/70 hover:from-teal-100/80 hover:to-amber-100/70 border border-teal-300/90 flex items-center justify-between gap-2 transition-all cursor-pointer shadow-2xs group"
+                    >
+                      <div className="flex items-center gap-2 min-w-0">
+                        <span className="w-2.5 h-2.5 rounded-full bg-teal-600 animate-pulse shrink-0" />
+                        <span className="text-xs sm:text-sm font-display font-bold text-teal-950 truncate">
+                          👦🎸 Check out our Children&apos;s Song Section!
+                        </span>
+                      </div>
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-teal-600 group-hover:bg-teal-700 text-white text-[11px] font-semibold shrink-0 transition-colors">
+                        <span>Open Section</span>
+                        <ArrowRight size={12} />
+                      </span>
+                    </button>
+
+                    {/* Yosia Video Frame */}
+                    <div className="relative rounded-xl overflow-hidden border border-stone-200 bg-slate-900 aspect-video group">
+                      <video
+                        ref={yosiaVideoRef}
+                        src="/video/yosia-children.mp4"
+                        controls
+                        playsInline
+                        preload="metadata"
+                        onPlay={() => {
+                          if (videoRef.current && !videoRef.current.paused) {
+                            videoRef.current.pause();
+                          }
+                          setIsYosiaPlaying(true);
+                        }}
+                        onPause={() => setIsYosiaPlaying(false)}
+                        onEnded={() => setIsYosiaPlaying(false)}
+                        className="w-full h-full object-cover"
+                      />
+
+                      {!isYosiaPlaying && (
+                        <button
+                          type="button"
+                          onClick={handleToggleYosiaPlay}
+                          className="absolute inset-0 bg-slate-950/30 hover:bg-slate-950/20 flex flex-col items-center justify-center gap-2.5 transition-all cursor-pointer"
+                          title="Watch & Listen to Yosia Playing Children's Song"
+                        >
+                          <div className="w-14 h-14 rounded-full bg-teal-600 hover:bg-teal-500 text-white flex items-center justify-center shadow-lg transition-transform hover:scale-105">
+                            <Play size={24} fill="currentColor" className="ml-0.5" />
+                          </div>
+                          <span className="px-3 py-1 rounded-full bg-white/95 text-teal-900 text-xs font-semibold shadow-sm">
+                            Watch Yosia Play
+                          </span>
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Yosia Clean Controls Bar */}
+                    <div className="flex items-center justify-between gap-3 pt-0.5">
+                      <div className="min-w-0">
+                        <h3 className="font-display text-sm font-semibold text-slate-900 truncate">
+                          Yosia Performing: Children&apos;s Song Showcase
+                        </h3>
+                        <p className="text-xs text-teal-700 font-medium truncate">
+                          Check out our Children&apos;s Song Section • Haddi&apos;s Little Brother
+                        </p>
+                      </div>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          type="button"
+                          onClick={handleToggleYosiaPlay}
+                          className="px-3 py-1.5 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer"
+                        >
+                          {isYosiaPlaying ? <Pause size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                          <span>{isYosiaPlaying ? "Pause" : "Play"}</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleToggleYosiaMute}
+                          className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                          title={isYosiaMuted ? "Unmute Yosia Video" : "Mute Yosia Video"}
+                        >
+                          {isYosiaMuted ? <VolumeX size={15} className="text-red-500" /> : <Volume2 size={15} />}
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={handleRestartYosiaVideo}
+                          className="p-1.5 rounded-lg bg-stone-50 hover:bg-stone-100 text-slate-600 border border-stone-200 transition-colors cursor-pointer"
+                          title="Restart Yosia Video"
+                        >
+                          <RotateCcw size={15} />
+                        </button>
+                      </div>
                     </div>
                   </div>
 
