@@ -1,10 +1,274 @@
 import express from "express";
 import path from "path";
+import fs from "fs";
+import crypto from "crypto";
 import dotenv from "dotenv";
 import { GoogleGenAI, Modality, Type } from "@google/genai";
 import Stripe from "stripe";
 
 dotenv.config();
+
+// Persistent storage directory for shared songs & direct audio links
+const SHARED_SONGS_DIR = path.join(process.cwd(), "data", "shared-songs");
+try {
+  fs.mkdirSync(SHARED_SONGS_DIR, { recursive: true });
+} catch {
+  // ignore directory creation error
+}
+
+interface StoredSongRecord {
+  shareId: string;
+  createdAt: string;
+  song: any;
+  lyrics: string;
+  userWords: string;
+  recipientName: string;
+  songTitle: string;
+  artistPersona: "haddi" | "yosia";
+  audioFileName?: string;
+  audioMimeType?: string;
+  narrationFileName?: string;
+  greetingFileName?: string;
+  externalAudioUrl?: string;
+}
+
+const memorySongStore = new Map<string, StoredSongRecord>();
+
+function normalizeShareId(rawId?: string): string {
+  if (rawId && /^[a-zA-Z0-9_-]{4,64}$/.test(rawId.trim())) {
+    return rawId.trim();
+  }
+  return `song-${Date.now().toString(36)}-${crypto.randomBytes(3).toString("hex")}`;
+}
+
+function parseDataUrlToBuffer(dataUrl: string): { buffer: Buffer; mimeType: string; ext: string } | null {
+  if (!dataUrl || !dataUrl.startsWith("data:")) return null;
+  const commaIdx = dataUrl.indexOf(",");
+  if (commaIdx < 0) return null;
+  const header = dataUrl.slice(5, commaIdx);
+  const base64Data = dataUrl.slice(commaIdx + 1);
+  const mimeMatch = header.match(/^([^;]+)/);
+  const mimeType = mimeMatch ? mimeMatch[1] : "audio/mpeg";
+  const ext = mimeType.includes("wav") ? "wav" : mimeType.includes("ogg") ? "ogg" : "mp3";
+  return {
+    buffer: Buffer.from(base64Data, "base64"),
+    mimeType,
+    ext,
+  };
+}
+
+function saveSharedSongRecord(
+  shareIdInput: string | undefined,
+  updates: Partial<StoredSongRecord> & {
+    lyriaDataUrl?: string | null;
+    narrationDataUrl?: string | null;
+    greetingBuffer?: Buffer | null;
+  }
+): StoredSongRecord {
+  const shareId = normalizeShareId(shareIdInput);
+  const existing = loadSharedSongRecord(shareId) || {
+    shareId,
+    createdAt: new Date().toISOString(),
+    song: updates.song || null,
+    lyrics: updates.lyrics || "",
+    userWords: updates.userWords || "",
+    recipientName: updates.recipientName || updates.song?.target || "Someone Special",
+    songTitle: updates.songTitle || updates.song?.title || "Custom Gift Song",
+    artistPersona: updates.artistPersona || updates.song?.artistPersona || "haddi",
+  };
+
+  if (updates.song) existing.song = updates.song;
+  if (updates.lyrics !== undefined && updates.lyrics !== "") existing.lyrics = updates.lyrics;
+  if (updates.userWords !== undefined && updates.userWords !== "") existing.userWords = updates.userWords;
+  if (updates.recipientName) existing.recipientName = updates.recipientName;
+  if (updates.songTitle) existing.songTitle = updates.songTitle;
+  if (updates.artistPersona) existing.artistPersona = updates.artistPersona;
+
+  if (updates.lyriaDataUrl) {
+    const parsed = parseDataUrlToBuffer(updates.lyriaDataUrl);
+    if (parsed) {
+      const fileName = `${shareId}-song.${parsed.ext}`;
+      try {
+        fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), parsed.buffer);
+        existing.audioFileName = fileName;
+        existing.audioMimeType = parsed.mimeType;
+      } catch (e) {
+        console.warn("Could not write song audio file to disk:", e);
+      }
+    } else if (updates.lyriaDataUrl.startsWith("http")) {
+      existing.externalAudioUrl = updates.lyriaDataUrl;
+    }
+  }
+
+  if (updates.narrationDataUrl) {
+    const parsed = parseDataUrlToBuffer(updates.narrationDataUrl);
+    if (parsed) {
+      const fileName = `${shareId}-narration.${parsed.ext}`;
+      try {
+        fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), parsed.buffer);
+        existing.narrationFileName = fileName;
+        if (!existing.audioFileName) {
+          existing.audioFileName = fileName;
+          existing.audioMimeType = parsed.mimeType;
+        }
+      } catch (e) {
+        console.warn("Could not write narration audio file to disk:", e);
+      }
+    }
+  }
+
+  if (updates.greetingBuffer) {
+    const fileName = `${shareId}-greeting.wav`;
+    try {
+      fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), updates.greetingBuffer);
+      existing.greetingFileName = fileName;
+    } catch (e) {
+      console.warn("Could not write greeting audio file to disk:", e);
+    }
+  }
+
+  memorySongStore.set(shareId, existing);
+  try {
+    fs.writeFileSync(
+      path.join(SHARED_SONGS_DIR, `${shareId}.json`),
+      JSON.stringify(existing, null, 2),
+      "utf-8"
+    );
+  } catch (e) {
+    console.warn("Could not write shared song metadata JSON:", e);
+  }
+  return existing;
+}
+
+function loadSharedSongRecord(shareId: string): StoredSongRecord | null {
+  const cleanId = shareId.trim();
+  if (memorySongStore.has(cleanId)) {
+    return memorySongStore.get(cleanId)!;
+  }
+  const metaPath = path.join(SHARED_SONGS_DIR, `${cleanId}.json`);
+  try {
+    if (fs.existsSync(metaPath)) {
+      const parsed = JSON.parse(fs.readFileSync(metaPath, "utf-8")) as StoredSongRecord;
+      memorySongStore.set(cleanId, parsed);
+      return parsed;
+    }
+  } catch {
+    // ignore read error
+  }
+  return null;
+}
+
+// Helper to extract the user's exact words/lyrics from the context string
+function extractUserWordsFromContext(rawContext?: string): string {
+  if (!rawContext) return "";
+  const trimmed = rawContext.trim();
+  if (!trimmed) return "";
+  const match = trimmed.match(/Desired Words & Lyrics:\s*(.+)$/is);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return trimmed.replace(/^Occasion:\s*[^.]+\.\s*/i, "").trim();
+}
+
+// Split user-provided words/lyrics into clean singable lines so the song always uses their exact words
+function splitUserWordsIntoSingableLines(userWords: string): string[] {
+  const cleaned = userWords.trim();
+  if (!cleaned) return [];
+  // First check if user already provided multiple lines or sentences
+  const rawSplits = cleaned
+    .split(/\r?\n|(?<=[.!?])\s+|;\s*/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && !s.startsWith("["));
+
+  const finalLines: string[] = [];
+  for (const segment of rawSplits) {
+    if (segment.length <= 68) {
+      finalLines.push(segment);
+    } else {
+      // Break long run-on sentences at commas or every ~10 words so each line is singable
+      const words = segment.split(/\s+/);
+      let current = "";
+      for (const w of words) {
+        if ((current + " " + w).trim().length <= 58) {
+          current = (current + " " + w).trim();
+        } else {
+          if (current) finalLines.push(current);
+          current = w;
+        }
+      }
+      if (current) finalLines.push(current);
+    }
+  }
+  return finalLines;
+}
+
+// Ensure the generated song's lyricSections directly include the exact words/lyrics the user gave!
+function ensureUserLyricsInSongSections(song: any, rawContext: string, target: string): any {
+  const userWords = extractUserWordsFromContext(rawContext);
+  if (!userWords || !song || !Array.isArray(song.lyricSections)) return song;
+
+  const userLines = splitUserWordsIntoSingableLines(userWords);
+  if (userLines.length === 0) return song;
+
+  // Check if the AI already included the user's words verbatim
+  const allGeneratedText = song.lyricSections
+    .flatMap((s: any) => s.lines || [])
+    .join(" ")
+    .toLowerCase();
+  const sampleCheck = userLines[0].toLowerCase().slice(0, Math.min(24, userLines[0].length));
+
+  const sections = [...song.lyricSections];
+  const verseIdx = sections.findIndex((s: any) => s.sectionName?.toLowerCase().includes("verse"));
+  const chorusIdx = sections.findIndex((s: any) => s.sectionName?.toLowerCase().includes("chorus"));
+
+  if (!allGeneratedText.includes(sampleCheck)) {
+    // User gave specific lyrics/words and the model paraphrased or ignored them: inject the user's exact lines!
+    if (userLines.length >= 3) {
+      // User gave multi-line lyrics: use their exact lines in Verse 1 and Chorus!
+      const v1Lines = userLines.slice(0, 4);
+      while (v1Lines.length < 4) {
+        v1Lines.push(`Singing with love and joy for ${target}!`);
+      }
+      if (verseIdx >= 0) {
+        sections[verseIdx] = {
+          ...sections[verseIdx],
+          lines: v1Lines,
+          chords: ["G", "C", "D", "G"].slice(0, v1Lines.length),
+        };
+      }
+      if (chorusIdx >= 0 && userLines.length > 2) {
+        const cLines = userLines.length > 4 ? userLines.slice(4, 8) : [...userLines.slice(0, 3), `Blessings and joy to you, ${target}!`];
+        while (cLines.length < 4) {
+          cLines.push(`Happy blessings to ${target} today and always!`);
+        }
+        sections[chorusIdx] = {
+          ...sections[chorusIdx],
+          lines: cLines,
+          chords: ["C", "G", "D", "G"].slice(0, cLines.length),
+        };
+      }
+    } else {
+      // User gave 1-2 lines/phrases: weave their exact lines into Verse 1 and Chorus
+      if (verseIdx >= 0 && sections[verseIdx].lines?.length >= 2) {
+        const updatedV1 = [...sections[verseIdx].lines];
+        updatedV1[0] = `For ${target}: ${userLines[0]}`;
+        if (userLines[1]) updatedV1[1] = userLines[1];
+        sections[verseIdx] = { ...sections[verseIdx], lines: updatedV1 };
+      }
+      if (chorusIdx >= 0 && sections[chorusIdx].lines?.length >= 2) {
+        const updatedChorus = [...sections[chorusIdx].lines];
+        updatedChorus[0] = userLines[0];
+        if (userLines[1]) updatedChorus[1] = userLines[1];
+        sections[chorusIdx] = { ...sections[chorusIdx], lines: updatedChorus };
+      }
+    }
+  }
+
+  return {
+    ...song,
+    lyricSections: sections,
+  };
+}
 
 // Ensure the Stripe key is loaded lazily to preserve startup reliability
 let stripeClient: Stripe | null = null;
@@ -337,22 +601,56 @@ app.post("/api/generate-song", async (req, res) => {
       ? "yosia"
       : "haddi";
 
+  const exactUserWords = extractUserWordsFromContext(cleanContext);
+  const userLyricLines = splitUserWordsIntoSingableLines(exactUserWords);
+
   // Check if API client can be used, otherwise return simulated high-quality data
   const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
   if (!hasValidApiKey()) {
     console.log("No API Key configured. Returning robust simulated song data.");
     if (isExtendedType) {
-      const primary = getDummySong(cleanTarget, cleanContext, "full", 0, cleanCustomGenre, cleanLanguage, cleanPersona);
-      const var1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona);
-      const var2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona);
+      const primary = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, "full", 0, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
+      const var1 = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
+      const var2 = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
+      saveSharedSongRecord(primary.id, {
+        song: primary,
+        userWords: exactUserWords,
+        recipientName: cleanTarget,
+        songTitle: primary.title,
+        artistPersona: cleanPersona,
+      });
       return res.json({
         success: true,
         song: primary,
+        shareId: primary.id,
         variations: [primary, var1, var2]
       });
     } else {
-      const song = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona);
-      return res.json({ success: true, song });
+      const song = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
+      saveSharedSongRecord(song.id, {
+        song,
+        userWords: exactUserWords,
+        recipientName: cleanTarget,
+        songTitle: song.title,
+        artistPersona: cleanPersona,
+      });
+      return res.json({ success: true, song, shareId: song.id });
     }
   }
 
@@ -368,28 +666,32 @@ app.post("/api/generate-song", async (req, res) => {
 
     const languageInstruction =
       cleanLanguage.toLowerCase() !== "english"
-        ? `\nCRITICAL LANGUAGE REQUIREMENT: Write the song title, artistIntro, and all sung lyric lines in **${cleanLanguage}**! Make sure the lyrics in ${cleanLanguage} rhyme naturally, flow rhythmically with acoustic guitar strumming, and preserve warm themes of Blessing (Berkat), Grace (Kasih Karunia), Favor (Kemurahan), Joy (Sukacita), and Faithfulness (Kesetiaan).`
+        ? `\nCRITICAL LANGUAGE REQUIREMENT: Write the song title, artistIntro, and all sung lyric lines in **${cleanLanguage}**! Keep any exact phrases or lyrics provided by the user intact, and make sure the surrounding lines rhyme naturally and flow rhythmically with acoustic guitar strumming.`
         : `\nCRITICAL LYRICAL STYLE REQUIREMENT:
-You must entirely reject generic, secular, or purely metaphysical/spiritualist language. The lyrics you generate MUST be woven with deep Christian-based terminology, scripture-resonant themes, and covenant blessings. Every song must speak life, identity, and divine destiny over the recipient, transforming the prose into a powerful, living prayer of honor.
-Integrate warm blessing terms throughout the song's lyric sections: Blessing, Covenant, Grace, Favor, Inheritance, Divine Purpose, Anointing, Breath of Life, Faithfulness, Sanctuary, and Praise.`;
+Keep the tone warm, joyful, heartfelt, and full of blessing, grace, and celebration over ${cleanTarget}. However, NEVER overwrite or discard the user's own lyrics or words!`;
 
     let systemInstruction = `${personaInstruction}
-You write beautiful, poetic, heart-warming, respectful, and authentic acoustic folk song lyrics based on a target recipient and their storytelling context, grounded in the frequency of honor, happiness, and blessing.
+You write heart-warming, singable acoustic folk song lyrics dedicated to ${cleanTarget}.
 ${languageInstruction}
-Your underlying law is: "There is no greater gift than a song... it is worth more than a thousand words!"
+HIGHEST PRIORITY RULE — PRESERVE THE USER'S EXACT WORDS & LYRICS:
+When the user provides specific words, sentences, or lyrics, you MUST keep their exact words and lines verbatim inside Verse 1 and the Chorus! Do NOT invent a completely different song that ignores their words. Build the song directly around the exact words they gave you.
 Chords should utilize basic folk keys (such as G, C, D, Em, Am, F) to sound organic when played on acoustic guitar strings.
 Ensure timestamps occur chronologically within the total duration of ${duration} seconds.
 Lines must align with chord rhythms. Minimum of 2 lines for Intro and Outro, and 4 lines for Verse and Chorus.`;
 
     let userPrompt = `Create a personalized ${duration}-second acoustic song for:
 - TARGET NAME: "${cleanTarget}"
-- CONTEXT/STORY & USER'S EXACT WORDS: "${cleanContext || "A general happy dedication filled with warm acoustic folk spirit"}"
+- FULL CONTEXT & OCCASION: "${cleanContext || "A happy dedication filled with warm acoustic folk spirit"}"
+- USER'S EXACT PROVIDED WORDS / LYRICS TO USE IN THE SONG:
+${userLyricLines.length > 0 ? userLyricLines.map((l, idx) => `  Line ${idx + 1}: "${l}"`).join("\n") : `  "${exactUserWords || "Happy blessings and joy to " + cleanTarget}"`}
 - MUSICAL STYLE/THEME SELECT: "${cleanCustomGenre}"
-- PERFORMER PERSONA: "${cleanPersona === "yosia" ? "Yosia (Haddi's joyful little brother who plays guitar and loves helping make people happy)" : "Haddi the Street Minstrel"}"
+- PERFORMER PERSONA: "${cleanPersona === "yosia" ? "Yosia (Haddi's joyful little brother)" : "Haddi the Street Minstrel"}"
 - TARGET LANGUAGE: "${cleanLanguage}"
-- SET SELECTION: ${cleanSetType === "quick" ? "THE QUICK STRUM (60s complete verse & chorus)" : "THE FULL LONGER SONG ($1.99 Packet • 120s extensive multi-verse ballad with Intro, Verse 1, Chorus, Verse 2, Chorus, Bridge, and Outro)"}
+- SET SELECTION: ${cleanSetType === "quick" ? "THE QUICK STRUM (60s complete verse & chorus)" : "THE FULL LONGER SONG ($1.99 Packet • 120s multi-verse song with Intro, Verse 1, Chorus, Verse 2, Chorus, Bridge, and Outro)"}
 
-CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words, phrases, occasion details, and memories that the user provided in CONTEXT/STORY into the Chorus and Verse lyrics! For a 120s Full Set song, include at least 5-6 full sections (Intro, Verse 1, Chorus, Verse 2, Bridge/Chorus, Outro) in ${cleanLanguage}.`;
+MANDATORY INSTRUCTION:
+1. You MUST include the USER'S EXACT PROVIDED WORDS / LYRICS verbatim in Verse 1 and Chorus! If the user wrote lyric lines, use their exact lines word-for-word as the lines of Verse 1 and Chorus.
+2. In artistIntro, start with a warm personal greeting: "Hi ${cleanTarget}! This is ${cleanPersona === "yosia" ? "Yosia" : "Haddi"}, wishing you a happy, blessed celebration!"`;
 
     if (isExtended) {
       const responseSchema = {
@@ -404,12 +706,12 @@ CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words,
 
       const response = await client.models.generateContent({
         model: "gemini-3.8-flash",
-        contents: userPrompt + `\nGenerate 3 completely unique, distinct acoustic folk variations in ${cleanLanguage} so the user can choose their perfect match.`,
+        contents: userPrompt + `\nGenerate 3 acoustic folk variations in ${cleanLanguage} that all faithfully include the user's exact words/lyrics.`,
         config: {
           systemInstruction,
           responseMimeType: "application/json",
           responseSchema,
-          temperature: 1.0
+          temperature: 0.45
         }
       });
 
@@ -419,13 +721,34 @@ CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words,
       }
 
       const parsed = JSON.parse(resultText);
-      const song1 = { ...parsed.song1, id: `song-${Date.now()}-1`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
-      const song2 = { ...parsed.song2, id: `song-${Date.now()}-2`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
-      const song3 = { ...parsed.song3, id: `song-${Date.now()}-3`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona };
+      const song1 = ensureUserLyricsInSongSections(
+        { ...parsed.song1, id: `song-${Date.now()}-1`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona },
+        cleanContext,
+        cleanTarget
+      );
+      const song2 = ensureUserLyricsInSongSections(
+        { ...parsed.song2, id: `song-${Date.now()}-2`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona },
+        cleanContext,
+        cleanTarget
+      );
+      const song3 = ensureUserLyricsInSongSections(
+        { ...parsed.song3, id: `song-${Date.now()}-3`, target: cleanTarget, context: cleanContext, setType: "extended", totalDurationSeconds: 120, language: cleanLanguage, artistPersona: cleanPersona },
+        cleanContext,
+        cleanTarget
+      );
+
+      saveSharedSongRecord(song1.id, {
+        song: song1,
+        userWords: exactUserWords,
+        recipientName: cleanTarget,
+        songTitle: song1.title,
+        artistPersona: cleanPersona,
+      });
 
       return res.json({
         success: true,
         song: song1,
+        shareId: song1.id,
         variations: [song1, song2, song3]
       });
     } else {
@@ -437,7 +760,7 @@ CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words,
           systemInstruction,
           responseMimeType: "application/json",
           responseSchema,
-          temperature: 0.85
+          temperature: 0.4
         }
       });
 
@@ -447,33 +770,66 @@ CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words,
       }
 
       const parsed = JSON.parse(resultText);
-      const song = {
-        ...parsed,
-        id: `song-${Date.now()}`,
-        target: cleanTarget,
-        context: cleanContext,
-        setType: cleanSetType,
-        totalDurationSeconds: duration,
-        language: cleanLanguage,
-        artistPersona: cleanPersona
-      };
+      const song = ensureUserLyricsInSongSections(
+        {
+          ...parsed,
+          id: `song-${Date.now()}`,
+          target: cleanTarget,
+          context: cleanContext,
+          setType: cleanSetType,
+          totalDurationSeconds: duration,
+          language: cleanLanguage,
+          artistPersona: cleanPersona
+        },
+        cleanContext,
+        cleanTarget
+      );
+
+      saveSharedSongRecord(song.id, {
+        song,
+        userWords: exactUserWords,
+        recipientName: cleanTarget,
+        songTitle: song.title,
+        artistPersona: cleanPersona,
+      });
 
       return res.json({
         success: true,
-        song
+        song,
+        shareId: song.id
       });
     }
 
   } catch (error: any) {
     console.error("Gemini song generation error:", error);
-    const fallbackSong = getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona);
+    const fallbackSong = ensureUserLyricsInSongSections(
+      getDummySong(cleanTarget, cleanContext, cleanSetType, 0, cleanCustomGenre, cleanLanguage, cleanPersona),
+      cleanContext,
+      cleanTarget
+    );
+    saveSharedSongRecord(fallbackSong.id, {
+      song: fallbackSong,
+      userWords: exactUserWords,
+      recipientName: cleanTarget,
+      songTitle: fallbackSong.title,
+      artistPersona: cleanPersona,
+    });
     const isExtendedType = cleanSetType === "extended" || cleanSetType === "premium" || cleanSetType === "legacy";
     if (isExtendedType) {
-      const fallbackVar1 = getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona);
-      const fallbackVar2 = getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona);
+      const fallbackVar1 = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, "full", 1, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
+      const fallbackVar2 = ensureUserLyricsInSongSections(
+        getDummySong(cleanTarget, cleanContext, "full", 2, cleanCustomGenre, cleanLanguage, cleanPersona),
+        cleanContext,
+        cleanTarget
+      );
       return res.json({
         success: true,
         song: fallbackSong,
+        shareId: fallbackSong.id,
         variations: [fallbackSong, fallbackVar1, fallbackVar2],
         note: "Fallback active due to model parse error."
       });
@@ -481,6 +837,7 @@ CRITICAL USER LYRICS REQUIREMENT: You MUST directly incorporate the exact words,
     return res.json({
       success: true,
       song: fallbackSong,
+      shareId: fallbackSong.id,
       note: "Fallback active due to model parse error."
     });
   }
@@ -1019,6 +1376,111 @@ function sanitizeTextForLyriaPrompt(input: string): string {
     .trim();
 }
 
+// Synthesize warm acoustic guitar strumming in 16-bit PCM to layer under 10s birthday greetings or voice blessings
+function synthesizeAcousticGuitarBackingPcm(
+  durationSec: number,
+  sampleRate: number = 24000,
+  numChannels: number = 1,
+  gain: number = 0.22
+): Buffer {
+  const totalSamples = Math.floor(durationSec * sampleRate);
+  const buf = Buffer.alloc(totalSamples * numChannels * 2);
+
+  // Warm G - C - D - G folk guitar chord frequencies (Hz)
+  const chords = [
+    [196.0, 246.94, 293.66, 392.0, 493.88, 587.33], // G major
+    [261.63, 329.63, 392.0, 523.25, 659.25],        // C major
+    [293.66, 369.99, 440.0, 587.33, 739.99],        // D major
+    [196.0, 246.94, 293.66, 392.0, 587.33, 783.99], // G major bright resolve
+  ];
+
+  const strumIntervalSec = 0.625; // ~96 BPM joyful folk strum
+
+  for (let i = 0; i < totalSamples; i++) {
+    const t = i / sampleRate;
+    const chordIdx = Math.floor(t / 2.5) % chords.length;
+    const chord = chords[chordIdx];
+    const timeInStrum = t % strumIntervalSec;
+
+    let sampleVal = 0;
+    for (let s = 0; s < chord.length; s++) {
+      const stringDelay = s * 0.018; // arpeggiated guitar pick across strings
+      const dt = timeInStrum - stringDelay;
+      if (dt >= 0) {
+        const freq = chord[s];
+        const env = Math.exp(-dt * 4.2) * (1 - Math.exp(-dt * 120));
+        // Fundamental + warm wooden acoustic 2nd & 3rd harmonics
+        const wave =
+          Math.sin(2 * Math.PI * freq * t) * 0.65 +
+          Math.sin(2 * Math.PI * freq * 2 * t) * 0.25 +
+          Math.sin(2 * Math.PI * freq * 3 * t) * 0.1;
+        sampleVal += wave * env;
+      }
+    }
+
+    // Smooth fade in and fade out at edges
+    let masterEnv = 1.0;
+    if (t < 0.25) masterEnv = t / 0.25;
+    else if (t > durationSec - 0.6) masterEnv = Math.max(0, (durationSec - t) / 0.6);
+
+    const normalized = Math.max(-0.95, Math.min(0.95, (sampleVal / chord.length) * gain * 2.2 * masterEnv));
+    const int16 = Math.round(normalized * 32767);
+
+    for (let ch = 0; ch < numChannels; ch++) {
+      buf.writeInt16LE(int16, (i * numChannels + ch) * 2);
+    }
+  }
+
+  return buf;
+}
+
+// Mix a vocal PCM buffer with warm acoustic guitar backing PCM into a single WAV buffer
+function mixVocalWithAcousticGuitarWav(
+  vocalWavOrPcm: Buffer,
+  targetDurationSec?: number,
+  guitarGain: number = 0.20
+): Buffer {
+  const parsed = extractPcmAndWavFormat(vocalWavOrPcm, 24000, 1, 16);
+  const { sampleRate, numChannels } = parsed;
+  const bytesPerFrame = numChannels * 2;
+  const vocalFrames = Math.floor(parsed.pcmData.length / bytesPerFrame);
+  const vocalDurationSec = vocalFrames / sampleRate;
+
+  const finalDurationSec = targetDurationSec
+    ? Math.max(targetDurationSec, Math.min(vocalDurationSec + 0.8, 12))
+    : vocalDurationSec + 0.8;
+
+  const totalFrames = Math.floor(finalDurationSec * sampleRate);
+  const guitarPcm = synthesizeAcousticGuitarBackingPcm(finalDurationSec, sampleRate, numChannels, guitarGain);
+  const mixedPcm = Buffer.alloc(totalFrames * bytesPerFrame);
+
+  // Start vocal at 0.25s after the first warm guitar chord strum
+  const vocalStartFrame = Math.floor(0.25 * sampleRate);
+
+  for (let f = 0; f < totalFrames; f++) {
+    for (let ch = 0; ch < numChannels; ch++) {
+      const byteOffset = (f * numChannels + ch) * 2;
+      const gSample = byteOffset + 2 <= guitarPcm.length ? guitarPcm.readInt16LE(byteOffset) : 0;
+
+      let vSample = 0;
+      const vf = f - vocalStartFrame;
+      if (vf >= 0 && vf < vocalFrames) {
+        const vOffset = (vf * numChannels + ch) * 2;
+        if (vOffset + 2 <= parsed.pcmData.length) {
+          vSample = parsed.pcmData.readInt16LE(vOffset);
+        }
+      }
+
+      // Duck guitar slightly when vocal is actively speaking/singing
+      const gWeight = Math.abs(vSample) > 800 ? 0.65 : 1.0;
+      const combined = Math.max(-32767, Math.min(32767, Math.round(vSample * 1.08 + gSample * gWeight)));
+      mixedPcm.writeInt16LE(combined, byteOffset);
+    }
+  }
+
+  return pcmToWavBuffer(mixedPcm, sampleRate, numChannels, 16, 1);
+}
+
 // Option 1: Full Sung Studio Song Generator via Google AI Studio Lyria 3 (lyria-3-pro-preview / lyria-3-clip-preview)
 async function generateLyriaSongAudio(
   storyPrompt: string,
@@ -1040,38 +1502,60 @@ async function generateLyriaSongAudio(
   const safeGenre = sanitizeTextForLyriaPrompt(rawGenre) || "Joyful Acoustic Folk Sing-Along";
   const language = options.language || "English";
   const setType = options.setType || (options.useClipModel ? "quick" : "full");
+  const isTenSecClip = setType === "10s";
   const isLongSong = setType === "full" || setType === "extended" || setType === "premium" || setType === "legacy";
-  const targetDurationSeconds = isLongSong ? 120 : 60;
+  const targetDurationSeconds = isTenSecClip ? 10 : isLongSong ? 120 : 60;
 
   const isYosia = options.artistPersona === "yosia" || rawGenre.toLowerCase().includes("children") || rawGenre.toLowerCase().includes("kids");
   const preferredModel = isLongSong ? "lyria-3-pro-preview" : "lyria-3-clip-preview";
   const fallbackModel = isLongSong ? "lyria-3-clip-preview" : "lyria-3-pro-preview";
 
-  const cleanLyricLines = options.lyrics
+  // Extract the user's exact words from storyPrompt AND options.lyrics so user's words always come first!
+  const userGivenWords = extractUserWordsFromContext(storyPrompt);
+  const userDirectLines = splitUserWordsIntoSingableLines(userGivenWords);
+
+  const optionLyricLines = options.lyrics
     ? options.lyrics
         .split("\n")
         .map((l) => l.trim())
         .filter((l) => !l.startsWith("[") && l.length > 0)
     : [];
 
-  const sanitizedLyricsBlock = cleanLyricLines
-    .slice(0, isLongSong ? 16 : 8)
+  // Prioritize the user's exact lines first, followed by the song's verse/chorus lines (deduplicated)
+  const mergedLyricLines: string[] = [];
+  const seenLower = new Set<string>();
+  for (const line of [...userDirectLines, ...optionLyricLines]) {
+    const norm = line.toLowerCase().trim();
+    if (norm && !seenLower.has(norm)) {
+      seenLower.add(norm);
+      mergedLyricLines.push(line);
+    }
+  }
+
+  const sanitizedLyricsBlock = mergedLyricLines
+    .slice(0, isTenSecClip ? 4 : isLongSong ? 16 : 8)
     .map((line) => sanitizeTextForLyriaPrompt(line))
     .filter(Boolean)
     .join("\n");
 
-  const sanitizedStory = sanitizeTextForLyriaPrompt(storyPrompt.substring(0, 320));
+  const sanitizedUserCore = sanitizeTextForLyriaPrompt(
+    userDirectLines.slice(0, 4).join(" / ") || storyPrompt.substring(0, 260)
+  );
 
   const vocalDesc = isYosia
-    ? `upbeat, cheerful, bright sing-along acoustic vocals in ${language} with warm fingerstyle and strummed acoustic guitar`
+    ? `upbeat, cheerful, bright sing-along lead vocals in ${language} with warm fingerstyle and strummed acoustic guitar`
     : `expressive, warm, heartfelt lead vocals in ${language} with rich acoustic guitar and organic folk instrumentation`;
 
   const primaryPrompt = sanitizedLyricsBlock
-    ? `Generate a warm, studio-quality sung ${safeGenre} song with ${vocalDesc} in ${language}. Sing these joyful blessing lyrics clearly:\n${sanitizedLyricsBlock}`
-    : `Generate a warm, studio-quality sung ${safeGenre} blessing song with ${vocalDesc} in ${language} celebrating ${safeRecipient}. Theme: ${sanitizedStory}`;
+    ? `Generate a warm, studio-quality sung ${safeGenre} song with ${vocalDesc} in ${language}. Start singing the lead vocals immediately on beat 1 at 0:00 with no instrumental intro. Sing these exact custom lyrics clearly and melodically word-for-word:\n${sanitizedLyricsBlock}`
+    : `Generate a warm, studio-quality sung ${safeGenre} song with ${vocalDesc} in ${language} for ${safeRecipient}. Start singing lead vocals immediately on beat 1 at 0:00 with no instrumental intro. Sing these exact words: ${sanitizedUserCore}`;
+
+  const conciseUserLyricsPrompt = `Generate a joyful sung ${safeGenre} song with ${vocalDesc} in ${language}. Start singing vocals immediately at 0:00. Sing these exact words for ${safeRecipient}:\n${
+    sanitizedUserCore || sanitizedLyricsBlock || `Happy blessings and joy to ${safeRecipient}!`
+  }`;
 
   // Ultra-clean fallback prompt guaranteed not to trigger any Lyria content filter
-  const ultraCleanFallbackPrompt = `Generate an uplifting, joyful ${safeGenre} song with ${vocalDesc} in ${language}. Include melodic verses and an inspiring, singable chorus filled with gratitude, blessing, grace, happiness, and celebration.`;
+  const ultraCleanFallbackPrompt = `Generate an uplifting, joyful sung ${safeGenre} song with ${vocalDesc} in ${language}. Start singing lead vocals immediately on beat 1 at 0:00 with no instrumental intro. Sing a joyful chorus filled with gratitude, blessing, grace, happiness, and celebration.`;
 
   const buildContents = (promptText: string, includeImage: boolean) => {
     if (includeImage && options.imageDataUrl && options.imageDataUrl.startsWith("data:image/")) {
@@ -1091,7 +1575,7 @@ async function generateLyriaSongAudio(
   const runSingleLyriaCall = async (
     modelName: string,
     promptText: string,
-    includeImage: boolean = true
+    includeImage: boolean = false
   ): Promise<{ audioUrl: string; lyrics: string; modelUsed: string }> => {
     const response = await ai.models.generateContentStream({
       model: modelName,
@@ -1136,8 +1620,6 @@ async function generateLyriaSongAudio(
 
     const combinedBuffer = Buffer.concat(audioChunks);
 
-    // Lyria 3 returns encoded audio/mpeg (MP3) or RIFF WAV directly.
-    // Preserve native MP3/container bytes without wrapping in a PCM WAV header!
     const isMp3OrCompressed =
       detectedMimeType.includes("mpeg") ||
       detectedMimeType.includes("mp3") ||
@@ -1155,7 +1637,6 @@ async function generateLyriaSongAudio(
       };
     }
 
-    // If raw PCM or WAV was returned, ensure valid RIFF WAV header
     const parsedChunks = audioChunks.map((c) => extractPcmAndWavFormat(c));
     const fmt = parsedChunks[0];
     const combinedPcm = Buffer.concat(parsedChunks.map((p) => p.pcmData));
@@ -1174,12 +1655,12 @@ async function generateLyriaSongAudio(
     };
   };
 
-  // Try preferred model with sanitized user lyrics prompt first, then ultra-clean prompt, then fallback model
+  // Prioritize attempts that preserve the user's exact lyrics first!
   const attempts: { model: string; prompt: string; includeImage: boolean }[] = [
-    { model: preferredModel, prompt: primaryPrompt, includeImage: true },
-    { model: preferredModel, prompt: ultraCleanFallbackPrompt, includeImage: false },
+    { model: preferredModel, prompt: primaryPrompt, includeImage: false },
     { model: fallbackModel, prompt: primaryPrompt, includeImage: false },
-    { model: fallbackModel, prompt: ultraCleanFallbackPrompt, includeImage: false },
+    { model: "lyria-3-clip-preview", prompt: conciseUserLyricsPrompt, includeImage: false },
+    { model: "lyria-3-clip-preview", prompt: ultraCleanFallbackPrompt, includeImage: false },
   ];
 
   let lastError: any = null;
@@ -1188,7 +1669,7 @@ async function generateLyriaSongAudio(
       const res = await runSingleLyriaCall(attempt.model, attempt.prompt, attempt.includeImage);
       return {
         audioUrl: res.audioUrl,
-        lyrics: cleanLyricLines.join("\n") || res.lyrics,
+        lyrics: mergedLyricLines.join("\n") || res.lyrics,
         modelUsed: `${res.modelUsed} (${isLongSong ? "Full Multi-Verse Studio Track" : "Studio Song Track"})`,
         durationSeconds: targetDurationSeconds,
       };
@@ -1201,30 +1682,34 @@ async function generateLyriaSongAudio(
   throw lastError || new Error("All Lyria 3 music generation attempts failed.");
 }
 
-// Option 2: Haddi / Yosia Acoustic Narration via Gemini TTS (gemini-3.8-flash-lite-tts)
+// Option 2: Haddi / Yosia Acoustic Vocal & Guitar Performance via Gemini TTS (speaks/sings the exact user lyrics with acoustic guitar backing)
 async function generateHaddiSongAudio(
   storyPrompt: string,
   language: string = "English",
   artistPersona: "haddi" | "yosia" = "haddi",
   fullLyrics?: string,
-  setType: string = "quick"
+  setType: string = "quick",
+  recipientName: string = "Someone Special"
 ): Promise<Buffer> {
   const ai = getAiClient();
   const isIndo = language.toLowerCase().includes("indonesia");
   const ttsLangCode = isIndo ? "id-ID" : "en-US";
-  const isLongSong = setType === "full" || setType === "extended" || setType === "premium" || setType === "legacy";
+  const personaName = artistPersona === "yosia" ? "Yosia" : "Haddi";
 
-  const lyricsSectionText = fullLyrics
-    ? `\nPerform and recite these complete custom song lyrics with warm musical cadence:\n${fullLyrics}`
-    : "";
+  const exactUserWords = extractUserWordsFromContext(storyPrompt);
+  const cleanLyricsToRead = (fullLyrics || exactUserWords || storyPrompt)
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0 && !l.startsWith("["))
+    .join("\n");
 
-  const narrationPrompt =
-    artistPersona === "yosia"
-      ? `Create a cheerful, joyful ${isLongSong ? "full-length 2-minute multi-verse " : ""}children's acoustic musical blessing spoken and sung warmly in ${language} by Yosia (Haddi's happy little brother who plays guitar and loves making people smile) based on this story: "${storyPrompt}".${lyricsSectionText}`
-      : `Create a warm, soulful ${isLongSong ? "full-length 2-minute multi-verse " : ""}acoustic-style musical narrative blessing spoken in ${language} by Haddi the Street Minstrel from Jakarta based on this user story: "${storyPrompt}".${lyricsSectionText}`;
+  const exactScript = `Hi ${recipientName}! This is ${personaName}, wishing you a happy, blessed celebration! Here is your special song:\n${cleanLyricsToRead}`;
+
+  const narrationPrompt = `Say and sing these exact words warmly, joyfully, and rhythmically with musical cadence in ${language} (do not change or replace the words):\n"${exactScript}"`;
+
+  let rawVoiceWav: Buffer | null = null;
 
   try {
-    // 1. Try Google AI Studio Interactions API with gemini-3.8-flash-lite-tts
     const interaction = await (ai as any).interactions.create({
       model: "gemini-3.8-flash-lite-tts",
       input: [
@@ -1236,8 +1721,8 @@ async function generateHaddiSongAudio(
               type: "speech_metadata",
               style:
                 artistPersona === "yosia"
-                  ? "Cheerful, warm, enthusiastic young guitarist Yosia bringing joy and smiles"
-                  : "Warm, soulful, humble Indonesian street minstrel storyteller",
+                  ? "Cheerful, warm, enthusiastic young guitarist Yosia singing and speaking with joy"
+                  : "Warm, soulful, melodic Indonesian street minstrel Haddi",
             },
           ],
         },
@@ -1266,14 +1751,13 @@ async function generateHaddiSongAudio(
     }
 
     if (rawBase64) {
-      const audioBuffer = Buffer.from(rawBase64, "base64");
-      const parsed = extractPcmAndWavFormat(audioBuffer);
-      return pcmToWavBuffer(parsed.pcmData, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample, parsed.audioFormat);
+      rawVoiceWav = Buffer.from(rawBase64, "base64");
     }
-    throw new Error("No output audio data in interaction response");
   } catch (error) {
     console.warn("Interactions API TTS error, trying models.generateContent fallback:", error);
-    // 2. Fallback to models.generateContent with gemini-3.8-flash-lite-tts
+  }
+
+  if (!rawVoiceWav) {
     const response = await ai.models.generateContent({
       model: "gemini-3.8-flash-lite-tts",
       contents: [
@@ -1306,11 +1790,144 @@ async function generateHaddiSongAudio(
     if (!audioBase64) {
       throw new Error("No inline audio data returned from Gemini TTS");
     }
-    const audioBuffer = Buffer.from(audioBase64, "base64");
-    const parsed = extractPcmAndWavFormat(audioBuffer);
-    return pcmToWavBuffer(parsed.pcmData, parsed.sampleRate, parsed.numChannels, parsed.bitsPerSample, parsed.audioFormat);
+    rawVoiceWav = Buffer.from(audioBase64, "base64");
   }
+
+  // Mix warm acoustic guitar strumming underneath Yosia/Haddi's voice so it sounds like a true acoustic performance!
+  return mixVocalWithAcousticGuitarWav(rawVoiceWav, undefined, 0.22);
 }
+
+// Generate a dedicated 10-Second Personalized Birthday/Blessing Greeting + Song with Yosia or Haddi's voice & Acoustic Guitar!
+// e.g. "Hi Johnny! This is Yosia, wishing you a happy, blessed birthday! [plus user's exact words]"
+app.post("/api/generate-10s-greeting", async (req, res) => {
+  const {
+    recipientName = "My Friend",
+    userWords = "",
+    lyrics = "",
+    artistPersona = "yosia",
+    cardTheme = "birthday",
+    customGreetingScript = "",
+    language = "English",
+    shareId: requestedShareId,
+  } = req.body;
+
+  const cleanRecipient = (recipientName || "My Friend").trim();
+  const personaName = artistPersona === "yosia" ? "Yosia" : "Haddi";
+  const extractedWords = extractUserWordsFromContext(userWords) || lyrics.split("\n").filter((l: string) => l && !l.startsWith("[")).slice(0, 2).join(" ");
+  const conciseWords = extractedWords
+    ? extractedWords.split(/\s+/).slice(0, 18).join(" ")
+    : cardTheme === "birthday"
+    ? "May God bless you with joy, laughter, and a big smile today!"
+    : "May God's love, grace, and joy shine brightly on you today!";
+
+  const greetingScript = (customGreetingScript || "").trim() || (
+    cardTheme === "birthday"
+      ? `Hi ${cleanRecipient}! This is ${personaName}, wishing you a happy, blessed birthday! ${conciseWords}`
+      : `Hi ${cleanRecipient}! This is ${personaName}, sending you a joyful, blessed song today! ${conciseWords}`
+  );
+
+  const shareId = normalizeShareId(requestedShareId);
+
+  try {
+    if (hasValidApiKey()) {
+      const ai = getAiClient();
+      const isIndo = language.toLowerCase().includes("indonesia");
+      const ttsLangCode = isIndo ? "id-ID" : "en-US";
+      const promptText = `Say cheerfully, warmly, and rhythmically with a big smile and musical energy in ${language} (say these exact words clearly):\n"${greetingScript}"`;
+
+      let rawVoiceBuffer: Buffer | null = null;
+
+      try {
+        const interaction = await (ai as any).interactions.create({
+          model: "gemini-3.8-flash-lite-tts",
+          input: [
+            {
+              type: "text",
+              text: promptText,
+              annotations: [
+                {
+                  type: "speech_metadata",
+                  style:
+                    artistPersona === "yosia"
+                      ? "Excited, joyful, warm young guitarist Yosia wishing a happy blessed birthday"
+                      : "Warm, joyful, heartfelt acoustic musician Haddi wishing a happy blessed birthday",
+                },
+              ],
+            },
+          ],
+          response_format: { type: "audio" },
+          generation_config: {
+            speech_config: [
+              { language: ttsLangCode, voice: artistPersona === "yosia" ? "Puck" : "Kore" },
+            ],
+          },
+        });
+
+        const rawBase64 = interaction?.output_audio?.data;
+        if (rawBase64) {
+          rawVoiceBuffer = Buffer.from(rawBase64, "base64");
+        }
+      } catch {
+        // Fallback to generateContent below
+      }
+
+      if (!rawVoiceBuffer) {
+        const response = await ai.models.generateContent({
+          model: "gemini-3.8-flash-lite-tts",
+          contents: [{ role: "user", parts: [{ text: promptText }] }],
+          config: {
+            responseModalities: ["AUDIO"],
+            speechConfig: {
+              voiceConfig: {
+                prebuiltVoiceConfig: { voiceName: artistPersona === "yosia" ? "Puck" : "Kore" },
+              },
+            },
+          },
+        });
+        const audioBase64 = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+        if (audioBase64) {
+          rawVoiceBuffer = Buffer.from(audioBase64, "base64");
+        }
+      }
+
+      if (rawVoiceBuffer) {
+        const mixedWav = mixVocalWithAcousticGuitarWav(rawVoiceBuffer, 10, 0.24);
+        saveSharedSongRecord(shareId, {
+          recipientName: cleanRecipient,
+          artistPersona,
+          userWords: extractedWords,
+          greetingBuffer: mixedWav,
+        });
+        return res.json({
+          success: true,
+          shareId,
+          greetingScript,
+          greetingAudioUrl: `/api/songs/${shareId}/greeting.wav`,
+          greetingDataUrl: `data:audio/wav;base64,${mixedWav.toString("base64")}`,
+        });
+      }
+    }
+  } catch (err) {
+    console.warn("10s greeting TTS generation error, using acoustic guitar backing:", err);
+  }
+
+  // Fallback 10s acoustic guitar celebration WAV if TTS is offline
+  const guitarOnlyPcm = synthesizeAcousticGuitarBackingPcm(10, 24000, 1, 0.35);
+  const guitarWav = pcmToWavBuffer(guitarOnlyPcm, 24000, 1, 16, 1);
+  saveSharedSongRecord(shareId, {
+    recipientName: cleanRecipient,
+    artistPersona,
+    userWords: extractedWords,
+    greetingBuffer: guitarWav,
+  });
+  return res.json({
+    success: true,
+    shareId,
+    greetingScript,
+    greetingAudioUrl: `/api/songs/${shareId}/greeting.wav`,
+    greetingDataUrl: `data:audio/wav;base64,${guitarWav.toString("base64")}`,
+  });
+});
 
 // Unified Google AI Studio Audio Generation Route (Supports Option 1: Lyria 3 Sung Song, Option 2: Haddi Narration, or Both!)
 app.post("/api/generate-haddi-audio", async (req, res) => {
@@ -1325,6 +1942,9 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
     imageDataUrl,
     language = "English",
     artistPersona = "haddi",
+    shareId: requestedShareId,
+    songTitle,
+    songObject,
   } = req.body;
 
   const inputPrompt = (storyPrompt || prompt || "").trim();
@@ -1333,6 +1953,7 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
     return res.status(400).json({ error: "Story prompt is required to generate audio." });
   }
 
+  const shareId = normalizeShareId(requestedShareId || songObject?.id);
   const useClipModel = setType === "quick";
   let lyriaAudioUrl: string | null = null;
   let narrationAudioUrl: string | null = null;
@@ -1375,7 +1996,8 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
           language,
           artistPersona,
           generatedLyrics,
-          setType
+          setType,
+          target || "Someone Special"
         );
         narrationAudioUrl = `data:audio/wav;base64,${narrationBuffer.toString("base64")}`;
         if (!modelSource) {
@@ -1395,12 +2017,31 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
         : lyriaAudioUrl || narrationAudioUrl;
 
     if (primaryAudioUrl) {
+      // Persist song & audio on server so shareable links (/api/songs/:shareId/audio.mp3 and /?song=:shareId) work everywhere!
+      saveSharedSongRecord(shareId, {
+        song: songObject || undefined,
+        lyrics: generatedLyrics,
+        userWords: extractUserWordsFromContext(inputPrompt),
+        recipientName: target || songObject?.target || "Someone Special",
+        songTitle: songTitle || songObject?.title || `Gift Song for ${target || "Someone Special"}`,
+        artistPersona,
+        lyriaDataUrl: lyriaAudioUrl || primaryAudioUrl,
+        narrationDataUrl: narrationAudioUrl,
+      });
+
+      const directAudioPath = `/api/songs/${shareId}/audio.mp3`;
+      const directNarrationPath = narrationAudioUrl ? `/api/songs/${shareId}/narration.wav` : null;
+
       return res.json({
         success: true,
+        shareId,
+        directAudioUrl: directAudioPath,
+        songShareUrl: `/?song=${shareId}`,
         audio_url: primaryAudioUrl,
         audioUrl: primaryAudioUrl,
         lyriaAudioUrl,
         narrationAudioUrl,
+        hostedNarrationUrl: directNarrationPath,
         lyrics: generatedLyrics,
         durationSeconds,
         setType,
@@ -1414,8 +2055,20 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
   } catch (error: any) {
     console.error("Error generating audio via Google AI Studio:", error);
     const fallbackUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+    saveSharedSongRecord(shareId, {
+      song: songObject || undefined,
+      lyrics: generatedLyrics,
+      userWords: extractUserWordsFromContext(inputPrompt),
+      recipientName: target || "Someone Special",
+      songTitle: songTitle || `Gift Song for ${target || "Someone Special"}`,
+      artistPersona,
+      lyriaDataUrl: fallbackUrl,
+    });
     return res.json({
       success: true,
+      shareId,
+      directAudioUrl: `/api/songs/${shareId}/audio.mp3`,
+      songShareUrl: `/?song=${shareId}`,
       audio_url: fallbackUrl,
       audioUrl: fallbackUrl,
       lyriaAudioUrl: fallbackUrl,
@@ -1426,6 +2079,103 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
       warning: `Gemini audio generation notice: ${error?.message || "Using fallback track"}`
     });
   }
+});
+
+// Shared Song & Direct Audio Streaming Endpoints for WhatsApp, Email, and Gift Card Links!
+app.post("/api/songs/share", (req, res) => {
+  const { shareId, song, lyrics, userWords, recipientName, songTitle, artistPersona, audioDataUrl, narrationDataUrl } = req.body;
+  const record = saveSharedSongRecord(shareId || song?.id, {
+    song,
+    lyrics,
+    userWords,
+    recipientName: recipientName || song?.target,
+    songTitle: songTitle || song?.title,
+    artistPersona: artistPersona || song?.artistPersona,
+    lyriaDataUrl: audioDataUrl,
+    narrationDataUrl,
+  });
+  return res.json({
+    success: true,
+    shareId: record.shareId,
+    directAudioUrl: `/api/songs/${record.shareId}/audio.mp3`,
+    songShareUrl: `/?song=${record.shareId}`,
+  });
+});
+
+app.get("/api/songs/:shareId", (req, res) => {
+  const { shareId } = req.params;
+  const record = loadSharedSongRecord(shareId);
+  if (!record) {
+    return res.status(404).json({ error: "Shared song not found." });
+  }
+  const hasLocalAudio = Boolean(record.audioFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.audioFileName)));
+  const hasNarration = Boolean(record.narrationFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.narrationFileName)));
+  const hasGreeting = Boolean(record.greetingFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.greetingFileName)));
+
+  const directAudioUrl = hasLocalAudio
+    ? `/api/songs/${record.shareId}/audio.mp3`
+    : record.externalAudioUrl || "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
+
+  return res.json({
+    success: true,
+    shareId: record.shareId,
+    song: record.song,
+    lyrics: record.lyrics,
+    userWords: record.userWords,
+    recipientName: record.recipientName,
+    songTitle: record.songTitle,
+    artistPersona: record.artistPersona,
+    audioUrl: directAudioUrl,
+    lyriaAudioUrl: directAudioUrl,
+    narrationAudioUrl: hasNarration ? `/api/songs/${record.shareId}/narration.wav` : null,
+    greetingAudioUrl: hasGreeting ? `/api/songs/${record.shareId}/greeting.wav` : null,
+  });
+});
+
+app.get(["/api/songs/:shareId/audio.mp3", "/api/songs/:shareId/audio", "/api/songs/:shareId/audio.wav"], (req, res) => {
+  const { shareId } = req.params;
+  const record = loadSharedSongRecord(shareId);
+  if (record?.audioFileName) {
+    const filePath = path.join(SHARED_SONGS_DIR, record.audioFileName);
+    if (fs.existsSync(filePath)) {
+      res.setHeader("Content-Type", record.audioMimeType || "audio/mpeg");
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      return res.sendFile(filePath);
+    }
+  }
+  if (record?.externalAudioUrl) {
+    return res.redirect(record.externalAudioUrl);
+  }
+  return res.redirect("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3");
+});
+
+app.get("/api/songs/:shareId/narration.wav", (req, res) => {
+  const { shareId } = req.params;
+  const record = loadSharedSongRecord(shareId);
+  if (record?.narrationFileName) {
+    const filePath = path.join(SHARED_SONGS_DIR, record.narrationFileName);
+    if (fs.existsSync(filePath)) {
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader("Accept-Ranges", "bytes");
+      return res.sendFile(filePath);
+    }
+  }
+  return res.status(404).json({ error: "Narration audio not found." });
+});
+
+app.get("/api/songs/:shareId/greeting.wav", (req, res) => {
+  const { shareId } = req.params;
+  const record = loadSharedSongRecord(shareId);
+  if (record?.greetingFileName) {
+    const filePath = path.join(SHARED_SONGS_DIR, record.greetingFileName);
+    if (fs.existsSync(filePath)) {
+      res.setHeader("Content-Type", "audio/wav");
+      res.setHeader("Accept-Ranges", "bytes");
+      return res.sendFile(filePath);
+    }
+  }
+  return res.status(404).json({ error: "Greeting audio not found." });
 });
 
 // 2. Avatar Speech Generation endpoint via gemini-3.8-flash-lite-tts / gemini-3.1-flash-tts-preview

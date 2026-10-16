@@ -1116,6 +1116,14 @@ export const LandingExperience: React.FC<LandingExperienceProps> = ({
                     </div>
                   </div>
 
+                  {/* Notice: Please Check Lyrics Before Creating a Song */}
+                  <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-[11px] text-amber-950 font-medium flex items-center gap-2">
+                    <span className="text-amber-700 font-bold shrink-0">⚠️ NOTICE:</span>
+                    <span>
+                      <strong>PLEASE CHECK LYRICS BEFORE CREATING A SONG.</strong> (You can also edit the lyrics on the next screen after your song is created!)
+                    </span>
+                  </div>
+
                   {/* Primary & Secondary Action Buttons */}
                   <div className="pt-1 grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                     <button

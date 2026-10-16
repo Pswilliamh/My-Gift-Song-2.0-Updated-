@@ -685,6 +685,14 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           </div>
         </div>
 
+        {/* Notice: Please Check Lyrics Before Creating a Song */}
+        <div className="p-2.5 rounded-xl bg-amber-50 border border-amber-300 text-[11px] text-amber-950 font-medium flex items-center gap-2">
+          <span className="text-amber-700 font-bold shrink-0">⚠️ NOTICE:</span>
+          <span>
+            <strong>PLEASE CHECK LYRICS BEFORE CREATING A SONG.</strong> (You can also edit the lyrics after your song is created!)
+          </span>
+        </div>
+
         {/* Action Buttons: Create Song Immediately OR Jump Into Full Studio */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button

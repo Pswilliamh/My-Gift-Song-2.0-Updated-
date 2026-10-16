@@ -42,6 +42,37 @@ export default function App() {
   const [isLoading, setIsLoading] = useState(false);
   const [statusMessage, setStatusMessage] = useState("");
   const [audioSource, setAudioSourceState] = useState<string | null>(null);
+  const [directAudioUrl, setDirectAudioUrl] = useState<string | null>(null);
+  const [shareableSongUrl, setShareableSongUrl] = useState<string | null>(null);
+  const [copiedAudioLinkModal, setCopiedAudioLinkModal] = useState(false);
+
+  const getPublicOrigin = () => {
+    if (typeof window === "undefined") return "https://www.mygiftsong.org";
+    const host = window.location.hostname;
+    if (host === "mygiftsong.org" || host === "www.mygiftsong.org") {
+      return "https://www.mygiftsong.org";
+    }
+    return window.location.origin;
+  };
+
+  const getCanonicalSongLinks = (songId?: string) => {
+    const origin = getPublicOrigin();
+    const id = songId || currentSong?.id;
+    const songLink = shareableSongUrl || (id ? `${origin}/?song=${encodeURIComponent(id)}` : "https://www.mygiftsong.org");
+    const audioLink =
+      directAudioUrl
+        ? directAudioUrl.startsWith("http")
+          ? directAudioUrl
+          : `${origin}${directAudioUrl}`
+        : id
+        ? `${origin}/api/songs/${encodeURIComponent(id)}/audio`
+        : audioSource && !audioSource.startsWith("data:")
+        ? audioSource.startsWith("http")
+          ? audioSource
+          : `${origin}${audioSource}`
+        : songLink;
+    return { songLink, audioLink };
+  };
 
   const setAudioSource = (url: string) => {
     setAudioSourceState(url);
@@ -84,9 +115,12 @@ export default function App() {
             lyrics: compiledLyrics,
             language: currentSong.language || songLanguage,
             artistPersona: currentSong.artistPersona || artistPersona,
+            shareId: currentSong.id,
           }),
         });
         const data = await res.json();
+        if (data.directAudioUrl) setDirectAudioUrl(data.directAudioUrl);
+        if (data.shareableSongUrl) setShareableSongUrl(data.shareableSongUrl);
         if (type === "lyria" && (data.lyriaAudioUrl || data.audioUrl)) {
           const url = data.lyriaAudioUrl || data.audioUrl;
           setLyriaAudioUrl(url);
@@ -150,6 +184,7 @@ export default function App() {
   const [isSystemInitiated, setIsSystemInitiated] = useState<boolean>(() => {
     const params = new URLSearchParams(window.location.search);
     return (
+      params.has("song") ||
       params.get("test") === "true" ||
       params.get("admin") === "true" ||
       window.location.hash === "#admin" ||
@@ -417,9 +452,52 @@ export default function App() {
     };
   }, []);
 
-  // --- Read URL for post-payments success triggers ---
+  // --- Read URL for shared song link (?song=<shareId>) or post-payments success triggers ---
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
+    const sharedSongId = params.get("song");
+    if (sharedSongId) {
+      setIsSystemInitiated(true);
+      setActiveSystemTab("studio");
+      setIsRendering(true);
+      setStage(2);
+      fetch(`/api/songs/${encodeURIComponent(sharedSongId)}`)
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.success && data.song) {
+            const loadedSong: SongData = data.song;
+            setCurrentSong(loadedSong);
+            setAllVariations([loadedSong]);
+            setActiveVariationIdx(0);
+            setOriginalLyricSections(loadedSong.lyricSections || []);
+            setTarget(loadedSong.target || "");
+            setContext(loadedSong.context || "");
+            if (loadedSong.artistPersona) setArtistPersona(loadedSong.artistPersona);
+            const origin = getPublicOrigin();
+            setShareableSongUrl(`${origin}/?song=${encodeURIComponent(sharedSongId)}`);
+            if (data.directAudioUrl) {
+              const fullAudioUrl = data.directAudioUrl.startsWith("http")
+                ? data.directAudioUrl
+                : `${origin}${data.directAudioUrl}`;
+              setDirectAudioUrl(fullAudioUrl);
+              setLyriaAudioUrl(fullAudioUrl);
+              setAudioSource(fullAudioUrl);
+            }
+            setStage(3);
+          } else {
+            setStage(1);
+          }
+        })
+        .catch((err) => {
+          console.warn("Could not load shared song:", err);
+          setStage(1);
+        })
+        .finally(() => {
+          setIsRendering(false);
+        });
+      return;
+    }
+
     const successParam = params.get("stripe_checkout") === "success";
     const mockParam = params.get("stripe_mock") === "true";
     const cancelParam = params.get("stripe_checkout") === "cancel";
@@ -794,6 +872,9 @@ export default function App() {
         .join("\n") || contextVal;
 
       const requestedMode = audioGenerationMode === "narration" ? "narration" : "lyria";
+      const origin = getPublicOrigin();
+      setShareableSongUrl(`${origin}/?song=${encodeURIComponent(returnedSong.id)}`);
+      setDirectAudioUrl(`${origin}/api/songs/${encodeURIComponent(returnedSong.id)}/audio`);
 
       try {
         const audioRes = await fetch("/api/generate-haddi-audio", {
@@ -808,10 +889,21 @@ export default function App() {
             lyrics: compiledLyrics,
             language: languageVal,
             artistPersona: personaVal,
+            shareId: returnedSong.id,
             imageDataUrl: uploadedImages[0] || undefined,
           }),
         });
         const audioData = await audioRes.json();
+        if (audioData.directAudioUrl) {
+          setDirectAudioUrl(
+            audioData.directAudioUrl.startsWith("http")
+              ? audioData.directAudioUrl
+              : `${origin}${audioData.directAudioUrl}`
+          );
+        }
+        if (audioData.shareableSongUrl) {
+          setShareableSongUrl(audioData.shareableSongUrl);
+        }
         if (audioData.audioUrl) {
           if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
           if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
@@ -1046,6 +1138,10 @@ export default function App() {
         .flatMap(s => s.lines)
         .join("\n") || context.trim();
 
+      const origin = getPublicOrigin();
+      setShareableSongUrl(`${origin}/?song=${encodeURIComponent(returnedSong.id)}`);
+      setDirectAudioUrl(`${origin}/api/songs/${encodeURIComponent(returnedSong.id)}/audio`);
+
       const audioRes = await fetch("/api/generate-haddi-audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -1058,11 +1154,22 @@ export default function App() {
           lyrics: compiledLyrics,
           language: songLanguage,
           artistPersona,
+          shareId: returnedSong.id,
           imageDataUrl: uploadedImages[0] || undefined,
         }),
       });
 
       const audioData = await audioRes.json();
+      if (audioData.directAudioUrl) {
+        setDirectAudioUrl(
+          audioData.directAudioUrl.startsWith("http")
+            ? audioData.directAudioUrl
+            : `${origin}${audioData.directAudioUrl}`
+        );
+      }
+      if (audioData.shareableSongUrl) {
+        setShareableSongUrl(audioData.shareableSongUrl);
+      }
       if (audioData.audioUrl) {
         if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
         if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
@@ -1138,23 +1245,130 @@ export default function App() {
 
   const handleShareWhatsApp = () => {
     if (!currentSong) return;
+    const { songLink, audioLink } = getCanonicalSongLinks(currentSong.id);
     const text = encodeURIComponent(
-      `🎵 I created a personalized song titled "${currentSong.title}" for ${currentSong.target} on mygiftsong.org (AI Assisted Song Generator)!\n` +
-      `Occasion: ${currentSong.context}\n` +
-      `Check out this custom acoustic masterpiece! 🌟`
+      `🎵 I created a personalized song titled "${currentSong.title}" for ${currentSong.target} on www.mygiftsong.org!\n\n` +
+      `👉 Click to Open & Play Your Song:\n${songLink}\n\n` +
+      `🔊 Direct Link to Song Audio:\n${audioLink}\n\n` +
+      `🌐 Created at https://www.mygiftsong.org 🌟`
     );
-    window.open(`https://api.whatsapp.com/send?text=${text}`, "_blank");
+    window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
   };
 
   const handleCopyLyrics = () => {
     if (!currentSong) return;
+    const { songLink, audioLink } = getCanonicalSongLinks(currentSong.id);
     const text = currentSong.lyricSections.map(s => 
       `[${s.sectionName}]\n` + s.lines.join("\n")
     ).join("\n\n");
 
-    navigator.clipboard.writeText(`"${currentSong.title}" for ${currentSong.target}\n\n${text}`);
+    navigator.clipboard.writeText(
+      `"${currentSong.title}" — Dedicated to ${currentSong.target}\n` +
+      `🎵 Listen to Song: ${songLink}\n` +
+      `🔊 Direct Audio Link: ${audioLink}\n\n` +
+      `${text}\n\n` +
+      `Created on https://www.mygiftsong.org`
+    );
     setCopiedLyrics(true);
     setTimeout(() => setCopiedLyrics(false), 2000);
+  };
+
+  // Update lyrics after song creation and optionally re-sing the studio song audio
+  const handleUpdateSongLyrics = async (newLyricsText: string, shouldResingAudio?: boolean) => {
+    if (!currentSong || !newLyricsText.trim()) return;
+
+    const rawLines = newLyricsText.split("\n").map((l) => l.trim()).filter(Boolean);
+    const introSection = currentSong.lyricSections.find((s) => s.sectionName === "Intro");
+    const nonIntroExisting = currentSong.lyricSections.filter((s) => s.sectionName !== "Intro");
+
+    const parsedSections: typeof currentSong.lyricSections = [];
+    let currentSectionName = nonIntroExisting[0]?.sectionName || "Verse 1";
+    let currentLines: string[] = [];
+
+    for (const line of rawLines) {
+      const headerMatch = line.match(/^\[(.+)\]$/);
+      if (headerMatch) {
+        if (currentLines.length > 0) {
+          parsedSections.push({
+            sectionName: currentSectionName,
+            lines: currentLines,
+            timestamps: currentLines.map((_, idx) => (parsedSections.length * 16) + idx * 4),
+            chords: currentLines.map((_, idx) => ["G", "C", "Em", "D"][idx % 4]),
+          });
+          currentLines = [];
+        }
+        currentSectionName = headerMatch[1].trim();
+      } else {
+        currentLines.push(line);
+      }
+    }
+
+    if (currentLines.length > 0) {
+      parsedSections.push({
+        sectionName: currentSectionName,
+        lines: currentLines,
+        timestamps: currentLines.map((_, idx) => (parsedSections.length * 16) + idx * 4),
+        chords: currentLines.map((_, idx) => ["G", "C", "Em", "D"][idx % 4]),
+      });
+    }
+
+    const updatedSections = introSection
+      ? [introSection, ...parsedSections]
+      : parsedSections;
+
+    setAllVariations((prev) =>
+      prev.map((song, idx) =>
+        idx === activeVariationIdx
+          ? { ...song, lyricSections: updatedSections }
+          : song
+      )
+    );
+
+    if (shouldResingAudio) {
+      const plainLyricsOnly = parsedSections.flatMap((s) => s.lines).join("\n");
+      setIsSwitchingTrack(true);
+      try {
+        const res = await fetch("/api/generate-haddi-audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: `${currentSong.context || context || "Special blessing song"}. ${plainLyricsOnly}`,
+            target: currentSong.target || target || "Someone Special",
+            genre: currentSong.genre || customGenre,
+            lyrics: plainLyricsOnly,
+            mode: "lyria",
+            useClipModel: (currentSong.setType || setType) === "quick",
+            setType: currentSong.setType || setType,
+            language: currentSong.language || songLanguage,
+            artistPersona: currentSong.artistPersona || artistPersona,
+            shareId: currentSong.id,
+          }),
+        });
+        const data = await res.json();
+        if (data?.directAudioUrl) {
+          const origin = getPublicOrigin();
+          setDirectAudioUrl(
+            data.directAudioUrl.startsWith("http")
+              ? data.directAudioUrl
+              : `${origin}${data.directAudioUrl}`
+          );
+        }
+        if (data?.shareableSongUrl) {
+          setShareableSongUrl(data.shareableSongUrl);
+        }
+        const freshUrl = data?.lyriaAudioUrl || data?.audioUrl || null;
+        if (freshUrl) {
+          setLyriaAudioUrl(freshUrl);
+          setActiveTrackType("lyria");
+          setAudioUrl(freshUrl);
+          setAudioSource(freshUrl);
+        }
+      } catch (err) {
+        console.warn("Re-singing edited lyrics error:", err);
+      } finally {
+        setIsSwitchingTrack(false);
+      }
+    }
   };
 
   // Render format helper
@@ -1696,6 +1910,7 @@ export default function App() {
                               userWords={currentSong?.context || context}
                               recipientName={currentSong?.target || target || "Someone Special"}
                               artistPersona={currentSong?.artistPersona || artistPersona}
+                              onUpdateLyrics={handleUpdateSongLyrics}
                             />
                           </div>
                         )}
@@ -2013,6 +2228,14 @@ export default function App() {
                             <p className="text-[11px] text-slate-600 leading-relaxed">
                               <strong>1-Time Redo Policy:</strong> You get <strong>1 redo option</strong> across your 5 free songs. Once used, whatever song is generated is kept for the remaining 4 songs.
                             </p>
+                          </div>
+
+                          {/* Notice: Please Check Lyrics Before Creating a Song */}
+                          <div className="p-3 rounded-xl bg-amber-50 border border-amber-300 text-xs text-amber-950 font-medium flex items-center gap-2">
+                            <span className="text-amber-700 font-bold shrink-0">⚠️ NOTICE:</span>
+                            <span>
+                              <strong>PLEASE CHECK LYRICS BEFORE CREATING A SONG.</strong> Double-check spelling and names above, or use the <strong>Edit Lyrics</strong> button on the next screen after your song is created!
+                            </span>
                           </div>
 
                           {/* Submit Button */}
@@ -2338,7 +2561,10 @@ export default function App() {
 
                         {/* Gift Song Card */}
                         <GiftSongCard
+                          songId={currentSong.id}
                           audioUrl={audioSource || audioUrl}
+                          directAudioUrl={getCanonicalSongLinks(currentSong.id).audioLink}
+                          shareableSongUrl={getCanonicalSongLinks(currentSong.id).songLink}
                           lyriaAudioUrl={lyriaAudioUrl}
                           narrationAudioUrl={narrationAudioUrl}
                           activeTrackType={activeTrackType}
@@ -2353,6 +2579,7 @@ export default function App() {
                           userWords={currentSong.context || context}
                           recipientName={currentSong.target}
                           artistPersona={currentSong.artistPersona || artistPersona}
+                          onUpdateLyrics={handleUpdateSongLyrics}
                         />
 
                         {/* Strict 1-Time Redo Policy Controls */}
@@ -2419,6 +2646,7 @@ export default function App() {
                           isTranslating={isTranslatingSong}
                           onSelectLanguage={(lang) => handleTranslateCurrentSong(lang, false)}
                           onReSingInLanguage={(lang) => handleTranslateCurrentSong(lang, true)}
+                          onUpdateLyrics={handleUpdateSongLyrics}
                         />
                       </div>
                     </div>
@@ -2470,7 +2698,38 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="border border-stone-200 rounded-xl p-5 bg-stone-50/70 max-h-[240px] overflow-y-auto text-left space-y-4">
+              {/* Direct Link to Song Audio & Song Page inside Printable Keepsake Gift Card */}
+              <div className="rounded-xl bg-teal-50 border border-teal-200 p-4 text-left space-y-2">
+                <p className="text-[11px] font-mono uppercase tracking-wider text-teal-900 font-bold">
+                  🔊 Listen to Your Custom Song Audio:
+                </p>
+                <div className="space-y-1 text-xs">
+                  <p className="font-mono text-[11px] text-teal-800 break-all">
+                    <strong>Audio Link:</strong>{" "}
+                    <a
+                      href={getCanonicalSongLinks(currentSong.id).audioLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-teal-950"
+                    >
+                      {getCanonicalSongLinks(currentSong.id).audioLink}
+                    </a>
+                  </p>
+                  <p className="font-mono text-[11px] text-teal-800 break-all">
+                    <strong>Song Page:</strong>{" "}
+                    <a
+                      href={getCanonicalSongLinks(currentSong.id).songLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="underline hover:text-teal-950"
+                    >
+                      {getCanonicalSongLinks(currentSong.id).songLink}
+                    </a>
+                  </p>
+                </div>
+              </div>
+
+              <div className="border border-stone-200 rounded-xl p-5 bg-stone-50/70 max-h-[210px] overflow-y-auto text-left space-y-4">
                 {currentSong.lyricSections.filter(s => s.sectionName !== "Intro").map((section, idx) => (
                   <div key={idx} className="space-y-1 text-xs">
                     <p className="font-mono text-[10px] text-teal-700 font-bold uppercase">{section.sectionName}</p>
@@ -2483,17 +2742,29 @@ export default function App() {
 
               <div className="flex justify-between items-center pt-4 border-t border-stone-200 text-[10px] font-mono text-slate-400">
                 <span>AI ASSISTED SONG GENERATOR</span>
-                <span className="uppercase">mygiftsong.org • {currentSong.genre}</span>
+                <span className="uppercase">www.mygiftsong.org • {currentSong.genre}</span>
               </div>
 
-              <div className="pt-2 flex justify-center gap-3">
+              <div className="pt-2 flex flex-wrap justify-center gap-2.5">
                 <button
                   type="button"
                   onClick={handleCopyLyrics}
                   className="px-4 py-2 bg-teal-700 hover:bg-teal-800 text-white text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
                 >
                   {copiedLyrics ? <Check size={14} /> : <Copy size={14} />}
-                  {copiedLyrics ? "Copied Lyrics!" : "Copy Full Lyrics"}
+                  {copiedLyrics ? "Copied Lyrics + Audio Link!" : "Copy Lyrics + Audio Link"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    navigator.clipboard.writeText(getCanonicalSongLinks(currentSong.id).audioLink);
+                    setCopiedAudioLinkModal(true);
+                    setTimeout(() => setCopiedAudioLinkModal(false), 2000);
+                  }}
+                  className="px-4 py-2 bg-stone-100 hover:bg-stone-200 text-slate-800 border border-stone-200 text-xs font-semibold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer"
+                >
+                  {copiedAudioLinkModal ? <Check size={14} /> : <Copy size={14} />}
+                  {copiedAudioLinkModal ? "Copied Audio Link!" : "Copy Direct Audio Link"}
                 </button>
               </div>
             </div>
