@@ -1816,24 +1816,31 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
     artistPersona = "yosia",
     cardTheme = "birthday",
     customGreetingScript = "",
+    customGreetingText = "",
     language = "English",
     shareId: requestedShareId,
   } = req.body;
 
   const cleanRecipient = (recipientName || "My Friend").trim();
   const personaName = artistPersona === "yosia" ? "Yosia" : "Haddi";
-  const extractedWords = extractUserWordsFromContext(userWords) || lyrics.split("\n").filter((l: string) => l && !l.startsWith("[")).slice(0, 2).join(" ");
+  const extractedWords =
+    extractUserWordsFromContext(userWords) ||
+    lyrics
+      .split("\n")
+      .filter((l: string) => l && !l.startsWith("["))
+      .slice(0, 2)
+      .join(" ");
   const conciseWords = extractedWords
     ? extractedWords.split(/\s+/).slice(0, 18).join(" ")
     : cardTheme === "birthday"
     ? "May God bless you with joy, laughter, and a big smile today!"
     : "May God's love, grace, and joy shine brightly on you today!";
 
-  const greetingScript = (customGreetingScript || "").trim() || (
-    cardTheme === "birthday"
+  const greetingScript =
+    (customGreetingScript || customGreetingText || "").trim() ||
+    (cardTheme === "birthday"
       ? `Hi ${cleanRecipient}! This is ${personaName}, wishing you a happy, blessed birthday! ${conciseWords}`
-      : `Hi ${cleanRecipient}! This is ${personaName}, sending you a joyful, blessed song today! ${conciseWords}`
-  );
+      : `Hi ${cleanRecipient}! This is ${personaName}, sending you a joyful, blessed song today! ${conciseWords}`);
 
   const shareId = normalizeShareId(requestedShareId);
 
@@ -1907,12 +1914,17 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
           userWords: extractedWords,
           greetingBuffer: mixedWav,
         });
+        const dataUri = `data:audio/wav;base64,${mixedWav.toString("base64")}`;
+        const hostedPath = `/api/songs/${shareId}/greeting.wav`;
         return res.json({
           success: true,
+          hasSpokenVoice: true,
           shareId,
           greetingScript,
-          greetingAudioUrl: `/api/songs/${shareId}/greeting.wav`,
-          greetingDataUrl: `data:audio/wav;base64,${mixedWav.toString("base64")}`,
+          greetingAudioUrl: hostedPath,
+          audioUrl: hostedPath,
+          greetingDataUrl: dataUri,
+          audioDataUrl: dataUri,
         });
       }
     }
@@ -1929,12 +1941,17 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
     userWords: extractedWords,
     greetingBuffer: guitarWav,
   });
+  const fallbackDataUri = `data:audio/wav;base64,${guitarWav.toString("base64")}`;
+  const fallbackHostedPath = `/api/songs/${shareId}/greeting.wav`;
   return res.json({
     success: true,
+    hasSpokenVoice: false,
     shareId,
     greetingScript,
-    greetingAudioUrl: `/api/songs/${shareId}/greeting.wav`,
-    greetingDataUrl: `data:audio/wav;base64,${guitarWav.toString("base64")}`,
+    greetingAudioUrl: fallbackHostedPath,
+    audioUrl: fallbackHostedPath,
+    greetingDataUrl: fallbackDataUri,
+    audioDataUrl: fallbackDataUri,
   });
 });
 

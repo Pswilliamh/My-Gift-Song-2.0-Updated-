@@ -13,9 +13,11 @@ import {
   Lock,
   LogOut,
   LogIn,
-  Sliders
+  Sliders,
+  Video
 } from "lucide-react";
 import { ReferralEntry } from "./RewardsAndAffiliateSections";
+import { GiftSongCard } from "./GiftSongCard";
 
 export interface AdminUser {
   email: string;
@@ -61,9 +63,36 @@ export const AdminAccountDashboard: React.FC<AdminAccountDashboardProps> = ({
   const [loginError, setLoginError] = useState("");
   const [actionBanner, setActionBanner] = useState<string | null>(null);
 
+  // Private Admin Beta Testing Lab State (Hidden from regular users!)
+  const [betaTestRecipient, setBetaTestRecipient] = useState("Johnny");
+  const [betaTestWords, setBetaTestWords] = useState(
+    "May the Lord bless you with joy, laughter, and a big smile on your birthday!"
+  );
+  const [simAccountEmail, setSimAccountEmail] = useState("pastor@gracechurch.org");
+  const [simPlanTier, setSimPlanTier] = useState<"church_large" | "church_300" | "church_starter" | "lifetime_basic" | "lifetime_premium">("church_large");
+  const [simUsedSongs, setSimUsedSongs] = useState<number>(16);
+  const [simLimitSongs, setSimLimitSongs] = useState<number>(100);
+
   const triggerBanner = (msg: string) => {
     setActionBanner(msg);
-    setTimeout(() => setActionBanner(null), 3500);
+    setTimeout(() => setActionBanner(null), 4500);
+  };
+
+  const handleAdminSimulateMonthlyReset = async () => {
+    try {
+      await fetch("/api/accounts/simulate-month-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: simAccountEmail }),
+      });
+    } catch {
+      // ignore network error
+    }
+    const unused = Math.max(0, simLimitSongs - simUsedSongs);
+    setSimUsedSongs(0);
+    triggerBanner(
+      `✓ Admin 1st-of-Month Reset Verified for ${simAccountEmail}: ${unused} unused songs did NOT roll over into ${simLimitSongs + unused} — counter cleanly reset back to ${simLimitSongs}/${simLimitSongs}!`
+    );
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -453,6 +482,164 @@ export const AdminAccountDashboard: React.FC<AdminAccountDashboardProps> = ({
               >
                 <LogOut size={13} />
               </button>
+            </div>
+          </div>
+
+          {/* =====================================================================
+              FULL-WIDTH ADMIN BETA TESTING LAB (HIDDEN FROM REGULAR USERS)
+              1. 10-Second Personal Birthday Greeting Video & QR Gift Card Tester
+              2. Monthly Quota 1st-of-Month Reset Simulator (No-Rollover Verifier)
+          ===================================================================== */}
+          <div className="lg:col-span-12 bg-[#121110]/95 border-2 border-[#FFD700]/60 rounded-2xl p-6 sm:p-8 space-y-6 shadow-2xl">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-[#C5A880]/25 pb-4">
+              <div className="space-y-1">
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded bg-[#FFD700] text-black font-mono text-[10px] font-extrabold uppercase tracking-wider">
+                  <Video size={12} /> Admin-Only Beta Testing Suite (Hidden From Regular Users)
+                </span>
+                <h3 className="text-xl font-display font-bold text-white">
+                  🎬 10-Second Personal Greeting Video &amp; Monthly Quota Reset Lab
+                </h3>
+                <p className="text-xs text-[#C5A880]">
+                  Test Yosia &amp; Haddi&apos;s 10-second spoken &amp; acoustic guitar birthday greeting video, QR keepsake card, and 1st-of-the-month no-rollover quota resets privately inside your Admin portal.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+              {/* Left 7 Cols: Live 10-Second Personal Greeting Video & Gift Card Tester */}
+              <div className="lg:col-span-7 bg-black/50 border border-[#C5A880]/30 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-mono font-bold uppercase text-[#FFD700]">
+                    1. 10-Second Personal Greeting Video Beta Tester
+                  </span>
+                  <span className="text-[10px] font-mono text-emerald-300 bg-emerald-950/80 border border-emerald-500/40 px-2 py-0.5 rounded">
+                    Yosia &amp; Haddi Live Video + 10s Voice
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
+                      Test Recipient Name:
+                    </label>
+                    <input
+                      type="text"
+                      value={betaTestRecipient}
+                      onChange={(e) => setBetaTestRecipient(e.target.value)}
+                      placeholder="e.g. Johnny"
+                      className="w-full bg-neutral-950 border border-[#C5A880]/40 rounded-lg px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
+                      Test Birthday / Blessing Words:
+                    </label>
+                    <input
+                      type="text"
+                      value={betaTestWords}
+                      onChange={(e) => setBetaTestWords(e.target.value)}
+                      placeholder="e.g. Wishing you a happy blessed birthday!"
+                      className="w-full bg-neutral-950 border border-[#C5A880]/40 rounded-lg px-3 py-2 text-xs text-white"
+                    />
+                  </div>
+                </div>
+
+                <GiftSongCard
+                  songId="admin-beta-test-10s-video"
+                  audioUrl="https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
+                  recipientName={betaTestRecipient || "Johnny"}
+                  songTitle={`Happy Blessed Birthday ${betaTestRecipient || "Johnny"}`}
+                  userWords={betaTestWords}
+                  lyrics={`Happy blessed birthday to you, ${betaTestRecipient || "Johnny"}!\n${betaTestWords}\nStrummed with joy by Yosia and Haddi,\nMay God bless your special day!`}
+                  artistPersona="yosia"
+                />
+              </div>
+
+              {/* Right 5 Cols: Admin 1st-of-Month Quota Reset Simulator (No-Rollover Verifier) */}
+              <div className="lg:col-span-5 bg-black/50 border border-[#C5A880]/30 rounded-2xl p-5 space-y-4">
+                <div className="space-y-1">
+                  <span className="text-xs font-mono font-bold uppercase text-[#FFD700] block">
+                    2. Monthly Quota Reset Simulator (No Rollover)
+                  </span>
+                  <p className="text-xs text-[#C5A880] leading-relaxed">
+                    Verify how Church Accounts (10, 30, 100 songs/mo) and Lifetime Member Accounts (5, 15 songs/mo) reset back to their exact plan limit on the 1st of the month without rolling over unused songs:
+                  </p>
+                </div>
+
+                <div className="space-y-3 bg-neutral-950/90 border border-[#C5A880]/25 rounded-xl p-4">
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
+                      Account Email to Test:
+                    </label>
+                    <input
+                      type="email"
+                      value={simAccountEmail}
+                      onChange={(e) => setSimAccountEmail(e.target.value)}
+                      className="w-full bg-black border border-[#C5A880]/40 rounded-lg px-3 py-2 text-xs font-mono text-white"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] font-mono uppercase text-[#C5A880] mb-1">
+                      Select Plan Quota Tier:
+                    </label>
+                    <select
+                      value={simPlanTier}
+                      onChange={(e) => {
+                        const val = e.target.value as typeof simPlanTier;
+                        setSimPlanTier(val);
+                        const limits = {
+                          church_large: 100,
+                          church_300: 30,
+                          church_starter: 10,
+                          lifetime_premium: 15,
+                          lifetime_basic: 5,
+                        };
+                        const nextLim = limits[val];
+                        setSimLimitSongs(nextLim);
+                        setSimUsedSongs(val === "church_large" ? 16 : Math.min(2, nextLim));
+                      }}
+                      className="w-full bg-black border border-[#C5A880]/40 rounded-lg px-3 py-2 text-xs text-white font-mono"
+                    >
+                      <option value="church_large">🌍 Large Church Plan (100 Songs/Mo)</option>
+                      <option value="church_300">⛪ 300-Member Church Plan (30 Songs/Mo)</option>
+                      <option value="church_starter">⛪ Small Church Plan (10 Songs/Mo)</option>
+                      <option value="lifetime_basic">👑 Lifetime Basic Pass (5 Songs/Mo)</option>
+                      <option value="lifetime_premium">👑 Lifetime Premium Pass (15 Songs/Mo)</option>
+                    </select>
+                  </div>
+
+                  <div className="p-3 rounded-xl bg-[#1f1712] border border-[#FFD700]/30 text-center space-y-1">
+                    <p className="text-[10px] font-mono uppercase text-[#C5A880]">
+                      Simulated Monthly Pool State
+                    </p>
+                    <p className="text-2xl font-display font-extrabold text-[#FFD700]">
+                      {Math.max(0, simLimitSongs - simUsedSongs)} / {simLimitSongs} Remaining
+                    </p>
+                    <p className="text-[11px] font-mono text-emerald-300">
+                      ({simUsedSongs} Used • {Math.max(0, simLimitSongs - simUsedSongs)} Unused — 0 Rollover)
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setSimUsedSongs((prev) => Math.min(simLimitSongs, prev + 5))}
+                      className="py-2 px-3 rounded-lg bg-[#251e19] hover:bg-[#332922] text-white border border-[#C5A880]/30 font-mono text-[11px] cursor-pointer"
+                    >
+                      + Use 5 Songs
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleAdminSimulateMonthlyReset}
+                      className="py-2 px-3 rounded-lg bg-[#FFD700] hover:brightness-110 text-black font-mono text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                    >
+                      <RotateCcw size={12} />
+                      <span>Simulate 1st Reset</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>

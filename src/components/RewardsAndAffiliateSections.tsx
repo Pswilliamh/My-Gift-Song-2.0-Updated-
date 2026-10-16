@@ -719,14 +719,9 @@ export const RewardsAndAffiliateSections: React.FC<RewardsAndAffiliateProps> = (
                     <span className="text-xs font-mono font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200">
                       {Math.max(0, memberMonthlyLimit - memberUsedThisMonth)} / {memberMonthlyLimit} Songs Available This Month
                     </span>
-                    <button
-                      type="button"
-                      onClick={handleSimulateMemberMonthReset}
-                      className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-semibold flex items-center gap-1 cursor-pointer"
-                    >
-                      <RotateCcw size={11} />
-                      <span>Simulate 1st-of-Month Reset</span>
-                    </button>
+                    <span className="px-2 py-1 rounded-lg bg-stone-100 text-slate-600 border border-stone-200 text-[10px] font-mono font-bold">
+                      Resets 1st of Mo (No Rollover)
+                    </span>
                   </div>
                 </div>
 

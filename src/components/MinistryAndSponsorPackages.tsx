@@ -835,17 +835,9 @@ export const MinistryAndSponsorPackages: React.FC<MinistryAndSponsorPackagesProp
             <p className="text-[11px] text-slate-600 font-medium">
               Songs Remaining This Month ({songsUsedThisMonth} Used)
             </p>
-            <div className="pt-1 flex flex-wrap items-center justify-center gap-1.5">
-              <button
-                type="button"
-                onClick={handleSimulateFirstOfMonthReset}
-                className="px-2.5 py-1 rounded-lg bg-teal-600 hover:bg-teal-700 text-white text-[11px] font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                title="Test what happens on the 1st of the next month (resets back to plan limit with 0 rollover)"
-              >
-                <RotateCcw size={11} />
-                <span>Simulate 1st-of-Month Reset</span>
-              </button>
-            </div>
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-teal-50 text-teal-800 border border-teal-200 text-[10px] font-mono font-bold">
+              Resets 1st of Every Month • No Rollover
+            </span>
           </div>
         </div>
 

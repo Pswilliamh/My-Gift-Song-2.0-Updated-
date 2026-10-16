@@ -134,6 +134,8 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const loadedImageRef = useRef<HTMLImageElement | null>(null);
+  const stageVideoRef = useRef<HTMLVideoElement | null>(null);
+  const hasServerVoiceRef = useRef<boolean>(true);
   const animFrameRef = useRef<number | null>(null);
   const previewAudioRef = useRef<HTMLAudioElement | null>(null);
   const previewAudioCtxRef = useRef<AudioContext | null>(null);
@@ -210,8 +212,18 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     }
   };
 
-  // Load real Yosia or Haddi photo onto canvas (Never use a generic cartoon!)
+  // Load real Yosia or Haddi video AND photo onto canvas (Never use a generic cartoon!)
   useEffect(() => {
+    const vid = document.createElement("video");
+    vid.crossOrigin = "anonymous";
+    vid.muted = true;
+    vid.loop = true;
+    vid.playsInline = true;
+    vid.src =
+      characterChoice === "yosia" ? "/video/yosia-children.mp4" : "/video/song-gift.mp4";
+    vid.play().catch(() => {});
+    stageVideoRef.current = vid;
+
     const img = new Image();
     img.crossOrigin = "anonymous";
     let savedYosia: string | null = null;
@@ -223,8 +235,8 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
     if (customCharacterImage) {
       img.src = customCharacterImage;
-    } else if (characterChoice === "yosia") {
-      img.src = savedYosia || "/images/yosia-boy.png";
+    } else if (characterChoice === "yosia" && savedYosia) {
+      img.src = savedYosia;
     } else {
       img.src = "/images/guiter-rescaled-9music.png";
     }
@@ -232,14 +244,13 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     img.onload = () => {
       loadedImageRef.current = img;
     };
-    img.onerror = () => {
-      // Fallback to secondary real photo if primary path fails
-      const fallbackImg = new Image();
-      fallbackImg.crossOrigin = "anonymous";
-      fallbackImg.src = "/images/guiter-rescaled-9music.png";
-      fallbackImg.onload = () => {
-        loadedImageRef.current = fallbackImg;
-      };
+
+    return () => {
+      try {
+        vid.pause();
+      } catch {
+        // ignore
+      }
     };
   }, [characterChoice, customCharacterImage]);
 
@@ -303,12 +314,19 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           artistPersona: characterChoice,
           cardTheme,
           userWords: cleanUserWords,
+          customGreetingScript: greetingScript,
           customGreetingText: greetingScript,
           shareId: songId,
         }),
       });
       const data = await response.json();
-      const newGreetingUrl = data?.audioDataUrl || data?.audioUrl || null;
+      hasServerVoiceRef.current = data?.hasSpokenVoice !== false;
+      const newGreetingUrl =
+        data?.greetingDataUrl ||
+        data?.audioDataUrl ||
+        data?.greetingAudioUrl ||
+        data?.audioUrl ||
+        null;
       if (newGreetingUrl) {
         setTenSecGreetingAudioUrl(newGreetingUrl);
         try {
@@ -404,7 +422,15 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     ctx.closePath();
     ctx.clip();
 
-    if (loadedImageRef.current) {
+    const vidEl = stageVideoRef.current;
+    if (!customCharacterImage && vidEl && vidEl.readyState >= 2 && vidEl.videoWidth > 0) {
+      // Draw real moving video of Yosia (/video/yosia-children.mp4) or Haddi (/video/song-gift.mp4)!
+      const zoom = 1.02 + voicePulse * 0.025;
+      const scale = Math.max(stageW / vidEl.videoWidth, stageH / vidEl.videoHeight) * zoom;
+      const drawW = vidEl.videoWidth * scale;
+      const drawH = vidEl.videoHeight * scale;
+      ctx.drawImage(vidEl, centerX - drawW / 2, centerY - drawH / 2, drawW, drawH);
+    } else if (loadedImageRef.current) {
       const img = loadedImageRef.current;
       // Subtle cinema pan + voice-synced breathing zoom on the real photo
       const zoom = 1.04 + Math.sin(t * 1.6) * 0.025 + voicePulse * 0.035;
@@ -671,9 +697,29 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     stop10sAudioNodes();
     pauseOtherPageAudio();
 
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+    }
+    if (stageVideoRef.current) {
+      stageVideoRef.current.currentTime = 0;
+      stageVideoRef.current.play().catch(() => {});
+    }
+
     modeStartRef.current = performance.now();
     setVideoCountdown(10);
     setIsPreviewing10sVideo(true);
+
+    // If the server returned the guitar-only backing WAV (e.g. if TTS was rate-limited), layer browser speech synthesis so the greeting is ALWAYS spoken out loud!
+    if (!hasServerVoiceRef.current && typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        const utter = new SpeechSynthesisUtterance(greetingScript);
+        utter.rate = 1.02;
+        utter.pitch = characterChoice === "yosia" ? 1.18 : 0.98;
+        window.speechSynthesis.speak(utter);
+      } catch {
+        // ignore speech synthesis error
+      }
+    }
 
     try {
       let cached = decodedGreetingBufferRef.current;
@@ -1351,6 +1397,23 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
             )}
           </button>
         </div>
+
+        {/* Direct 10-Second Greeting Audio Player (Verify Voice + Guitar Track) */}
+        {tenSecGreetingAudioUrl && (
+          <div className="rounded-xl bg-white border border-teal-200 p-2.5 space-y-1">
+            <div className="flex items-center justify-between text-[10px] font-bold text-teal-900">
+              <span>
+                🎤 {characterChoice === "yosia" ? "Yosia's" : "Haddi's"} 10-Second Spoken &amp; Guitar Audio Track:
+              </span>
+              <span className="text-emerald-700 font-mono">● 10s Ready</span>
+            </div>
+            <audio
+              controls
+              src={tenSecGreetingAudioUrl}
+              className="w-full h-8 accent-teal-700"
+            />
+          </div>
+        )}
 
         {recordedVideoUrl && (
           <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 space-y-2 text-xs text-emerald-950">
