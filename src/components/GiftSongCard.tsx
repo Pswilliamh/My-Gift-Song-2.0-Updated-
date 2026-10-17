@@ -21,6 +21,9 @@ import {
 import { QRCodeSVG } from "qrcode.react";
 import {
   safeParseJson,
+  apiFetchJson,
+  resolveBackendMediaUrl,
+  LIVE_BACKEND_ORIGINS,
   synthesizeClientAcousticSongWavDataUrl,
 } from "../utils/clientSongGenerator";
 
@@ -58,7 +61,7 @@ function extractCleanUserWords(rawContext?: string): string {
   return cleaned;
 }
 
-// Convert a data: URI or fetchable URL into an ArrayBuffer for Web Audio decoding
+// Convert a data: URI or fetchable URL into an ArrayBuffer for Web Audio decoding (with live backend fallback on Vercel)
 async function fetchAudioArrayBuffer(src: string): Promise<ArrayBuffer> {
   if (src.startsWith("data:")) {
     const commaIdx = src.indexOf(",");
@@ -70,8 +73,31 @@ async function fetchAudioArrayBuffer(src: string): Promise<ArrayBuffer> {
     }
     return bytes.buffer;
   }
-  const resp = await fetch(src);
-  return await resp.arrayBuffer();
+  const resolved = resolveBackendMediaUrl(src);
+  try {
+    const resp = await fetch(resolved);
+    if (resp.ok) {
+      const ct = resp.headers.get("content-type") || "";
+      if (!ct.includes("text/html")) {
+        return await resp.arrayBuffer();
+      }
+    }
+  } catch {
+    // try remote backend origins below
+  }
+  const pathPart = src.startsWith("http") ? new URL(src).pathname : src;
+  for (const origin of LIVE_BACKEND_ORIGINS) {
+    try {
+      const r = await fetch(`${origin}${pathPart.startsWith("/") ? pathPart : `/${pathPart}`}`, { mode: "cors" });
+      if (r.ok) {
+        return await r.arrayBuffer();
+      }
+    } catch {
+      // continue
+    }
+  }
+  const fallbackResp = await fetch(src);
+  return await fallbackResp.arrayBuffer();
 }
 
 export const GiftSongCard: React.FC<GiftSongCardProps> = ({
@@ -98,7 +124,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   const [copiedNarrationLink, setCopiedNarrationLink] = useState(false);
   const [copiedCardWithAudio, setCopiedCardWithAudio] = useState(false);
   const [cardQrTarget, setCardQrTarget] = useState<"song" | "audio">("song");
-  const [tenSecAudioMode, setTenSecAudioMode] = useState<"songClip" | "spokenGreeting">("songClip");
+  const [tenSecAudioMode, setTenSecAudioMode] = useState<"songClip" | "spokenGreeting">("spokenGreeting");
 
   // Lyrics editor state inside GiftSongCard
   const [isEditingCardLyrics, setIsEditingCardLyrics] = useState(false);
@@ -333,7 +359,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
     try {
       const cleanUserWords = extractCleanUserWords(userWords) || getHighlightLyrics().slice(0, 2).join(" ");
-      const response = await fetch("/api/generate-10s-greeting", {
+      const data = await apiFetchJson("/api/generate-10s-greeting", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -346,13 +372,12 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           shareId: songId,
         }),
       });
-      const data = await safeParseJson(response);
       hasServerVoiceRef.current = Boolean(data && data.hasSpokenVoice !== false);
       let newGreetingUrl: string | null =
         data?.greetingDataUrl ||
         data?.audioDataUrl ||
-        data?.greetingAudioUrl ||
-        data?.audioUrl ||
+        (data?.greetingAudioUrl ? resolveBackendMediaUrl(data.greetingAudioUrl) : null) ||
+        (data?.audioUrl ? resolveBackendMediaUrl(data.audioUrl) : null) ||
         null;
 
       if (!newGreetingUrl) {

@@ -28,6 +28,8 @@ import { SongData, SetType } from "../types";
 import { GiftSongCard } from "./GiftSongCard";
 import {
   safeParseJson,
+  apiFetchJson,
+  resolveBackendMediaUrl,
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
 } from "../utils/clientSongGenerator";
@@ -274,26 +276,21 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
     try {
       let generatedSong: SongData | null = null;
 
-      // 1. Try server /api/generate-song first, fall back cleanly on Vercel static hosting
-      try {
-        const res = await fetch("/api/generate-song", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            target: params.target,
-            context: params.context,
-            setType: params.setType,
-            customGenre: params.genre,
-            language: params.language,
-            artistPersona: "yosia",
-          }),
-        });
-        const data = await safeParseJson(res);
-        if (data?.success && data?.song) {
-          generatedSong = data.song;
-        }
-      } catch {
-        // Fallback below
+      // 1. Call /api/generate-song (automatically connecting to live AI Studio backend on GitHub/Vercel)
+      const data = await apiFetchJson("/api/generate-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: params.target,
+          context: params.context,
+          setType: params.setType,
+          customGenre: params.genre,
+          language: params.language,
+          artistPersona: "yosia",
+        }),
+      });
+      if (data?.success && data?.song) {
+        generatedSong = data.song;
       }
 
       if (!generatedSong) {
@@ -317,30 +314,27 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
       setYosiaCreatedSong(generatedSong);
       setYosiaEditableLyrics(compiledLyrics);
 
-      // 2. Try server /api/generate-haddi-audio first, fall back to client acoustic WAV synthesis on Vercel
+      // 2. Call /api/generate-haddi-audio (automatically connecting to live AI Studio backend on GitHub/Vercel)
       let finalAudioUrl: string | null = null;
-      try {
-        const audioRes = await fetch("/api/generate-haddi-audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: params.context,
-            mode: "lyria",
-            target: params.target,
-            customGenre: params.genre,
-            setType: params.setType,
-            lyrics: compiledLyrics,
-            language: params.language,
-            artistPersona: "yosia",
-            shareId: generatedSong.id,
-          }),
-        });
-        const audioData = await safeParseJson(audioRes);
-        if (audioData?.audioUrl || audioData?.lyriaAudioUrl) {
-          finalAudioUrl = audioData.lyriaAudioUrl || audioData.audioUrl;
-        }
-      } catch {
-        // Fallback below
+      const audioData = await apiFetchJson("/api/generate-haddi-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: params.context,
+          mode: "lyria",
+          target: params.target,
+          customGenre: params.genre,
+          setType: params.setType,
+          lyrics: compiledLyrics,
+          language: params.language,
+          artistPersona: "yosia",
+          shareId: generatedSong.id,
+          songObject: generatedSong,
+          songTitle: generatedSong.title,
+        }),
+      });
+      if (audioData?.lyriaAudioUrl || audioData?.audioUrl) {
+        finalAudioUrl = resolveBackendMediaUrl(audioData.lyriaAudioUrl || audioData.audioUrl);
       }
 
       if (!finalAudioUrl) {

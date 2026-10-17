@@ -10,6 +10,7 @@ import {
   Mail,
   Music,
 } from "lucide-react";
+import { apiFetchJson } from "../utils/clientSongGenerator";
 
 export interface SongReactionItem {
   id: string;
@@ -77,8 +78,7 @@ export const RecipientReactionAndThankYouCard: React.FC<
   // Also fetch latest reactions for this songId on mount
   useEffect(() => {
     if (!songId) return;
-    fetch(`/api/songs/${encodeURIComponent(songId)}`)
-      .then((r) => (r.ok ? r.json() : null))
+    apiFetchJson(`/api/songs/${encodeURIComponent(songId)}`)
       .then((data) => {
         if (data?.reactions && Array.isArray(data.reactions)) {
           setReactions(data.reactions);
@@ -94,7 +94,7 @@ export const RecipientReactionAndThankYouCard: React.FC<
     setSelectedLabel(label);
     setIsSubmitting(true);
     try {
-      const res = await fetch(`/api/songs/${encodeURIComponent(songId)}/react`, {
+      const data = await apiFetchJson(`/api/songs/${encodeURIComponent(songId)}/react`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -104,7 +104,6 @@ export const RecipientReactionAndThankYouCard: React.FC<
           fromName: senderFromName || recipientName || "Song Recipient",
         }),
       });
-      const data = await res.json();
       if (data?.reactions) {
         setReactions(data.reactions);
       }

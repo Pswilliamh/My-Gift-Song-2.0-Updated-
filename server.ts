@@ -342,6 +342,18 @@ function getAiClient(): GoogleGenAI {
 }
 
 const app = express();
+
+// Enable full CORS so GitHub/Vercel (www.mygiftsong.org) and any external client can call /api/* directly
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization, X-Requested-With");
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204);
+  }
+  next();
+});
+
 app.use(express.json({ limit: "10mb" }));
 
 // Port is hardcoded to 3000 by the environment constraints
@@ -2007,52 +2019,57 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
   const warnings: string[] = [];
 
   try {
-    // 1. Generate Lyria 3 Full Sung Studio Song whenever mode is "lyria" or "both"
-    if (mode === "lyria" || mode === "both") {
-      try {
-        const lyriaResult = await generateLyriaSongAudio(inputPrompt, {
-          target,
-          genre: customGenre,
-          lyrics,
-          useClipModel,
-          setType,
-          imageDataUrl,
-          language,
-          artistPersona,
-        });
-        lyriaAudioUrl = lyriaResult.audioUrl;
-        durationSeconds = lyriaResult.durationSeconds;
-        if (lyriaResult.lyrics && !generatedLyrics) {
-          generatedLyrics = lyriaResult.lyrics;
-        }
-        modelSource = `Google AI Studio Lyria 3 (${lyriaResult.modelUsed})`;
-      } catch (lyriaError: any) {
-        console.error("Lyria 3 song generation failed:", lyriaError);
-        warnings.push(`Lyria 3 notice: ${lyriaError?.message || "Unavailable"}`);
+    // Run Lyria 3 Sung Song and Gemini TTS Vocal Blessing in parallel so every song has real singing vocals AND spoken vocal blessing ready immediately
+    const shouldGenerateLyria = mode === "lyria" || mode === "both";
+    const shouldGenerateNarration = true;
+
+    const [lyriaOutcome, narrationOutcome] = await Promise.allSettled([
+      shouldGenerateLyria
+        ? generateLyriaSongAudio(inputPrompt, {
+            target,
+            genre: customGenre,
+            lyrics,
+            useClipModel,
+            setType,
+            imageDataUrl,
+            language,
+            artistPersona,
+          })
+        : Promise.resolve(null),
+      shouldGenerateNarration
+        ? generateHaddiSongAudio(
+            inputPrompt,
+            language,
+            artistPersona,
+            generatedLyrics,
+            setType,
+            target || "Someone Special"
+          )
+        : Promise.resolve(null),
+    ]);
+
+    if (lyriaOutcome.status === "fulfilled" && lyriaOutcome.value) {
+      lyriaAudioUrl = lyriaOutcome.value.audioUrl;
+      durationSeconds = lyriaOutcome.value.durationSeconds;
+      if (lyriaOutcome.value.lyrics && !generatedLyrics) {
+        generatedLyrics = lyriaOutcome.value.lyrics;
       }
+      modelSource = `Google AI Studio Lyria 3 (${lyriaOutcome.value.modelUsed})`;
+    } else if (lyriaOutcome.status === "rejected") {
+      console.error("Lyria 3 song generation failed:", lyriaOutcome.reason);
+      warnings.push(`Lyria 3 notice: ${lyriaOutcome.reason?.message || "Unavailable"}`);
     }
 
-    // 2. Generate Haddi / Yosia Spoken Acoustic Narration ONLY if mode is explicitly "narration" or "both", or if Lyria completely failed
-    if (mode === "narration" || mode === "both" || !lyriaAudioUrl) {
-      try {
-        const narrationBuffer = await generateHaddiSongAudio(
-          inputPrompt,
-          language,
-          artistPersona,
-          generatedLyrics,
-          setType,
-          target || "Someone Special"
-        );
-        narrationAudioUrl = `data:audio/wav;base64,${narrationBuffer.toString("base64")}`;
-        if (!modelSource) {
-          modelSource = "Google AI Studio TTS (Minstrel Narration)";
-        } else {
-          modelSource += " + Minstrel TTS Narration";
-        }
-      } catch (ttsError: any) {
-        console.error("Haddi TTS narration generation failed:", ttsError);
-        warnings.push(`Haddi TTS notice: ${ttsError?.message || "Unavailable"}`);
+    if (narrationOutcome.status === "fulfilled" && narrationOutcome.value) {
+      narrationAudioUrl = `data:audio/wav;base64,${narrationOutcome.value.toString("base64")}`;
+      if (!modelSource) {
+        modelSource = "Google AI Studio TTS (Minstrel Vocal Performance)";
+      } else {
+        modelSource += " + Minstrel TTS Vocal Blessing";
       }
+    } else if (narrationOutcome.status === "rejected") {
+      console.error("Haddi TTS narration generation failed:", narrationOutcome.reason);
+      warnings.push(`Haddi TTS notice: ${narrationOutcome.reason?.message || "Unavailable"}`);
     }
 
     const primaryAudioUrl =

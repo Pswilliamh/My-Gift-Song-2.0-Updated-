@@ -26,6 +26,8 @@ import { MinistryAndSponsorPackages } from "./components/MinistryAndSponsorPacka
 import { RecipientReactionAndThankYouCard } from "./components/RecipientReactionAndThankYouCard";
 import {
   safeParseJson,
+  apiFetchJson,
+  resolveBackendMediaUrl,
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
 } from "./utils/clientSongGenerator";
@@ -93,10 +95,11 @@ export default function App() {
 
   const setAudioSource = (url: string, autoPlayNow = true) => {
     luteEngineInstance.stopLutePlayback();
-    setAudioSourceState(url);
-    setAudioUrl(url);
+    const resolvedUrl = resolveBackendMediaUrl(url);
+    setAudioSourceState(resolvedUrl);
+    setAudioUrl(resolvedUrl);
     if (audioRef.current) {
-      audioRef.current.src = url;
+      audioRef.current.src = resolvedUrl;
       audioRef.current.load();
       if (autoPlayNow) {
         audioRef.current
@@ -134,7 +137,7 @@ export default function App() {
             .flatMap((s) => s.lines)
             .join("\n") || currentSong.context;
 
-        const res = await fetch("/api/generate-haddi-audio", {
+        const data = await apiFetchJson("/api/generate-haddi-audio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -149,17 +152,18 @@ export default function App() {
             shareId: currentSong.id,
           }),
         });
-        const data = await res.json();
-        if (data.directAudioUrl) setDirectAudioUrl(data.directAudioUrl);
-        if (data.shareableSongUrl) setShareableSongUrl(data.shareableSongUrl);
-        if (type === "lyria" && (data.lyriaAudioUrl || data.audioUrl)) {
-          const url = data.lyriaAudioUrl || data.audioUrl;
-          setLyriaAudioUrl(url);
-          setAudioSource(url);
-        } else if (type === "narration" && (data.narrationAudioUrl || data.audioUrl)) {
-          const url = data.narrationAudioUrl || data.audioUrl;
-          setNarrationAudioUrl(url);
-          setAudioSource(url);
+        if (data) {
+          if (data.directAudioUrl) setDirectAudioUrl(resolveBackendMediaUrl(data.directAudioUrl));
+          if (data.shareableSongUrl) setShareableSongUrl(data.shareableSongUrl);
+          if (type === "lyria" && (data.lyriaAudioUrl || data.audioUrl)) {
+            const url = resolveBackendMediaUrl(data.lyriaAudioUrl || data.audioUrl);
+            setLyriaAudioUrl(url);
+            setAudioSource(url);
+          } else if (type === "narration" && (data.narrationAudioUrl || data.audioUrl)) {
+            const url = resolveBackendMediaUrl(data.narrationAudioUrl || data.audioUrl);
+            setNarrationAudioUrl(url);
+            setAudioSource(url);
+          }
         }
       } catch (err) {
         console.warn("On-demand track switch generation error:", err);
@@ -518,13 +522,11 @@ export default function App() {
       setActiveSystemTab("studio");
       setIsRendering(true);
       setStage(2);
-      fetch(`/api/songs/${encodeURIComponent(sharedSongId)}`)
-        .then((r) => r.json())
-        .catch(() => null)
+      apiFetchJson(`/api/songs/${encodeURIComponent(sharedSongId)}`)
         .then((data) => {
           let loadedSong: SongData | null = data && data.success && data.song ? data.song : null;
-          let serverDirectAudioUrl: string | null = data?.directAudioUrl || null;
-          let serverDirectNarrationUrl: string | null = data?.directNarrationUrl || null;
+          let serverDirectAudioUrl: string | null = data?.directAudioUrl || data?.lyriaAudioUrl || null;
+          let serverDirectNarrationUrl: string | null = data?.narrationAudioUrl || data?.directNarrationUrl || null;
 
           if (!loadedSong) {
             try {
@@ -552,11 +554,9 @@ export default function App() {
             const origin = getPublicOrigin();
             setShareableSongUrl(`${origin}/?song=${encodeURIComponent(sharedSongId)}`);
 
-            const resolvedSongAudioUrl = serverDirectAudioUrl
-              ? serverDirectAudioUrl.startsWith("http")
-                ? serverDirectAudioUrl
-                : `${origin}${serverDirectAudioUrl}`
-              : `${origin}/api/songs/${encodeURIComponent(sharedSongId)}/audio`;
+            const resolvedSongAudioUrl = resolveBackendMediaUrl(
+              serverDirectAudioUrl || `/api/songs/${encodeURIComponent(sharedSongId)}/audio.mp3`
+            );
 
             setDirectAudioUrl(resolvedSongAudioUrl);
             setLyriaAudioUrl(resolvedSongAudioUrl);
@@ -565,10 +565,7 @@ export default function App() {
             setActiveTrackType("lyria");
 
             if (serverDirectNarrationUrl) {
-              const fullNarrationUrl = serverDirectNarrationUrl.startsWith("http")
-                ? serverDirectNarrationUrl
-                : `${origin}${serverDirectNarrationUrl}`;
-              setNarrationAudioUrl(fullNarrationUrl);
+              setNarrationAudioUrl(resolveBackendMediaUrl(serverDirectNarrationUrl));
             }
 
             setIsOpenedFromSharedLink(true);
@@ -937,25 +934,19 @@ export default function App() {
         setCurrentSong(returnedSong);
         setOriginalLyricSections(returnedSong.lyricSections);
       } else {
-        // 1. Submit Request to the Full-Stack server API (with seamless client-side fallback for static Vercel builds)
-        let data: any = null;
-        try {
-          const res = await fetch("/api/generate-song", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              target: targetVal.trim(),
-              context: contextVal.trim(),
-              setType: setTypeVal,
-              customGenre: customGenreVal,
-              language: languageVal,
-              artistPersona: personaVal,
-            }),
-          });
-          data = await safeParseJson(res);
-        } catch {
-          data = null;
-        }
+        // 1. Submit Request to the Full-Stack server API (with automatic live AI Studio backend connection on GitHub/Vercel)
+        let data: any = await apiFetchJson("/api/generate-song", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target: targetVal.trim(),
+            context: contextVal.trim(),
+            setType: setTypeVal,
+            customGenre: customGenreVal,
+            language: languageVal,
+            artistPersona: personaVal,
+          }),
+        });
 
         if (!data || !data.success || !data.song) {
           const fallback = buildClientFallbackSong({
@@ -987,7 +978,7 @@ export default function App() {
         }
       }
 
-      // 2. Generate Real AI Sung Music Track via Lyria 3 by default (or Client Acoustic WAV fallback on static Vercel)
+      // 2. Generate Real AI Sung Music Track via Lyria 3 + Vocal Blessing via live backend
       const compiledLyrics =
         returnedSong.lyricSections
           ?.filter((s) => s.sectionName !== "Intro")
@@ -997,54 +988,51 @@ export default function App() {
       const requestedMode = audioGenerationMode === "narration" ? "narration" : "lyria";
       const origin = getPublicOrigin();
       setShareableSongUrl(`${origin}/?song=${encodeURIComponent(returnedSong.id)}`);
-      setDirectAudioUrl(`${origin}/api/songs/${encodeURIComponent(returnedSong.id)}/audio`);
+      setDirectAudioUrl(resolveBackendMediaUrl(`/api/songs/${encodeURIComponent(returnedSong.id)}/audio.mp3`));
 
-      let audioData: any = null;
-      try {
-        const audioRes = await fetch("/api/generate-haddi-audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: contextVal.trim() || `A special ${customGenreVal} blessing song for ${targetVal.trim()}`,
-            mode: requestedMode,
-            target: targetVal.trim(),
-            customGenre: customGenreVal,
-            setType: setTypeVal,
-            lyrics: compiledLyrics,
-            language: languageVal,
-            artistPersona: personaVal,
-            shareId: returnedSong.id,
-            imageDataUrl: uploadedImages[0] || undefined,
-          }),
-        });
-        audioData = await safeParseJson(audioRes);
-      } catch {
-        audioData = null;
-      }
+      const audioData: any = await apiFetchJson("/api/generate-haddi-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: contextVal.trim() || `A special ${customGenreVal} blessing song for ${targetVal.trim()}`,
+          mode: requestedMode,
+          target: targetVal.trim(),
+          customGenre: customGenreVal,
+          setType: setTypeVal,
+          lyrics: compiledLyrics,
+          language: languageVal,
+          artistPersona: personaVal,
+          shareId: returnedSong.id,
+          songObject: returnedSong,
+          songTitle: returnedSong.title,
+          imageDataUrl: uploadedImages[0] || undefined,
+        }),
+      });
 
-      if (audioData && audioData.audioUrl) {
+      if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
         if (audioData.directAudioUrl) {
-          setDirectAudioUrl(
-            audioData.directAudioUrl.startsWith("http")
-              ? audioData.directAudioUrl
-              : `${origin}${audioData.directAudioUrl}`
-          );
+          setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
         }
         if (audioData.shareableSongUrl) {
-          setShareableSongUrl(audioData.shareableSongUrl);
+          setShareableSongUrl(
+            audioData.shareableSongUrl.startsWith("http")
+              ? audioData.shareableSongUrl
+              : `${origin}${audioData.shareableSongUrl}`
+          );
         }
-        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
-        if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
+        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
+        if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
         const initType =
           requestedMode === "narration" && audioData.narrationAudioUrl
             ? "narration"
             : audioData.lyriaAudioUrl
             ? "lyria"
             : "narration";
-        const primaryPlayUrl =
+        const primaryPlayUrl = resolveBackendMediaUrl(
           initType === "lyria"
             ? audioData.lyriaAudioUrl || audioData.audioUrl
-            : audioData.narrationAudioUrl || audioData.audioUrl;
+            : audioData.narrationAudioUrl || audioData.audioUrl
+        );
         setActiveTrackType(initType);
         setAudioSource(primaryPlayUrl);
       } else {
@@ -1080,7 +1068,7 @@ export default function App() {
     setIsTranslatingSong(true);
 
     try {
-      const res = await fetch("/api/translate-song", {
+      const data = await apiFetchJson("/api/translate-song", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1092,8 +1080,7 @@ export default function App() {
           targetLanguage,
         }),
       });
-      const data = await res.json();
-      if (data.success && data.song) {
+      if (data?.success && data?.song) {
         setCurrentSong(data.song);
       }
     } catch (err) {
@@ -1114,7 +1101,7 @@ export default function App() {
           .flatMap((s) => s.lines)
           .join("\n") || currentSong.context;
 
-      const audioRes = await fetch("/api/generate-haddi-audio", {
+      const audioData = await apiFetchJson("/api/generate-haddi-audio", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -1128,11 +1115,10 @@ export default function App() {
           artistPersona: currentSong.artistPersona || artistPersona,
         }),
       });
-      const audioData = await audioRes.json();
-      if (audioData.audioUrl) {
-        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
-        if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
-        setAudioSource(audioData.audioUrl);
+      if (audioData?.audioUrl) {
+        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
+        if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
+        setAudioSource(resolveBackendMediaUrl(audioData.audioUrl));
       }
     } catch (err) {
       console.warn("Re-sing audio error:", err);
@@ -1242,27 +1228,21 @@ export default function App() {
     }, 1500);
 
     try {
-      // 1. Prepare user's context payload and execute fetch request to `/api/generate-song` gateway (with client fallback on static Vercel)
-      let data: any = null;
-      try {
-        const res = await fetch("/api/generate-song", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            target: target.trim(),
-            context: context.trim(),
-            setType,
-            customGenre,
-            language: songLanguage,
-            artistPersona,
-            gifterEmail: gifterEmail.trim(),
-            recipientEmail: recipientEmail.trim(),
-          }),
-        });
-        data = await safeParseJson(res);
-      } catch {
-        data = null;
-      }
+      // 1. Prepare user's context payload and execute request to `/api/generate-song` gateway (with automatic live AI Studio backend connection on GitHub/Vercel)
+      let data: any = await apiFetchJson("/api/generate-song", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          target: target.trim(),
+          context: context.trim(),
+          setType,
+          customGenre,
+          language: songLanguage,
+          artistPersona,
+          gifterEmail: gifterEmail.trim(),
+          recipientEmail: recipientEmail.trim(),
+        }),
+      });
 
       if (!data || !data.success || !data.song) {
         const fallback = buildClientFallbackSong({
@@ -1292,7 +1272,7 @@ export default function App() {
         setActiveVariationIdx(0);
       }
 
-      // 2. Generate Real AI Audio via Google AI Studio (or Client Acoustic WAV fallback on static Vercel!)
+      // 2. Generate Real AI Audio via Google AI Studio Lyria 3 + Gemini TTS
       const compiledLyrics =
         returnedSong.lyricSections
           ?.filter((s) => s.sectionName !== "Intro")
@@ -1301,54 +1281,51 @@ export default function App() {
 
       const origin = getPublicOrigin();
       setShareableSongUrl(`${origin}/?song=${encodeURIComponent(returnedSong.id)}`);
-      setDirectAudioUrl(`${origin}/api/songs/${encodeURIComponent(returnedSong.id)}/audio`);
+      setDirectAudioUrl(resolveBackendMediaUrl(`/api/songs/${encodeURIComponent(returnedSong.id)}/audio.mp3`));
 
-      let audioData: any = null;
-      try {
-        const audioRes = await fetch("/api/generate-haddi-audio", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            prompt: context.trim() || `A heartfelt ${customGenre} blessing song dedicated to ${target.trim()}`,
-            mode: audioGenerationMode,
-            target: target.trim(),
-            customGenre,
-            setType,
-            lyrics: compiledLyrics,
-            language: songLanguage,
-            artistPersona,
-            shareId: returnedSong.id,
-            imageDataUrl: uploadedImages[0] || undefined,
-          }),
-        });
-        audioData = await safeParseJson(audioRes);
-      } catch {
-        audioData = null;
-      }
+      const audioData: any = await apiFetchJson("/api/generate-haddi-audio", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: context.trim() || `A heartfelt ${customGenre} blessing song dedicated to ${target.trim()}`,
+          mode: audioGenerationMode,
+          target: target.trim(),
+          customGenre,
+          setType,
+          lyrics: compiledLyrics,
+          language: songLanguage,
+          artistPersona,
+          shareId: returnedSong.id,
+          songObject: returnedSong,
+          songTitle: returnedSong.title,
+          imageDataUrl: uploadedImages[0] || undefined,
+        }),
+      });
 
-      if (audioData && audioData.audioUrl) {
+      if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
         if (audioData.directAudioUrl) {
-          setDirectAudioUrl(
-            audioData.directAudioUrl.startsWith("http")
-              ? audioData.directAudioUrl
-              : `${origin}${audioData.directAudioUrl}`
-          );
+          setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
         }
         if (audioData.shareableSongUrl) {
-          setShareableSongUrl(audioData.shareableSongUrl);
+          setShareableSongUrl(
+            audioData.shareableSongUrl.startsWith("http")
+              ? audioData.shareableSongUrl
+              : `${origin}${audioData.shareableSongUrl}`
+          );
         }
-        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(audioData.lyriaAudioUrl);
-        if (audioData.narrationAudioUrl) setNarrationAudioUrl(audioData.narrationAudioUrl);
+        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
+        if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
         const initType =
           audioGenerationMode === "narration" && audioData.narrationAudioUrl
             ? "narration"
             : audioData.lyriaAudioUrl
             ? "lyria"
             : "narration";
-        const primaryPlayUrl =
+        const primaryPlayUrl = resolveBackendMediaUrl(
           initType === "lyria"
             ? audioData.lyriaAudioUrl || audioData.audioUrl
-            : audioData.narrationAudioUrl || audioData.audioUrl;
+            : audioData.narrationAudioUrl || audioData.audioUrl
+        );
         setActiveTrackType(initType);
         setAudioSource(primaryPlayUrl);
       } else {
@@ -1532,7 +1509,7 @@ export default function App() {
       const plainLyricsOnly = parsedSections.flatMap((s) => s.lines).join("\n");
       setIsSwitchingTrack(true);
       try {
-        const res = await fetch("/api/generate-haddi-audio", {
+        const data = await apiFetchJson("/api/generate-haddi-audio", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -1548,24 +1525,19 @@ export default function App() {
             shareId: currentSong.id,
           }),
         });
-        const data = await res.json();
         if (data?.directAudioUrl) {
-          const origin = getPublicOrigin();
-          setDirectAudioUrl(
-            data.directAudioUrl.startsWith("http")
-              ? data.directAudioUrl
-              : `${origin}${data.directAudioUrl}`
-          );
+          setDirectAudioUrl(resolveBackendMediaUrl(data.directAudioUrl));
         }
         if (data?.shareableSongUrl) {
           setShareableSongUrl(data.shareableSongUrl);
         }
         const freshUrl = data?.lyriaAudioUrl || data?.audioUrl || null;
         if (freshUrl) {
-          setLyriaAudioUrl(freshUrl);
+          const resolvedFresh = resolveBackendMediaUrl(freshUrl);
+          setLyriaAudioUrl(resolvedFresh);
           setActiveTrackType("lyria");
-          setAudioUrl(freshUrl);
-          setAudioSource(freshUrl);
+          setAudioUrl(resolvedFresh);
+          setAudioSource(resolvedFresh);
         }
       } catch (err) {
         console.warn("Re-singing edited lyrics error:", err);

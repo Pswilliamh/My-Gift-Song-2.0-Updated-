@@ -1,5 +1,12 @@
 import { SongData, SetType, LyricSection } from "../types";
 
+export const LIVE_BACKEND_ORIGINS = [
+  "https://ais-pre-2ri6wresu4hpxiakbveyzu-3291285201.asia-southeast1.run.app",
+  "https://ais-dev-2ri6wresu4hpxiakbveyzu-3291285201.asia-southeast1.run.app",
+];
+
+let activeRemoteBackendOrigin: string | null = null;
+
 /**
  * Safely parses a fetch Response as JSON without throwing
  * `Unexpected token 'T', "The page c"... is not valid JSON` when deployed on static hosts like Vercel.
@@ -19,6 +26,83 @@ export async function safeParseJson<T = any>(res: Response): Promise<T | null> {
     return null;
   }
 }
+
+/**
+ * Resolves any relative `/api/...` audio/media path to the active backend origin
+ * when running on a static GitHub/Vercel deployment so MP3/WAV links always stream real vocals.
+ */
+export function resolveBackendMediaUrl(urlOrPath?: string | null): string {
+  if (!urlOrPath) return "";
+  if (urlOrPath.startsWith("data:") || urlOrPath.startsWith("blob:")) return urlOrPath;
+  if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
+    // If a full mygiftsong.org/api/... URL is used while remote backend fallback is active, point to remote backend
+    if (activeRemoteBackendOrigin) {
+      try {
+        const parsed = new URL(urlOrPath);
+        if (parsed.pathname.startsWith("/api/")) {
+          return `${activeRemoteBackendOrigin}${parsed.pathname}${parsed.search}`;
+        }
+      } catch {
+        // ignore URL parse error
+      }
+    }
+    return urlOrPath;
+  }
+  if (urlOrPath.startsWith("/api/")) {
+    if (activeRemoteBackendOrigin) {
+      return `${activeRemoteBackendOrigin}${urlOrPath}`;
+    }
+    if (typeof window !== "undefined") {
+      const host = window.location.hostname;
+      if (host.includes("mygiftsong.org") || host.includes("vercel.app")) {
+        return `${LIVE_BACKEND_ORIGINS[0]}${urlOrPath}`;
+      }
+    }
+  }
+  return urlOrPath;
+}
+
+/**
+ * Calls a backend API route (e.g. `/api/generate-song`, `/api/generate-haddi-audio`, `/api/generate-10s-greeting`, `/api/songs/:id`)
+ * and automatically falls back to the live AI Studio Cloud Run backend if the current host (e.g. GitHub/Vercel static build) returns 404 or HTML.
+ */
+export async function apiFetchJson<T = any>(apiPath: string, init?: RequestInit): Promise<T | null> {
+  // 1. Try current origin first (works natively on AI Studio and when vercel.json rewrite is active)
+  try {
+    const localRes = await fetch(apiPath, init);
+    if (localRes.ok) {
+      const parsed = await safeParseJson<T>(localRes);
+      if (parsed !== null) {
+        return parsed;
+      }
+    }
+  } catch {
+    // Fall through to remote backend origins
+  }
+
+  // 2. Automatically fall back to live AI Studio Cloud Run backend origins (CORS-enabled)
+  for (const origin of LIVE_BACKEND_ORIGINS) {
+    try {
+      const remoteUrl = `${origin}${apiPath.startsWith("/") ? apiPath : `/${apiPath}`}`;
+      const remoteRes = await fetch(remoteUrl, {
+        ...init,
+        mode: "cors",
+      });
+      if (remoteRes.ok) {
+        const parsed = await safeParseJson<T>(remoteRes);
+        if (parsed !== null) {
+          activeRemoteBackendOrigin = origin;
+          return parsed;
+        }
+      }
+    } catch {
+      // Try next origin
+    }
+  }
+
+  return null;
+}
+
 
 /**
  * Generates a complete, deeply personalized SongData object on the client side
