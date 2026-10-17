@@ -20,9 +20,17 @@ import {
   ExternalLink,
   HelpCircle,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Download,
+  Send,
 } from "lucide-react";
 import { SongData, SetType } from "../types";
+import { GiftSongCard } from "./GiftSongCard";
+import {
+  safeParseJson,
+  buildClientFallbackSong,
+  synthesizeClientAcousticSongWavDataUrl,
+} from "../utils/clientSongGenerator";
 
 export const DEFAULT_YOSIA_DRIVE_FILE_ID = "1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y";
 export const DEFAULT_YOSIA_DRIVE_VIEW_URL =
@@ -57,16 +65,17 @@ export const SUPPORTED_SONG_LANGUAGES = [
 ];
 
 /**
- * Pixar-style warm illustrated SVG portrait of Yosia (Haddi's little brother)
- * matching the uploaded screenshots:
- * - Scene 1 ("standing"): Yosia standing in studio with woven cap, golden hoodie, denim jacket, yellow socks, holding acoustic guitar by fireplace & mic.
- * - Scene 2 ("fireside"): Yosia sitting in wooden armchair by warm fireplace playing guitar with floating golden musical notes.
+ * Photorealistic Studio Portrait of Yosia (Haddi's little brother)
+ * Uses Yosia's real studio footage from `/video/yosia-children.mp4?v=2`
+ * (or Google Drive cloud thumbnail fallback / user-uploaded photo) — NO cartoon SVG avatars!
  */
 export const YosiaStudioArtwork: React.FC<{
   scene: "standing" | "fireside";
   customImageUrl?: string | null;
   className?: string;
 }> = ({ scene, customImageUrl, className = "" }) => {
+  const [useDriveThumb, setUseDriveThumb] = useState(false);
+
   if (customImageUrl) {
     return (
       <img
@@ -83,242 +92,45 @@ export const YosiaStudioArtwork: React.FC<{
   }
 
   return (
-    <svg
-      viewBox="0 0 600 420"
-      className={`w-full h-full object-cover select-none ${className}`}
-      xmlns="http://www.w3.org/2000/svg"
-    >
-      <defs>
-        <linearGradient id={`studioWall-${scene}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3a2214" />
-          <stop offset="50%" stopColor="#52301c" />
-          <stop offset="100%" stopColor="#24130b" />
-        </linearGradient>
-        <radialGradient id={`fireGlow-${scene}`} cx="0.78" cy="0.65" r="0.45">
-          <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.65" />
-          <stop offset="55%" stopColor="#ea580c" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="#000000" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id={`hoodieGold-${scene}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="#fbbf24" />
-          <stop offset="100%" stopColor="#d97706" />
-        </linearGradient>
-        <linearGradient id={`denimBlue-${scene}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#3b82f6" />
-          <stop offset="100%" stopColor="#1d4ed8" />
-        </linearGradient>
-        <linearGradient id={`guitarWood-${scene}`} x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0%" stopColor="#d97706" />
-          <stop offset="60%" stopColor="#b45309" />
-          <stop offset="100%" stopColor="#78350f" />
-        </linearGradient>
-      </defs>
-
-      {/* Cozy Wood Studio Background */}
-      <rect width="600" height="420" fill={`url(#studioWall-${scene})`} />
-      <rect width="600" height="420" fill={`url(#fireGlow-${scene})`} />
-
-      {/* Warm Fairy Lights at Top */}
-      <path d="M 0 30 Q 150 65 300 28 T 600 40" stroke="#92400e" strokeWidth="2" fill="none" />
-      {[45, 110, 175, 240, 310, 380, 450, 520, 570].map((cx, idx) => (
-        <g key={idx}>
-          <circle cx={cx} cy={35 + (idx % 2) * 8} r="10" fill="#fde68a" opacity="0.25" />
-          <circle cx={cx} cy={35 + (idx % 2) * 8} r="4.5" fill="#fef08a" />
-        </g>
-      ))}
-
-      {/* Framed Gold Record on Left Wall */}
-      <rect x="34" y="68" width="86" height="105" rx="6" fill="#1c120c" stroke="#d97706" strokeWidth="3" />
-      <circle cx="77" cy="116" r="28" fill="#111827" stroke="#fbbf24" strokeWidth="2" />
-      <circle cx="77" cy="116" r="10" fill="#fbbf24" />
-      <circle cx="77" cy="116" r="3" fill="#111827" />
-
-      {/* Vintage Studio Condenser Microphone on Left */}
-      <line x1="145" y1="165" x2="145" y2="390" stroke="#78716c" strokeWidth="5" />
-      <rect x="133" y="128" width="24" height="38" rx="12" fill="#d6d3d1" stroke="#fbbf24" strokeWidth="2.5" />
-      <line x1="135" y1="140" x2="155" y2="140" stroke="#57534e" strokeWidth="2" />
-      <line x1="135" y1="148" x2="155" y2="148" stroke="#57534e" strokeWidth="2" />
-
-      {/* Cozy Brick Fireplace on Right */}
-      <rect x="395" y="115" width="175" height="235" rx="8" fill="#7c2d12" stroke="#431407" strokeWidth="3" />
-      <rect x="385" y="102" width="195" height="18" rx="4" fill="#451a03" stroke="#92400e" strokeWidth="2" />
-      {/* Fireplace Hearth Arch */}
-      <path d="M 425 350 L 425 215 Q 482 175 540 215 L 540 350 Z" fill="#1c0a04" stroke="#f59e0b" strokeWidth="2" />
-      {/* Glowing Animated Flames */}
-      <g>
-        <path d="M 450 345 Q 465 255 482 230 Q 505 265 515 345 Z" fill="#f97316">
-          <animateTransform
-            attributeName="transform"
-            type="scale"
-            values="1 1; 1 1.05; 1 0.97; 1 1"
-            dur="1.4s"
-            repeatCount="indefinite"
-          />
-        </path>
-        <path d="M 462 345 Q 475 275 485 255 Q 498 285 505 345 Z" fill="#fbbf24">
-          <animate opacity="0.85;1;0.85" dur="0.9s" repeatCount="indefinite" />
-        </path>
-        <path d="M 472 345 Q 482 300 486 282 Q 492 305 496 345 Z" fill="#fef08a" />
-      </g>
-
-      {/* Studio Wooden Floor & Warm Rug */}
-      <rect x="0" y="345" width="600" height="75" fill="#2e190e" />
-      <ellipse cx="295" cy="378" rx="210" ry="28" fill="#9a3412" stroke="#fbbf24" strokeWidth="2" opacity="0.85" />
-
-      {/* Floating Animated Golden Musical Notes */}
-      <g fill="#fde047" opacity="0.92">
-        <text x="195" y="110" fontSize="28" fontWeight="bold">
-          ♪
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,0; 0,-12; 0,0"
-            dur="2.2s"
-            repeatCount="indefinite"
-          />
-        </text>
-        <text x="360" y="95" fontSize="32" fontWeight="bold">
-          ♫
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,0; 0,-15; 0,0"
-            dur="2.6s"
-            repeatCount="indefinite"
-          />
-        </text>
-        <text x="415" y="155" fontSize="24" fontWeight="bold">
-          ♬
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,0; 0,-10; 0,0"
-            dur="1.9s"
-            repeatCount="indefinite"
-          />
-        </text>
-        <text x="175" y="210" fontSize="22" fontWeight="bold">
-          ♪
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,0; 0,-11; 0,0"
-            dur="2.4s"
-            repeatCount="indefinite"
-          />
-        </text>
-      </g>
-
-      {/* Wooden Armchair if Fireside Scene */}
-      {scene === "fireside" && (
-        <g>
-          <rect x="210" y="185" width="155" height="145" rx="18" fill="#78350f" stroke="#b45309" strokeWidth="4" />
-          <rect x="192" y="255" width="25" height="75" rx="8" fill="#5c280b" stroke="#92400e" strokeWidth="3" />
-          <rect x="358" y="255" width="25" height="75" rx="8" fill="#5c280b" stroke="#92400e" strokeWidth="3" />
-        </g>
+    <div className={`relative w-full h-full overflow-hidden bg-slate-950 ${className}`}>
+      {!useDriveThumb ? (
+        <video
+          src={
+            scene === "standing"
+              ? "/video/yosia-children.mp4?v=2#t=0.8"
+              : "/video/yosia-children.mp4?v=2#t=5.2"
+          }
+          muted
+          playsInline
+          preload="metadata"
+          onLoadedData={(e) => {
+            try {
+              e.currentTarget.currentTime = scene === "standing" ? 0.8 : 5.2;
+            } catch {
+              // ignore seek restriction
+            }
+          }}
+          onError={() => setUseDriveThumb(true)}
+          className={`w-full h-full object-cover ${
+            scene === "fireside" ? "scale-110 object-center" : "object-center"
+          }`}
+        />
+      ) : (
+        <img
+          src={`https://drive.google.com/thumbnail?id=${DEFAULT_YOSIA_DRIVE_FILE_ID}&sz=w1000`}
+          alt="Yosia — Haddi's Little Brother Playing Guitar"
+          referrerPolicy="no-referrer"
+          className={`w-full h-full object-cover ${
+            scene === "fireside" ? "scale-110 object-center" : "object-center"
+          }`}
+        />
       )}
-
-      {/* YOSIA CHARACTER (Haddi's Joyful Little Brother) */}
-      <g transform={scene === "fireside" ? "translate(10, -6)" : "translate(0, 0)"}>
-        {/* Legs & Rolled-up Denim Jeans */}
-        <rect x="252" y="305" width="28" height="48" rx="10" fill="#1e3a8a" />
-        <rect x="298" y="305" width="28" height="48" rx="10" fill="#1e3a8a" />
-        {/* Rolled Cuffs */}
-        <rect x="250" y="343" width="32" height="9" rx="4" fill="#93c5fd" />
-        <rect x="296" y="343" width="32" height="9" rx="4" fill="#93c5fd" />
-        {/* Bright Yellow Socks (matching screenshot!) */}
-        <ellipse cx="264" cy="364" rx="18" ry="11" fill="#facc15" stroke="#ca8a04" strokeWidth="2" />
-        <ellipse cx="314" cy="364" rx="18" ry="11" fill="#facc15" stroke="#ca8a04" strokeWidth="2" />
-
-        {/* Golden Yellow Hoodie Torso */}
-        <rect x="234" y="198" width="110" height="115" rx="26" fill={`url(#hoodieGold-${scene})`} />
-        {/* Blue Denim Jacket Layered Over Hoodie */}
-        <path d="M 234 210 Q 234 198 255 198 L 270 198 L 270 310 L 234 310 Z" fill={`url(#denimBlue-${scene})`} />
-        <path d="M 344 210 Q 344 198 323 198 L 308 198 L 308 310 L 344 310 Z" fill={`url(#denimBlue-${scene})`} />
-        {/* Hoodie Collar & Drawstrings */}
-        <path d="M 262 198 Q 289 218 316 198" fill="#f59e0b" stroke="#b45309" strokeWidth="3" />
-
-        {/* Yosia's Warm Expressive Head */}
-        <circle cx="289" cy="142" r="48" fill="#d99b66" />
-        {/* Cute Ears */}
-        <circle cx="241" cy="146" r="10" fill="#c6864e" />
-        <circle cx="337" cy="146" r="10" fill="#c6864e" />
-        {/* Rosy Happy Cheeks */}
-        <ellipse cx="260" cy="154" rx="9" ry="5.5" fill="#f87171" opacity="0.45" />
-        <ellipse cx="318" cy="154" rx="9" ry="5.5" fill="#f87171" opacity="0.45" />
-
-        {/* Big Expressive Dark Brown Eyes */}
-        <circle cx="271" cy="138" r="8.5" fill="#1c1917" />
-        <circle cx="307" cy="138" r="8.5" fill="#1c1917" />
-        {/* Eye Sparkles */}
-        <circle cx="268" cy="135" r="3" fill="#ffffff" />
-        <circle cx="304" cy="135" r="3" fill="#ffffff" />
-        {/* Happy Eyebrows */}
-        <path d="M 259 124 Q 271 118 281 124" stroke="#292524" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-        <path d="M 297 124 Q 307 118 319 124" stroke="#292524" strokeWidth="3.5" strokeLinecap="round" fill="none" />
-
-        {/* Cute Button Nose */}
-        <ellipse cx="289" cy="148" rx="5" ry="3.5" fill="#b87642" />
-
-        {/* Big Joyful Beaming Smile */}
-        <path d="M 268 159 Q 289 179 310 159 Z" fill="#7f1d1d" />
-        <path d="M 272 160 Q 289 167 306 160" stroke="#ffffff" strokeWidth="4" strokeLinecap="round" fill="none" />
-        <ellipse cx="289" cy="169" rx="10" ry="4.5" fill="#f87171" />
-
-        {/* Dark Wavy Hair Peeking Under Cap */}
-        <path d="M 242 125 Q 255 102 289 104 Q 323 102 336 125" stroke="#1c1917" strokeWidth="12" strokeLinecap="round" fill="none" />
-
-        {/* Colorful Traditional Woven Cap (Red, Gold, Teal Geometric Pattern) */}
-        <path d="M 242 115 Q 289 72 336 115 Z" fill="#b91c1c" stroke="#fbbf24" strokeWidth="3" />
-        <rect x="241" y="106" width="96" height="13" rx="5" fill="#0f766e" stroke="#fbbf24" strokeWidth="2" />
-        {/* Geometric Triangles on Cap Band */}
-        {[248, 264, 280, 296, 312, 326].map((xPos, i) => (
-          <polygon
-            key={i}
-            points={`${xPos},117 ${xPos + 5},108 ${xPos + 10},117`}
-            fill={i % 2 === 0 ? "#fbbf24" : "#ef4444"}
-          />
-        ))}
-
-        {/* Acoustic Guitar Held by Yosia */}
-        <g transform="rotate(-14 295 265)">
-          {/* Guitar Body */}
-          <ellipse cx="272" cy="272" rx="46" ry="38" fill={`url(#guitarWood-${scene})`} stroke="#fde68a" strokeWidth="2.5" />
-          <ellipse cx="312" cy="268" rx="34" ry="28" fill={`url(#guitarWood-${scene})`} stroke="#fde68a" strokeWidth="2.5" />
-          {/* Soundhole */}
-          <circle cx="294" cy="270" r="14" fill="#1c1008" stroke="#fbbf24" strokeWidth="2.5" />
-          {/* Bridge */}
-          <rect x="256" y="258" width="7" height="24" rx="2" fill="#291509" />
-          {/* Guitar Neck & Headstock */}
-          <rect x="338" y="261" width="78" height="13" rx="3" fill="#451a03" stroke="#d97706" strokeWidth="1.5" />
-          <rect x="412" y="258" width="22" height="19" rx="4" fill="#78350f" stroke="#fbbf24" strokeWidth="1.5" />
-          {/* Silver Strings */}
-          <line x1="262" y1="264" x2="412" y2="264" stroke="#fef08a" strokeWidth="1" />
-          <line x1="262" y1="268" x2="412" y2="268" stroke="#fef08a" strokeWidth="1" />
-          <line x1="262" y1="272" x2="412" y2="272" stroke="#fef08a" strokeWidth="1" />
-        </g>
-
-        {/* Yosia's Hands Strumming */}
-        <circle cx="276" cy="258" r="11" fill="#d99b66">
-          <animateTransform
-            attributeName="transform"
-            type="translate"
-            values="0,-5; 0,8; 0,-5"
-            dur="0.55s"
-            repeatCount="indefinite"
-          />
-        </circle>
-        <circle cx="358" cy="246" r="10" fill="#d99b66" />
-      </g>
-
-      {/* Bottom Caption Pill inside SVG */}
-      <rect x="18" y="378" width="320" height="28" rx="8" fill="#000000" opacity="0.65" />
-      <text x="30" y="396" fill="#fde68a" fontSize="12" fontFamily="monospace" fontWeight="bold">
+      <div className="absolute bottom-3 left-3 px-3 py-1 rounded-lg bg-black/75 border border-amber-300/40 text-amber-200 text-[11px] font-mono font-bold shadow-sm">
         {scene === "standing"
           ? "👦🎸 Yosia — Haddi's Little Brother"
           : "🔥🎶 Yosia Strumming by the Fireplace"}
-      </text>
-    </svg>
+      </div>
+    </div>
   );
 };
 
@@ -423,6 +235,16 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
   const [selectedChildGenre, setSelectedChildGenre] = useState("Children's Joyful Acoustic Sing-Along");
   const [selectedSetType, setSelectedSetType] = useState<SetType>("full");
 
+  // In-Page Yosia Song Studio & Player State (stays right on Yosia's page!)
+  const [isCreatingYosiaSong, setIsCreatingYosiaSong] = useState(false);
+  const [yosiaCreatedSong, setYosiaCreatedSong] = useState<SongData | null>(null);
+  const [yosiaCreatedAudioUrl, setYosiaCreatedAudioUrl] = useState<string | null>(null);
+  const [yosiaEditableLyrics, setYosiaEditableLyrics] = useState("");
+  const [isEditingYosiaLyrics, setIsEditingYosiaLyrics] = useState(false);
+  const [isSpeakingYosiaVoice, setIsSpeakingYosiaVoice] = useState(false);
+  const yosiaAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
+  const yosiaResultCardRef = useRef<HTMLDivElement | null>(null);
+
   const buildYosiaParams = (autoGenerate: boolean) => {
     const targetVal = childName.trim() || "Our Special Child";
     const contextVal = [
@@ -441,7 +263,142 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
       setType: selectedSetType,
       artistPersona: "yosia" as const,
       autoGenerate,
+      preloadedSong: yosiaCreatedSong || undefined,
     };
+  };
+
+  const handleCreateInPageYosiaSong = async () => {
+    const params = buildYosiaParams(true);
+    setIsCreatingYosiaSong(true);
+
+    try {
+      let generatedSong: SongData | null = null;
+
+      // 1. Try server /api/generate-song first, fall back cleanly on Vercel static hosting
+      try {
+        const res = await fetch("/api/generate-song", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            target: params.target,
+            context: params.context,
+            setType: params.setType,
+            customGenre: params.genre,
+            language: params.language,
+            artistPersona: "yosia",
+          }),
+        });
+        const data = await safeParseJson(res);
+        if (data?.success && data?.song) {
+          generatedSong = data.song;
+        }
+      } catch {
+        // Fallback below
+      }
+
+      if (!generatedSong) {
+        const fallback = buildClientFallbackSong({
+          target: params.target,
+          context: params.context,
+          setType: params.setType,
+          customGenre: params.genre,
+          language: params.language,
+          artistPersona: "yosia",
+        });
+        generatedSong = fallback.song;
+      }
+
+      const compiledLyrics =
+        generatedSong.lyricSections
+          ?.filter((s) => s.sectionName !== "Intro")
+          .flatMap((s) => s.lines)
+          .join("\n") || params.context;
+
+      setYosiaCreatedSong(generatedSong);
+      setYosiaEditableLyrics(compiledLyrics);
+
+      // 2. Try server /api/generate-haddi-audio first, fall back to client acoustic WAV synthesis on Vercel
+      let finalAudioUrl: string | null = null;
+      try {
+        const audioRes = await fetch("/api/generate-haddi-audio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: params.context,
+            mode: "lyria",
+            target: params.target,
+            customGenre: params.genre,
+            setType: params.setType,
+            lyrics: compiledLyrics,
+            language: params.language,
+            artistPersona: "yosia",
+            shareId: generatedSong.id,
+          }),
+        });
+        const audioData = await safeParseJson(audioRes);
+        if (audioData?.audioUrl || audioData?.lyriaAudioUrl) {
+          finalAudioUrl = audioData.lyriaAudioUrl || audioData.audioUrl;
+        }
+      } catch {
+        // Fallback below
+      }
+
+      if (!finalAudioUrl) {
+        finalAudioUrl = synthesizeClientAcousticSongWavDataUrl({
+          durationSeconds: params.setType === "quick" ? 24 : 32,
+          artistPersona: "yosia",
+        });
+      }
+
+      setYosiaCreatedAudioUrl(finalAudioUrl);
+      try {
+        localStorage.setItem(
+          `mygiftsong_saved_song_${generatedSong.id}`,
+          JSON.stringify({
+            song: generatedSong,
+            directAudioUrl: `/api/songs/${encodeURIComponent(generatedSong.id)}/audio`,
+            lyriaAudioUrl: finalAudioUrl && !finalAudioUrl.startsWith("data:") ? finalAudioUrl : `/api/songs/${encodeURIComponent(generatedSong.id)}/audio`,
+          })
+        );
+      } catch {
+        // ignore storage quota errors
+      }
+
+      setTimeout(() => {
+        yosiaResultCardRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (yosiaAudioPlayerRef.current) {
+          yosiaAudioPlayerRef.current.play().catch(() => {});
+        }
+      }, 150);
+    } finally {
+      setIsCreatingYosiaSong(false);
+    }
+  };
+
+  const handleSpeakYosiaLyricsWithGuitar = () => {
+    if (!("speechSynthesis" in window) || !yosiaCreatedSong) return;
+    if (window.speechSynthesis.speaking) {
+      window.speechSynthesis.cancel();
+      setIsSpeakingYosiaVoice(false);
+      return;
+    }
+    if (yosiaAudioPlayerRef.current && yosiaAudioPlayerRef.current.paused) {
+      yosiaAudioPlayerRef.current.volume = 0.35;
+      yosiaAudioPlayerRef.current.currentTime = 0;
+      yosiaAudioPlayerRef.current.play().catch(() => {});
+    }
+    const utter = new SpeechSynthesisUtterance(
+      `Hi ${yosiaCreatedSong.target}! I'm Yosia! ${yosiaEditableLyrics.replace(/\n+/g, ". ")}`
+    );
+    utter.pitch = 1.25;
+    utter.rate = 0.96;
+    utter.onstart = () => setIsSpeakingYosiaVoice(true);
+    utter.onend = () => {
+      setIsSpeakingYosiaVoice(false);
+      if (yosiaAudioPlayerRef.current) yosiaAudioPlayerRef.current.volume = 1.0;
+    };
+    utter.onerror = () => setIsSpeakingYosiaVoice(false);
+    window.speechSynthesis.speak(utter);
   };
 
   const handlePhotoUpload = (slot: 1 | 2, e: React.ChangeEvent<HTMLInputElement>) => {
@@ -707,31 +664,156 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           </span>
         </div>
 
-        {/* Action Buttons: Create Song Immediately OR Jump Into Full Studio */}
+        {/* Action Buttons: Create & Play Right Here on Yosia's Page OR Open Full Studio */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
           <button
             type="button"
-            onClick={() => onGenerateYosiaSong(buildYosiaParams(false))}
+            onClick={() => onGenerateYosiaSong(buildYosiaParams(true))}
             className="px-4 py-3 rounded-xl bg-white hover:bg-teal-50 text-teal-900 border border-teal-300 font-display font-semibold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
           >
             <Music size={15} className="text-teal-700" />
-            <span>Jump Into Full Studio (Worship, Longer Song &amp; More Options)</span>
+            <span>Open in Full Multi-Stage Studio</span>
             <ArrowRight size={14} />
           </button>
 
           <button
             type="button"
-            onClick={() => onGenerateYosiaSong(buildYosiaParams(true))}
-            className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 text-white font-display font-semibold text-xs sm:text-sm shadow-xs flex items-center gap-2 cursor-pointer transition-all"
+            disabled={isCreatingYosiaSong}
+            onClick={handleCreateInPageYosiaSong}
+            className="px-5 py-3 rounded-xl bg-teal-600 hover:bg-teal-700 disabled:opacity-60 text-white font-display font-semibold text-xs sm:text-sm shadow-xs flex items-center gap-2 cursor-pointer transition-all"
           >
             <Sparkles size={16} />
             <span>
-              Create {childName.trim() ? `${childName.trim()}'s` : "Children's"}{" "}
-              {selectedSetType === "full" ? "2-Min Full" : selectedSetType === "premium" ? "Premium" : "60s"} Song Now
+              {isCreatingYosiaSong
+                ? `Yosia Is Strumming & Creating ${childName.trim() || "Your Child"}'s Song...`
+                : `🎸 Create & Play ${childName.trim() ? `${childName.trim()}'s` : "Children's"} ${
+                    selectedSetType === "full" ? "2-Min Full" : selectedSetType === "premium" ? "Premium" : "60s"
+                  } Song Now`}
             </span>
             <ArrowRight size={15} />
           </button>
         </div>
+
+        {/* =====================================================================
+            IN-PAGE YOSIA CUSTOM SONG PLAYER & KEEPSAKE CARD
+            Appears right here on Yosia's Children's Page when a song is created!
+        ===================================================================== */}
+        {yosiaCreatedSong && (
+          <div
+            ref={yosiaResultCardRef}
+            className="mt-6 rounded-2xl border-2 border-teal-500 bg-white p-5 sm:p-6 space-y-5 shadow-md"
+          >
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
+              <div>
+                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-teal-100 text-teal-900 text-[11px] font-bold uppercase tracking-wider">
+                  👦🎸 Yosia&apos;s Custom Children&apos;s Song Ready!
+                </span>
+                <h3 className="text-lg sm:text-xl font-display font-bold text-slate-900 mt-1">
+                  {yosiaCreatedSong.title}
+                </h3>
+                <p className="text-xs text-slate-600">
+                  Dedicated to <strong>{yosiaCreatedSong.target}</strong> • {yosiaCreatedSong.genre} •{" "}
+                  {yosiaCreatedSong.language}
+                </p>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {yosiaCreatedAudioUrl && (
+                  <a
+                    href={yosiaCreatedAudioUrl}
+                    download={`${yosiaCreatedSong.title.replace(/\s+/g, "-")}.wav`}
+                    className="px-3.5 py-2 rounded-xl bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold flex items-center gap-1.5 shadow-2xs"
+                  >
+                    <Download size={14} />
+                    <span>Download Song Audio</span>
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={handleSpeakYosiaLyricsWithGuitar}
+                  className="px-3.5 py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold flex items-center gap-1.5 cursor-pointer shadow-2xs"
+                >
+                  <Volume2 size={14} />
+                  <span>{isSpeakingYosiaVoice ? "Stop Yosia Voice" : "Hear Yosia Sing/Speak Lyrics"}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const msg = encodeURIComponent(
+                      `👦🎸 Yosia created a custom song "${yosiaCreatedSong.title}" for ${yosiaCreatedSong.target} on www.mygiftsong.org!\n\n` +
+                        `${yosiaEditableLyrics}\n\n` +
+                        `👉 Create your free custom song at https://www.mygiftsong.org 🌟`
+                    );
+                    window.open(`https://wa.me/?text=${msg}`, "_blank", "noopener,noreferrer");
+                  }}
+                  className="px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
+                >
+                  <Send size={13} />
+                  <span>Share on WhatsApp</span>
+                </button>
+              </div>
+            </div>
+
+            {/* Audio Player Bar */}
+            {yosiaCreatedAudioUrl && (
+              <div className="p-3.5 rounded-xl bg-teal-50/80 border border-teal-200 space-y-1.5">
+                <div className="flex items-center justify-between text-xs font-bold text-teal-900">
+                  <span>🎵 {yosiaCreatedSong.title} — Studio Acoustic Track</span>
+                  <span className="text-[11px] font-mono text-teal-700">Ready to Play &amp; Download</span>
+                </div>
+                <audio
+                  ref={yosiaAudioPlayerRef}
+                  src={yosiaCreatedAudioUrl}
+                  controls
+                  className="w-full h-10"
+                />
+              </div>
+            )}
+
+            {/* Personalized Lyrics + Edit Lyrics Toggle */}
+            <div className="rounded-xl border border-stone-200 bg-stone-50/70 p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold uppercase tracking-wider text-teal-800">
+                  📜 Personalized Song Lyrics for {yosiaCreatedSong.target}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setIsEditingYosiaLyrics((prev) => !prev)}
+                  className="px-3 py-1 rounded-lg bg-white hover:bg-teal-50 text-teal-800 border border-teal-300 text-xs font-semibold cursor-pointer"
+                >
+                  {isEditingYosiaLyrics ? "✓ Save Lyrics" : "✏️ Edit Lyrics"}
+                </button>
+              </div>
+
+              {isEditingYosiaLyrics ? (
+                <textarea
+                  value={yosiaEditableLyrics}
+                  onChange={(e) => setYosiaEditableLyrics(e.target.value)}
+                  rows={6}
+                  className="w-full rounded-xl p-3 text-xs sm:text-sm bg-white border border-teal-400 text-slate-900 focus:outline-none"
+                />
+              ) : (
+                <pre className="whitespace-pre-wrap font-sans text-xs sm:text-sm text-slate-800 leading-relaxed">
+                  {yosiaEditableLyrics}
+                </pre>
+              )}
+            </div>
+
+            {/* Yosia's 10-Second Personal Birthday Greeting Video & Printable QR Gift Card */}
+            <div className="pt-2">
+              <GiftSongCard
+                songId={yosiaCreatedSong.id}
+                audioUrl={yosiaCreatedAudioUrl}
+                lyriaAudioUrl={yosiaCreatedAudioUrl}
+                recipientName={yosiaCreatedSong.target}
+                songTitle={yosiaCreatedSong.title}
+                userWords={childWords || yosiaCreatedSong.context}
+                lyrics={yosiaEditableLyrics}
+                artistPersona="yosia"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* SECTION 2 (BELOW): MEET YOSIA — HADDI'S LITTLE BROTHER, VIDEO SHOWCASE & STUDIO IMAGES */}

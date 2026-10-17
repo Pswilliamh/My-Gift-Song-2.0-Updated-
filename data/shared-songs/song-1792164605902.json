@@ -1,0 +1,100 @@
+{
+  "shareId": "song-1792164605902",
+  "createdAt": "2026-10-16T15:30:05.902Z",
+  "song": {
+    "title": "A Heart Full of Blessings for Joanne",
+    "artistIntro": "Hi Joanne! This is Yosia, wishing you a happy, blessed birthday! My big brother Haddi and I are strumming our guitars right here by the cozy studio fireplace to share this joyful song of love, joy, and blessing with you!",
+    "tempo": "Joyful Kids Sing-Along Beat (105 BPM)",
+    "genre": "Children's Joyful Acoustic Sing-Along",
+    "lyricSections": [
+      {
+        "sectionName": "Intro",
+        "lines": [
+          "Strumming our guitars with a joyful happy cheer,",
+          "Singing for dear Joanne on this special day of the year!"
+        ],
+        "chords": [
+          "G",
+          "D"
+        ],
+        "timestamps": [
+          0,
+          5
+        ]
+      },
+      {
+        "sectionName": "Verse 1",
+        "lines": [
+          "Joanne, it's so great to celebrate your birthday with you today,",
+          "We're so happy to see how God is blessing you in so many wonderful ways,",
+          "And your family with your brother and with your school,",
+          "And the way you learn and the way you speak English so well!"
+        ],
+        "chords": [
+          "G",
+          "C",
+          "D",
+          "G"
+        ],
+        "timestamps": [
+          10,
+          16,
+          22,
+          28
+        ]
+      },
+      {
+        "sectionName": "Chorus",
+        "lines": [
+          "Joanne, you're such a big blessing to so many people,",
+          "And we know that the blessing of God will continue to be with you,",
+          "And we hope that you follow God's plan all the days of your life,",
+          "Never forget that we love you, in Jesus' name, God bless you, Joanne!"
+        ],
+        "chords": [
+          "G",
+          "C",
+          "D",
+          "G"
+        ],
+        "timestamps": [
+          34,
+          40,
+          46,
+          52
+        ]
+      },
+      {
+        "sectionName": "Outro",
+        "lines": [
+          "Happy, happy birthday sweet Joanne!",
+          "May God bless your footsteps in all of His plan!"
+        ],
+        "chords": [
+          "C",
+          "G"
+        ],
+        "timestamps": [
+          56,
+          58
+        ]
+      }
+    ],
+    "id": "song-1792164605902",
+    "target": "Joanne",
+    "context": "Joanne, it's so great to celebrate your birthday with you today. We're so happy to see how God is blessing you in so many wonderful ways and your family with your brother with your school and the way you learn and the way you speak English so well, Joanne, you're such a big blessing to so many people and we know that the blessing of God will continue to be with you. And we hope that you follow God's plan all the days of your life. Never forget that we love you, in Jesus' name, God bless you, Joanne.",
+    "setType": "quick",
+    "totalDurationSeconds": 60,
+    "language": "English",
+    "artistPersona": "yosia"
+  },
+  "lyrics": "Joanne, it's so great to celebrate your birthday with you today,\nWe're so happy to see how God is blessing you in so many wonderful ways,\nAnd your family with your brother and with your school,\nAnd the way you learn and the way you speak English so well!\nJoanne, you're such a big blessing to so many people,\nAnd we know that the blessing of God will continue to be with you,\nAnd we hope that you follow God's plan all the days of your life,\nNever forget that we love you, in Jesus' name, God bless you, Joanne!\nHappy, happy birthday sweet Joanne!\nMay God bless your footsteps in all of His plan!",
+  "userWords": "Joanne, it's so great to celebrate your birthday with you today. We're so happy to see how God is blessing you in so many wonderful ways and your family with your brother with your school and the way you learn and the way you speak English so well, Joanne, you're such a big blessing to so many people and we know that the blessing of God will continue to be with you. And we hope that you follow God's plan all the days of your life. Never forget that we love you, in Jesus' name, God bless you, Joanne.",
+  "recipientName": "Joanne",
+  "songTitle": "A Heart Full of Blessings for Joanne",
+  "artistPersona": "yosia",
+  "audioFileName": "song-1792164605902-song.mp3",
+  "audioMimeType": "audio/mpeg",
+  "greetingFileName": "song-1792164605902-greeting.wav",
+  "narrationFileName": "song-1792164605902-narration.wav"
+}

@@ -19,6 +19,10 @@ import {
   Printer,
 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
+import {
+  safeParseJson,
+  synthesizeClientAcousticSongWavDataUrl,
+} from "../utils/clientSongGenerator";
 
 interface GiftSongCardProps {
   songId?: string;
@@ -36,17 +40,22 @@ interface GiftSongCardProps {
   artistPersona?: "haddi" | "yosia";
   onUpdateLyrics?: (newLyrics: string, resingAudio?: boolean) => void;
   onOpenPrintableCard?: () => void;
+  isSharedRecipientView?: boolean;
 }
 
 function extractCleanUserWords(rawContext?: string): string {
   if (!rawContext) return "";
-  const trimmed = rawContext.trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/(?:Desired Words & Lyrics|Words|Lyrics|Memory|Special Message):\s*(.+)$/is);
-  if (match && match[1]) {
-    return match[1].trim();
+  let cleaned = rawContext.trim();
+  if (!cleaned) return "";
+  for (let i = 0; i < 4; i++) {
+    const next = cleaned
+      .replace(/^Occasion:\s*[^.\n]+[.\n]?\s*/i, "")
+      .replace(/^(?:Desired Words & Lyrics|Desired Words|Words|Lyrics|Memory|Special Message):\s*/i, "")
+      .trim();
+    if (next === cleaned) break;
+    cleaned = next;
   }
-  return trimmed.replace(/^Occasion:\s*[^.\n]+[.\n]\s*/i, "").trim();
+  return cleaned;
 }
 
 // Convert a data: URI or fetchable URL into an ArrayBuffer for Web Audio decoding
@@ -81,12 +90,15 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   artistPersona = "haddi",
   onUpdateLyrics,
   onOpenPrintableCard,
+  isSharedRecipientView = false,
 }) => {
   const [selectedTrack, setSelectedTrack] = useState<"lyria" | "narration">(activeTrackType);
   const [copiedSongLink, setCopiedSongLink] = useState(false);
   const [copiedAudioLink, setCopiedAudioLink] = useState(false);
+  const [copiedNarrationLink, setCopiedNarrationLink] = useState(false);
   const [copiedCardWithAudio, setCopiedCardWithAudio] = useState(false);
   const [cardQrTarget, setCardQrTarget] = useState<"song" | "audio">("song");
+  const [tenSecAudioMode, setTenSecAudioMode] = useState<"songClip" | "spokenGreeting">("songClip");
 
   // Lyrics editor state inside GiftSongCard
   const [isEditingCardLyrics, setIsEditingCardLyrics] = useState(false);
@@ -128,7 +140,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   };
 
   const [greetingScript, setGreetingScript] = useState<string>(() =>
-    buildDefaultGreetingScript(artistPersona, "birthday", recipientName, userWords)
+    buildDefaultGreetingScript(characterChoice, "birthday", recipientName, userWords)
   );
   const [isEditingGreetingScript, setIsEditingGreetingScript] = useState(false);
 
@@ -192,6 +204,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     shareableSongUrl ||
     (songId ? `${basePublicUrl}/?song=${encodeURIComponent(songId)}` : "https://www.mygiftsong.org");
 
+  // Always keep the main Singing Song Link and Spoken Blessing Link clearly separated!
   const resolvedDirectAudioLink =
     directAudioUrl
       ? directAudioUrl.startsWith("http")
@@ -199,11 +212,24 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         : `${basePublicUrl}${directAudioUrl}`
       : songId
       ? `${basePublicUrl}/api/songs/${encodeURIComponent(songId)}/audio`
+      : lyriaAudioUrl && !lyriaAudioUrl.startsWith("data:")
+      ? lyriaAudioUrl.startsWith("http")
+        ? lyriaAudioUrl
+        : `${basePublicUrl}${lyriaAudioUrl}`
       : resolvedAudioSource && !resolvedAudioSource.startsWith("data:")
       ? resolvedAudioSource.startsWith("http")
         ? resolvedAudioSource
         : `${basePublicUrl}${resolvedAudioSource}`
       : resolvedShareableSongUrl;
+
+  const resolvedDirectNarrationLink =
+    songId && narrationAudioUrl
+      ? `${basePublicUrl}/api/songs/${encodeURIComponent(songId)}/narration`
+      : narrationAudioUrl && !narrationAudioUrl.startsWith("data:")
+      ? narrationAudioUrl.startsWith("http")
+        ? narrationAudioUrl
+        : `${basePublicUrl}${narrationAudioUrl}`
+      : null;
 
   const handleTrackSwitch = (type: "lyria" | "narration") => {
     setSelectedTrack(type);
@@ -221,7 +247,8 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     vid.playsInline = true;
     vid.src =
       characterChoice === "yosia" ? "/video/yosia-children.mp4" : "/video/song-gift.mp4";
-    vid.play().catch(() => {});
+    vid.currentTime = 0.4;
+    // Keep video paused when idle so mouth only moves while audio is actively playing!
     stageVideoRef.current = vid;
 
     const img = new Image();
@@ -319,14 +346,23 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           shareId: songId,
         }),
       });
-      const data = await response.json();
-      hasServerVoiceRef.current = data?.hasSpokenVoice !== false;
-      const newGreetingUrl =
+      const data = await safeParseJson(response);
+      hasServerVoiceRef.current = Boolean(data && data.hasSpokenVoice !== false);
+      let newGreetingUrl: string | null =
         data?.greetingDataUrl ||
         data?.audioDataUrl ||
         data?.greetingAudioUrl ||
         data?.audioUrl ||
         null;
+
+      if (!newGreetingUrl) {
+        hasServerVoiceRef.current = false;
+        newGreetingUrl = synthesizeClientAcousticSongWavDataUrl({
+          durationSeconds: 10,
+          artistPersona: characterChoice,
+        });
+      }
+
       if (newGreetingUrl) {
         setTenSecGreetingAudioUrl(newGreetingUrl);
         try {
@@ -351,6 +387,16 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
       }
     } catch (err) {
       console.warn("Could not generate 10s personal greeting:", err);
+      hasServerVoiceRef.current = false;
+      const fallback10s = synthesizeClientAcousticSongWavDataUrl({
+        durationSeconds: 10,
+        artistPersona: characterChoice,
+      });
+      setTenSecGreetingAudioUrl(fallback10s);
+      if (autoPlayAfter) {
+        await start10sPreviewWithSource(fallback10s);
+      }
+      return fallback10s;
     } finally {
       setIsGenerating10sGreeting(false);
     }
@@ -424,7 +470,21 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
     const vidEl = stageVideoRef.current;
     if (!customCharacterImage && vidEl && vidEl.readyState >= 2 && vidEl.videoWidth > 0) {
-      // Draw real moving video of Yosia (/video/yosia-children.mp4) or Haddi (/video/song-gift.mp4)!
+      // Sync video playback with active voice energy so mouth movement only happens while singing/speaking!
+      if (isPreviewing10sVideo || isRecording10sVideo) {
+        if (vidEl.paused && voicePulse > 0.12) {
+          vidEl.play().catch(() => {});
+        } else if (!vidEl.paused && voicePulse <= 0.08) {
+          vidEl.pause();
+        }
+        try {
+          vidEl.playbackRate = Math.max(0.75, Math.min(1.35, 0.85 + voicePulse * 0.45));
+        } catch {
+          // ignore playbackRate error
+        }
+      } else if (!vidEl.paused) {
+        vidEl.pause();
+      }
       const zoom = 1.02 + voicePulse * 0.025;
       const scale = Math.max(stageW / vidEl.videoWidth, stageH / vidEl.videoHeight) * zoom;
       const drawW = vidEl.videoWidth * scale;
@@ -526,9 +586,13 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     ctx.fillText(`For ${recipientName}`, W / 2, 58);
     ctx.restore();
 
-    // 5. Synchronized 10-Second Greeting & Lyric Caption Box
+    // 5. Synchronized 10-Second Greeting & Lyric Caption Box (Matches either Sung Song Lyrics or Spoken Greeting)
+    const activeCaptionSource =
+      tenSecAudioMode === "songClip"
+        ? getHighlightLyrics().join(" • ")
+        : greetingScript || "";
     const greetingChunks: string[] = [];
-    const words = (greetingScript || "").split(/\s+/).filter(Boolean);
+    const words = activeCaptionSource.split(/\s+/).filter(Boolean);
     let currentLine = "";
     for (const w of words) {
       if ((currentLine + " " + w).trim().length <= 48) {
@@ -543,7 +607,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
       greetingChunks.push(`Happy Blessed Birthday, ${recipientName}!`);
     }
 
-    const cycleSec = t % 10;
+    const cycleSec = Math.min(9.99, t % 10);
     const activeLineIndex = Math.min(
       greetingChunks.length - 1,
       Math.floor((cycleSec / 10) * greetingChunks.length)
@@ -675,6 +739,13 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
   const stop10sPreview = () => {
     stop10sAudioNodes();
+    if (stageVideoRef.current) {
+      try {
+        stageVideoRef.current.pause();
+      } catch {
+        // ignore
+      }
+    }
     setIsPreviewing10sVideo(false);
     setVideoCountdown(10);
     modeStartRef.current = performance.now();
@@ -761,18 +832,26 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     }
   };
 
-  // Play the 10-Second Personal Greeting Video ("Hi [Name], this is Yosia wishing you a happy blessed birthday!")
+  // Play the 10-Second Personal Greeting Video (Plays 10s Sung Song Clip or 10s Spoken Greeting)
   const handleStart10sPreview = async () => {
     if (isPreviewing10sVideo) {
       stop10sPreview();
       return;
     }
 
+    // If user selected "10s Sung Song Clip" and we have the sung song audio, play a 10-second synced clip of the actual sung song!
+    const primarySungSource = lyriaAudioUrl || audioUrl || resolvedAudioSource;
+    if (tenSecAudioMode === "songClip" && primarySungSource) {
+      hasServerVoiceRef.current = true;
+      await start10sPreviewWithSource(primarySungSource);
+      return;
+    }
+
     let activeGreetingUrl = tenSecGreetingAudioUrl || "";
     if (!activeGreetingUrl) {
       const generated = await handleGenerate10sPersonalGreeting(true);
-      if (!generated && resolvedAudioSource) {
-        await start10sPreviewWithSource(resolvedAudioSource);
+      if (!generated && primarySungSource) {
+        await start10sPreviewWithSource(primarySungSource);
       }
       return;
     }
@@ -780,7 +859,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     await start10sPreviewWithSource(activeGreetingUrl);
   };
 
-  // Record & Export a real 10-Second Greeting Video (.webm) with Yosia/Haddi's 10s voice & guitar greeting baked in!
+  // Record & Export a real 10-Second Greeting Video (.webm) with Yosia/Haddi's 10s song or voice greeting baked in!
   const handleRecordAndDownload10sVideo = async () => {
     const canvas = canvasRef.current;
     if (!canvas || isRecording10sVideo) return;
@@ -788,13 +867,17 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     stop10sPreview();
     pauseOtherPageAudio();
 
-    let activeGreetingUrl = tenSecGreetingAudioUrl || "";
+    const primarySungSource = lyriaAudioUrl || audioUrl || resolvedAudioSource;
+    let activeGreetingUrl =
+      tenSecAudioMode === "songClip" && primarySungSource
+        ? primarySungSource
+        : tenSecGreetingAudioUrl || "";
     if (!activeGreetingUrl) {
       const generated = await handleGenerate10sPersonalGreeting(false);
       if (generated) activeGreetingUrl = generated;
     }
     if (!activeGreetingUrl) {
-      activeGreetingUrl = lyriaAudioUrl || audioUrl || resolvedAudioSource;
+      activeGreetingUrl = primarySungSource;
     }
 
     setIsRecording10sVideo(true);
@@ -942,15 +1025,19 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     window.location.href = `mailto:?subject=${subject}&body=${body}`;
   };
 
-  // Construct a direct WhatsApp share link that opens the exact song AND provides the direct audio link
+  // Construct a direct WhatsApp share link that opens the dedicated song card AND clearly labels the Singing Song MP3 link vs Spoken Blessing link
   const handleWhatsAppGiftShare = () => {
+    const narrationLine = resolvedDirectNarrationLink
+      ? `🎙️ *Spoken Blessing Version:* ${resolvedDirectNarrationLink}\n`
+      : "";
     const text = encodeURIComponent(
       `🎂🎵 *Happy Birthday ${recipientName}!* 🎁\n\n` +
         `💬 *${characterChoice === "yosia" ? "Yosia" : "Haddi"}'s Greeting:* "${greetingScript}"\n\n` +
         `🎶 *Song Title:* "${songTitle}"\n` +
-        `👉 *Click to Listen to Your Song:* ${resolvedShareableSongUrl}\n` +
-        `🔊 *Direct Audio Link:* ${resolvedDirectAudioLink}\n\n` +
-        `📜 *Lyrics Preview:*\n${getHighlightLyrics().join("\n")}\n\n` +
+        `🎵 *Open ${recipientName}'s Dedicated Song & Video Card:* ${resolvedShareableSongUrl}\n` +
+        `🎸 *Direct Singing Song Audio (MP3):* ${resolvedDirectAudioLink}\n` +
+        narrationLine +
+        `\n📜 *Lyrics Preview:*\n${getHighlightLyrics().join("\n")}\n\n` +
         `🌐 Created on https://www.mygiftsong.org`
     );
     window.open(`https://wa.me/?text=${text}`, "_blank", "noopener,noreferrer");
@@ -968,13 +1055,24 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     setTimeout(() => setCopiedAudioLink(false), 2500);
   };
 
+  const handleCopyDirectNarrationLink = () => {
+    if (!resolvedDirectNarrationLink) return;
+    navigator.clipboard.writeText(resolvedDirectNarrationLink);
+    setCopiedNarrationLink(true);
+    setTimeout(() => setCopiedNarrationLink(false), 2500);
+  };
+
   const handleCopyGiftCardWithAudioLink = () => {
+    const narrationBlock = resolvedDirectNarrationLink
+      ? `🎙️ Spoken Blessing Audio Link:\n${resolvedDirectNarrationLink}\n\n`
+      : "";
     const fullGiftCardText =
       `🎁 CUSTOM GIFT SONG CARD FOR ${recipientName.toUpperCase()}\n` +
       `Song Title: "${songTitle}"\n` +
       `From: ${characterChoice === "yosia" ? "Yosia" : "Haddi"} (www.mygiftsong.org)\n\n` +
-      `🎵 Listen to Your Song Here:\n${resolvedShareableSongUrl}\n\n` +
-      `🔊 Direct Link to Song Audio:\n${resolvedDirectAudioLink}\n\n` +
+      `🎵 Open Dedicated Song & Video Card:\n${resolvedShareableSongUrl}\n\n` +
+      `🎸 Direct Singing Song Audio (MP3):\n${resolvedDirectAudioLink}\n\n` +
+      narrationBlock +
       `💬 10-Second Greeting:\n"${greetingScript}"\n\n` +
       `📜 Song Lyrics:\n${editableLyricsText || lyrics}\n`;
     navigator.clipboard.writeText(fullGiftCardText);
@@ -1033,7 +1131,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
             <div className="truncate">
               <span className="text-[10px] font-bold uppercase text-teal-800 block">
-                🎵 Song Page Link (Opens Your Song):
+                🎵 Dedicated Song Card Page (Opens Only {recipientName}&apos;s Song):
               </span>
               <a
                 href={resolvedShareableSongUrl}
@@ -1056,7 +1154,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
             <div className="truncate">
               <span className="text-[10px] font-bold uppercase text-teal-800 block">
-                🔊 Direct Audio Link (Listen / Download):
+                🎸 Singing Song Audio Link (Full Sung MP3):
               </span>
               <a
                 href={resolvedDirectAudioLink}
@@ -1075,6 +1173,31 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
               {copiedAudioLink ? "✓ Copied" : "Copy"}
             </button>
           </div>
+
+          {resolvedDirectNarrationLink && (
+            <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
+              <div className="truncate">
+                <span className="text-[10px] font-bold uppercase text-teal-800 block">
+                  🎙️ Spoken Blessing Audio Link (Voice Narration):
+                </span>
+                <a
+                  href={resolvedDirectNarrationLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
+                >
+                  {resolvedDirectNarrationLink}
+                </a>
+              </div>
+              <button
+                type="button"
+                onClick={handleCopyDirectNarrationLink}
+                className="px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
+              >
+                {copiedNarrationLink ? "✓ Copied" : "Copy"}
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Scannable QR Code Badge for Physical Card / Phone Camera */}
@@ -1138,59 +1261,61 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         </div>
       </div>
 
-      {/* Notice & Edit Lyrics Option After Song Creation */}
-      <div className="rounded-xl bg-amber-50/90 border border-amber-300 p-3 space-y-2 text-left">
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex items-start gap-1.5 text-[11px] text-amber-950 leading-snug">
-            <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
-            <span>
-              <strong>PLEASE CHECK LYRICS:</strong> Your exact words are included! Want to adjust any lines? Edit below:
-            </span>
-          </div>
-          <button
-            type="button"
-            onClick={() => setIsEditingCardLyrics(!isEditingCardLyrics)}
-            className="px-2.5 py-1 rounded-lg bg-white hover:bg-teal-50 text-teal-900 border border-amber-300 text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer transition-all shadow-2xs"
-          >
-            <Edit3 size={11} />
-            <span>{isEditingCardLyrics ? "Close Editor" : "Edit Lyrics"}</span>
-          </button>
-        </div>
-
-        {lyricsSavedNotice && (
-          <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1">
-            ✓ Lyrics updated! Your gift card and song now use your edited words.
-          </p>
-        )}
-
-        {isEditingCardLyrics && (
-          <div className="space-y-2 pt-1">
-            <textarea
-              rows={5}
-              value={editableLyricsText}
-              onChange={(e) => setEditableLyricsText(e.target.value)}
-              placeholder="Edit your song lyrics here..."
-              className="w-full rounded-xl bg-white border border-teal-400 px-3 py-2 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500/20"
-            />
-            <div className="flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={() => handleSaveEditedLyrics(false)}
-                className="flex-1 py-2 px-3 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold cursor-pointer transition-all"
-              >
-                💾 Save Edited Lyrics
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSaveEditedLyrics(true)}
-                className="flex-1 py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold cursor-pointer transition-all"
-              >
-                🎸 Save &amp; Re-Sing Song
-              </button>
+      {/* Notice & Edit Lyrics Option After Song Creation (Shown to Creator Only) */}
+      {!isSharedRecipientView && (
+        <div className="rounded-xl bg-amber-50/90 border border-amber-300 p-3 space-y-2 text-left">
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex items-start gap-1.5 text-[11px] text-amber-950 leading-snug">
+              <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
+              <span>
+                <strong>PLEASE CHECK LYRICS:</strong> Your exact words are included! Want to adjust any lines? Edit below:
+              </span>
             </div>
+            <button
+              type="button"
+              onClick={() => setIsEditingCardLyrics(!isEditingCardLyrics)}
+              className="px-2.5 py-1 rounded-lg bg-white hover:bg-teal-50 text-teal-900 border border-amber-300 text-[11px] font-bold flex items-center gap-1 shrink-0 cursor-pointer transition-all shadow-2xs"
+            >
+              <Edit3 size={11} />
+              <span>{isEditingCardLyrics ? "Close Editor" : "Edit Lyrics"}</span>
+            </button>
           </div>
-        )}
-      </div>
+
+          {lyricsSavedNotice && (
+            <p className="text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-2.5 py-1">
+              ✓ Lyrics updated! Your gift card and song now use your edited words.
+            </p>
+          )}
+
+          {isEditingCardLyrics && (
+            <div className="space-y-2 pt-1">
+              <textarea
+                rows={5}
+                value={editableLyricsText}
+                onChange={(e) => setEditableLyricsText(e.target.value)}
+                placeholder="Edit your song lyrics here..."
+                className="w-full rounded-xl bg-white border border-teal-400 px-3 py-2 text-xs text-slate-900 leading-relaxed focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+              />
+              <div className="flex flex-wrap gap-2">
+                <button
+                  type="button"
+                  onClick={() => handleSaveEditedLyrics(false)}
+                  className="flex-1 py-2 px-3 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-xs font-bold cursor-pointer transition-all"
+                >
+                  💾 Save Edited Lyrics
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSaveEditedLyrics(true)}
+                  className="flex-1 py-2 px-3 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold cursor-pointer transition-all"
+                >
+                  🎸 Save &amp; Re-Sing Song
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 10-Second Personal Greeting & Song Video Card (Real Yosia / Haddi Photo + 10s Spoken/Sung Greeting) */}
       <div className="rounded-2xl border-2 border-teal-500/80 bg-gradient-to-b from-teal-50/70 to-white p-4 space-y-3 shadow-xs">
@@ -1198,109 +1323,129 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           <div className="flex items-center gap-1.5">
             <Film size={15} className="text-teal-700" />
             <span className="text-xs font-bold text-teal-950">
-              10-Second Personal Birthday Greeting Video
+              10-Second Personal Birthday Video (Strict 10.0s)
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => handleGenerate10sPersonalGreeting(true)}
-            disabled={isGenerating10sGreeting}
-            className="px-2.5 py-1 rounded-full bg-teal-700 hover:bg-teal-800 disabled:opacity-60 text-white text-[10px] font-bold uppercase flex items-center gap-1 cursor-pointer transition-all shadow-2xs"
-            title="Generate or Refresh Yosia/Haddi's 10-second personal voice greeting"
-          >
-            <Volume2 size={11} />
-            <span>
-              {isGenerating10sGreeting
-                ? "Recording 10s Greeting..."
-                : `🎤 Record ${characterChoice === "yosia" ? "Yosia" : "Haddi"} 10s Greeting`}
-            </span>
-          </button>
-        </div>
-
-        {/* Character Switcher: Haddi vs. Yosia + Theme + Video Play Trigger */}
-        <div className="grid grid-cols-3 gap-1.5 text-xs">
-          <div className="flex rounded-xl bg-stone-100 p-1 border border-stone-200">
+          <div className="flex items-center gap-1 bg-stone-100 p-0.5 rounded-lg border border-stone-200">
             <button
               type="button"
               onClick={() => {
-                setCustomCharacterImage(null);
-                setCharacterChoice("haddi");
+                stop10sPreview();
+                setTenSecAudioMode("songClip");
               }}
-              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                characterChoice === "haddi"
+              className={`px-2 py-1 rounded-md text-[10px] font-bold cursor-pointer transition-all ${
+                tenSecAudioMode === "songClip"
                   ? "bg-teal-700 text-white shadow-2xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              🎸 Haddi
+              🎸 10s Sung Song
             </button>
             <button
               type="button"
               onClick={() => {
-                setCustomCharacterImage(null);
-                setCharacterChoice("yosia");
+                stop10sPreview();
+                setTenSecAudioMode("spokenGreeting");
               }}
-              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                characterChoice === "yosia"
+              className={`px-2 py-1 rounded-md text-[10px] font-bold cursor-pointer transition-all ${
+                tenSecAudioMode === "spokenGreeting"
                   ? "bg-teal-700 text-white shadow-2xs"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
-              👦 Yosia
+              🎤 10s Spoken Intro
             </button>
           </div>
-
-          <div className="flex rounded-xl bg-stone-100 p-1 border border-stone-200">
-            <button
-              type="button"
-              onClick={() => setCardTheme("birthday")}
-              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                cardTheme === "birthday"
-                  ? "bg-amber-500 text-slate-950 shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              🎂 B-Day
-            </button>
-            <button
-              type="button"
-              onClick={() => setCardTheme("blessing")}
-              className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                cardTheme === "blessing"
-                  ? "bg-teal-700 text-white shadow-2xs"
-                  : "text-slate-600 hover:text-slate-900"
-              }`}
-            >
-              🎁 Bless
-            </button>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleStart10sPreview}
-            className="rounded-xl bg-teal-700 hover:bg-teal-800 text-white p-1 border border-teal-800 text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all shadow-2xs"
-            title="Play 10-Second Personal Greeting Video"
-          >
-            🎥 {isPreviewing10sVideo ? `Stop (${videoCountdown}s)` : "Play 10s"}
-          </button>
         </div>
+
+        {/* Character Switcher: Haddi vs. Yosia + Theme + Video Play Trigger (Creator Mode Only) */}
+        {!isSharedRecipientView && (
+          <div className="grid grid-cols-3 gap-1.5 text-xs">
+            <div className="flex rounded-xl bg-stone-100 p-1 border border-stone-200">
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomCharacterImage(null);
+                  setCharacterChoice("haddi");
+                }}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  characterChoice === "haddi"
+                    ? "bg-teal-700 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🎸 Haddi
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  setCustomCharacterImage(null);
+                  setCharacterChoice("yosia");
+                }}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  characterChoice === "yosia"
+                    ? "bg-teal-700 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                👦 Yosia
+              </button>
+            </div>
+
+            <div className="flex rounded-xl bg-stone-100 p-1 border border-stone-200">
+              <button
+                type="button"
+                onClick={() => setCardTheme("birthday")}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  cardTheme === "birthday"
+                    ? "bg-amber-500 text-slate-950 shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🎂 B-Day
+              </button>
+              <button
+                type="button"
+                onClick={() => setCardTheme("blessing")}
+                className={`flex-1 py-1 px-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
+                  cardTheme === "blessing"
+                    ? "bg-teal-700 text-white shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900"
+                }`}
+              >
+                🎁 Bless
+              </button>
+            </div>
+
+            <button
+              type="button"
+              onClick={handleStart10sPreview}
+              className="rounded-xl bg-teal-700 hover:bg-teal-800 text-white p-1 border border-teal-800 text-[10px] font-bold flex items-center justify-center gap-1 cursor-pointer transition-all shadow-2xs"
+              title="Play 10-Second Personal Greeting Video"
+            >
+              🎥 {isPreviewing10sVideo ? `Stop (${videoCountdown}s)` : "Play 10s"}
+            </button>
+          </div>
+        )}
 
         {/* Editable 10-Second Personal Greeting Script */}
         <div className="rounded-xl bg-white/95 border border-teal-200 px-3 py-2 text-left space-y-1.5">
           <div className="flex items-center justify-between gap-2">
             <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-800">
-              💬 {characterChoice === "yosia" ? "Yosia's" : "Haddi's"} 10-Second Spoken &amp; Guitar Greeting:
+              💬 {characterChoice === "yosia" ? "Yosia's" : "Haddi's"} 10-Second Personal Greeting:
             </span>
-            <button
-              type="button"
-              onClick={() => setIsEditingGreetingScript(!isEditingGreetingScript)}
-              className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer"
-            >
-              {isEditingGreetingScript ? "Done" : "Customize Greeting"}
-            </button>
+            {!isSharedRecipientView && (
+              <button
+                type="button"
+                onClick={() => setIsEditingGreetingScript(!isEditingGreetingScript)}
+                className="text-[10px] font-bold text-teal-700 hover:underline cursor-pointer"
+              >
+                {isEditingGreetingScript ? "Done" : "Customize Greeting"}
+              </button>
+            )}
           </div>
 
-          {isEditingGreetingScript ? (
+          {isEditingGreetingScript && !isSharedRecipientView ? (
             <div className="space-y-1.5">
               <textarea
                 rows={2}
@@ -1340,21 +1485,23 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
             className="w-full h-auto block"
           />
 
-          <div
-            onClick={(e) => e.stopPropagation()}
-            className="absolute top-2.5 right-2.5 flex items-center gap-1.5"
-          >
-            <label className="px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/85 text-white text-[10px] font-semibold flex items-center gap-1 cursor-pointer backdrop-blur-xs border border-white/25">
-              <Upload size={11} />
-              <span>{customCharacterImage ? "Change Yosia/Haddi Photo" : "Upload Yosia/Haddi Photo"}</span>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleCustomPhotoUpload}
-                className="hidden"
-              />
-            </label>
-          </div>
+          {!isSharedRecipientView && (
+            <div
+              onClick={(e) => e.stopPropagation()}
+              className="absolute top-2.5 right-2.5 flex items-center gap-1.5"
+            >
+              <label className="px-2.5 py-1 rounded-lg bg-black/70 hover:bg-black/85 text-white text-[10px] font-semibold flex items-center gap-1 cursor-pointer backdrop-blur-xs border border-white/25">
+                <Upload size={11} />
+                <span>{customCharacterImage ? "Change Yosia/Haddi Photo" : "Upload Yosia/Haddi Photo"}</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleCustomPhotoUpload}
+                  className="hidden"
+                />
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Play 10s Greeting Video & Download 10s Video Buttons */}

@@ -74,7 +74,7 @@ function saveSharedSongRecord(
   }
 ): StoredSongRecord {
   const shareId = normalizeShareId(shareIdInput);
-  const existing = loadSharedSongRecord(shareId) || {
+  const existing: StoredSongRecord = loadSharedSongRecord(shareId) || {
     shareId,
     createdAt: new Date().toISOString(),
     song: updates.song || null,
@@ -96,13 +96,21 @@ function saveSharedSongRecord(
   if (updates.lyriaDataUrl) {
     const parsed = parseDataUrlToBuffer(updates.lyriaDataUrl);
     if (parsed) {
-      const fileName = `${shareId}-song.${parsed.ext}`;
-      try {
-        fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), parsed.buffer);
-        existing.audioFileName = fileName;
-        existing.audioMimeType = parsed.mimeType;
-      } catch (e) {
-        console.warn("Could not write song audio file to disk:", e);
+      // Never let a 24kHz TTS WAV overwrite an existing Lyria MP3 song file
+      const mp3Candidate = `${shareId}-song.mp3`;
+      const hasExistingMp3 = fs.existsSync(path.join(SHARED_SONGS_DIR, mp3Candidate));
+      if (parsed.ext === "mp3" || !hasExistingMp3) {
+        const fileName = `${shareId}-song.${parsed.ext}`;
+        try {
+          fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), parsed.buffer);
+          existing.audioFileName = fileName;
+          existing.audioMimeType = parsed.mimeType;
+        } catch (e) {
+          console.warn("Could not write song audio file to disk:", e);
+        }
+      } else {
+        existing.audioFileName = mp3Candidate;
+        existing.audioMimeType = "audio/mpeg";
       }
     } else if (updates.lyriaDataUrl.startsWith("http")) {
       existing.externalAudioUrl = updates.lyriaDataUrl;
@@ -116,7 +124,12 @@ function saveSharedSongRecord(
       try {
         fs.writeFileSync(path.join(SHARED_SONGS_DIR, fileName), parsed.buffer);
         existing.narrationFileName = fileName;
-        if (!existing.audioFileName) {
+        // Only fall back to narration as audioFileName if no sung song file exists at all
+        const mp3Candidate = `${shareId}-song.mp3`;
+        if (fs.existsSync(path.join(SHARED_SONGS_DIR, mp3Candidate))) {
+          existing.audioFileName = mp3Candidate;
+          existing.audioMimeType = "audio/mpeg";
+        } else if (!existing.audioFileName) {
           existing.audioFileName = fileName;
           existing.audioMimeType = parsed.mimeType;
         }
@@ -167,16 +180,21 @@ function loadSharedSongRecord(shareId: string): StoredSongRecord | null {
   return null;
 }
 
-// Helper to extract the user's exact words/lyrics from the context string
+// Helper to extract the user's exact words/lyrics from the context string (stripping any repeated Occasion / Desired Words labels)
 function extractUserWordsFromContext(rawContext?: string): string {
   if (!rawContext) return "";
-  const trimmed = rawContext.trim();
-  if (!trimmed) return "";
-  const match = trimmed.match(/Desired Words & Lyrics:\s*(.+)$/is);
-  if (match && match[1]) {
-    return match[1].trim();
+  let cleaned = rawContext.trim();
+  if (!cleaned) return "";
+  // Repeatedly strip leading "Occasion: ... Desired Words & Lyrics:" prefixes so they never appear in song lines
+  for (let i = 0; i < 4; i++) {
+    const next = cleaned
+      .replace(/^Occasion:\s*[^.\n]+[.\n]?\s*/i, "")
+      .replace(/^(?:Desired Words & Lyrics|Words & Lyrics|Desired Lyrics|Lyrics|Words|Special Message):\s*/i, "")
+      .trim();
+    if (next === cleaned) break;
+    cleaned = next;
   }
-  return trimmed.replace(/^Occasion:\s*[^.]+\.\s*/i, "").trim();
+  return cleaned;
 }
 
 // Split user-provided words/lyrics into clean singable lines so the song always uses their exact words
@@ -1456,7 +1474,7 @@ function mixVocalWithAcousticGuitarWav(
   const vocalDurationSec = vocalFrames / sampleRate;
 
   const finalDurationSec = targetDurationSec
-    ? Math.max(targetDurationSec, Math.min(vocalDurationSec + 0.8, 12))
+    ? targetDurationSec
     : vocalDurationSec + 0.8;
 
   const totalFrames = Math.floor(finalDurationSec * sampleRate);
@@ -2044,29 +2062,35 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
 
     if (primaryAudioUrl) {
       // Persist song & audio on server so shareable links (/api/songs/:shareId/audio.mp3 and /?song=:shareId) work everywhere!
-      saveSharedSongRecord(shareId, {
+      // IMPORTANT: Only pass lyriaDataUrl when mode actually produced a sung Lyria track so narration never overwrites the sung song!
+      const record = saveSharedSongRecord(shareId, {
         song: songObject || undefined,
         lyrics: generatedLyrics,
         userWords: extractUserWordsFromContext(inputPrompt),
         recipientName: target || songObject?.target || "Someone Special",
         songTitle: songTitle || songObject?.title || `Gift Song for ${target || "Someone Special"}`,
         artistPersona,
-        lyriaDataUrl: lyriaAudioUrl || primaryAudioUrl,
-        narrationDataUrl: narrationAudioUrl,
+        lyriaDataUrl: lyriaAudioUrl ? lyriaAudioUrl : undefined,
+        narrationDataUrl: narrationAudioUrl ? narrationAudioUrl : undefined,
       });
 
-      const directAudioPath = `/api/songs/${shareId}/audio.mp3`;
-      const directNarrationPath = narrationAudioUrl ? `/api/songs/${shareId}/narration.wav` : null;
+      const hasSungMp3 = fs.existsSync(path.join(SHARED_SONGS_DIR, `${record.shareId}-song.mp3`));
+      const directAudioPath = `/api/songs/${record.shareId}/audio.mp3`;
+      const directNarrationPath =
+        narrationAudioUrl || record.narrationFileName
+          ? `/api/songs/${record.shareId}/narration.wav`
+          : null;
 
       return res.json({
         success: true,
-        shareId,
+        shareId: record.shareId,
         directAudioUrl: directAudioPath,
-        songShareUrl: `/?song=${shareId}`,
+        shareableSongUrl: `/?song=${record.shareId}`,
+        songShareUrl: `/?song=${record.shareId}`,
         audio_url: primaryAudioUrl,
         audioUrl: primaryAudioUrl,
-        lyriaAudioUrl,
-        narrationAudioUrl,
+        lyriaAudioUrl: lyriaAudioUrl || (hasSungMp3 ? directAudioPath : null),
+        narrationAudioUrl: narrationAudioUrl || directNarrationPath,
         hostedNarrationUrl: directNarrationPath,
         lyrics: generatedLyrics,
         durationSeconds,
@@ -2134,9 +2158,17 @@ app.get("/api/songs/:shareId", (req, res) => {
   if (!record) {
     return res.status(404).json({ error: "Shared song not found." });
   }
-  const hasLocalAudio = Boolean(record.audioFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.audioFileName)));
-  const hasNarration = Boolean(record.narrationFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.narrationFileName)));
-  const hasGreeting = Boolean(record.greetingFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.greetingFileName)));
+  const sungMp3Name = `${record.shareId}-song.mp3`;
+  const hasSungMp3 = fs.existsSync(path.join(SHARED_SONGS_DIR, sungMp3Name));
+  const hasLocalAudio =
+    hasSungMp3 ||
+    Boolean(record.audioFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.audioFileName)));
+  const hasNarration = Boolean(
+    record.narrationFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.narrationFileName))
+  );
+  const hasGreeting = Boolean(
+    record.greetingFileName && fs.existsSync(path.join(SHARED_SONGS_DIR, record.greetingFileName))
+  );
 
   const directAudioUrl = hasLocalAudio
     ? `/api/songs/${record.shareId}/audio.mp3`
@@ -2151,6 +2183,7 @@ app.get("/api/songs/:shareId", (req, res) => {
     recipientName: record.recipientName,
     songTitle: record.songTitle,
     artistPersona: record.artistPersona,
+    directAudioUrl,
     audioUrl: directAudioUrl,
     lyriaAudioUrl: directAudioUrl,
     narrationAudioUrl: hasNarration ? `/api/songs/${record.shareId}/narration.wav` : null,
@@ -2192,15 +2225,23 @@ app.post("/api/songs/:shareId/react", (req, res) => {
   });
 });
 
-app.get(["/api/songs/:shareId/audio.mp3", "/api/songs/:shareId/audio", "/api/songs/:shareId/audio.wav"], (req, res) => {
+app.get(["/api/songs/:shareId/audio.mp3", "/api/songs/:shareId/audio", "/api/songs/:shareId/audio.wav", "/api/songs/:shareId/sung.mp3"], (req, res) => {
   const { shareId } = req.params;
   const record = loadSharedSongRecord(shareId);
+  // Always prioritize the sung Lyria MP3 file (`${shareId}-song.mp3`) if it exists on disk so Direct Audio links ALWAYS play the singing song!
+  const explicitSungMp3 = path.join(SHARED_SONGS_DIR, `${shareId}-song.mp3`);
+  if (fs.existsSync(explicitSungMp3)) {
+    res.setHeader("Content-Type", "audio/mpeg");
+    res.setHeader("Accept-Ranges", "bytes");
+    res.setHeader("Cache-Control", "no-cache");
+    return res.sendFile(explicitSungMp3);
+  }
   if (record?.audioFileName) {
     const filePath = path.join(SHARED_SONGS_DIR, record.audioFileName);
     if (fs.existsSync(filePath)) {
       res.setHeader("Content-Type", record.audioMimeType || "audio/mpeg");
       res.setHeader("Accept-Ranges", "bytes");
-      res.setHeader("Cache-Control", "public, max-age=3600");
+      res.setHeader("Cache-Control", "no-cache");
       return res.sendFile(filePath);
     }
   }
