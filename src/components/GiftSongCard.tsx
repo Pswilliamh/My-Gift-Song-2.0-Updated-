@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import {
   Film,
   Play,
@@ -27,6 +28,7 @@ import {
   synthesizeClientAcousticSongWavDataUrl,
   mixVoiceMp3WithAcousticGuitarWav,
 } from "../utils/clientSongGenerator";
+import { generateAndDownloadThreePartGiftCardPdf } from "../utils/giftCardPdfGenerator";
 
 interface GiftSongCardProps {
   songId?: string;
@@ -143,35 +145,26 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   const [videoCountdown, setVideoCountdown] = useState<number>(10);
   const [recordedVideoUrl, setRecordedVideoUrl] = useState<string | null>(null);
 
-  // Build default 10-second personal greeting script ("Hi Johnny! This is Yosia, wishing you a happy, blessed birthday! ...")
+  // Build concise default celebration greeting script so it never cuts off
   const buildDefaultGreetingScript = (
-    persona: "haddi" | "yosia",
-    theme: "birthday" | "blessing",
+    _persona: "haddi" | "yosia",
+    _theme: "birthday" | "blessing",
     recName: string,
-    rawWords: string
+    _rawWords?: string
   ) => {
     const cleanName = recName.trim() || "my friend";
-    const speakerName = persona === "yosia" ? "Yosia" : "Haddi";
-    const cleanWords = extractCleanUserWords(rawWords);
-    const shortUserSnippet = cleanWords
-      ? cleanWords.split(/\s+/).slice(0, 14).join(" ")
-      : "";
-    if (theme === "birthday") {
-      return shortUserSnippet
-        ? `Hi ${cleanName}! This is ${speakerName}, wishing you a happy, blessed birthday! ${shortUserSnippet}`
-        : `Hi ${cleanName}! This is ${speakerName}, wishing you a happy, blessed birthday filled with joy, love, and music!`;
-    }
-    return shortUserSnippet
-      ? `Hi ${cleanName}! This is ${speakerName}, sending you a special acoustic blessing! ${shortUserSnippet}`
-      : `Hi ${cleanName}! This is ${speakerName}, sending you a joyful acoustic blessing today and always!`;
+    return `Enjoy your celebration song, ${cleanName}!`;
   };
 
   const [greetingScript, setGreetingScript] = useState<string>(() =>
     buildDefaultGreetingScript(characterChoice, "birthday", recipientName, userWords)
   );
   const [isEditingGreetingScript, setIsEditingGreetingScript] = useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
+  const [pdfDownloadedNotice, setPdfDownloadedNotice] = useState(false);
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const qrContainerRef = useRef<HTMLDivElement | null>(null);
   const loadedImageRef = useRef<HTMLImageElement | null>(null);
   const stageVideoRef = useRef<HTMLVideoElement | null>(null);
   const hasServerVoiceRef = useRef<boolean>(true);
@@ -560,8 +553,8 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     ctx.textAlign = "center";
     const speakerLabel =
       characterChoice === "yosia"
-        ? `🎤 Yosia Greeting ${recipientName}: "Hi ${recipientName}, Happy Blessed Birthday!"`
-        : `🎸 Haddi Greeting ${recipientName}: "Hi ${recipientName}, Happy Blessed Birthday!"`;
+        ? `🎤 Yosia: "Enjoy your celebration song, ${recipientName}!"`
+        : `🎸 Haddi: "Enjoy your celebration song, ${recipientName}!"`;
     ctx.fillText(
       speakerLabel.length > 62 ? speakerLabel.slice(0, 60) + "..." : speakerLabel,
       W / 2,
@@ -638,7 +631,7 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     }
     if (currentLine) greetingChunks.push(currentLine);
     while (greetingChunks.length < 2) {
-      greetingChunks.push(`Happy Blessed Birthday, ${recipientName}!`);
+      greetingChunks.push(`Enjoy your celebration song, ${recipientName}!`);
     }
 
     const cycleSec = Math.min(9.99, t % 10);
@@ -853,7 +846,11 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
       sourceNode.buffer = cached.buffer;
       sourceNode.connect(analyser);
       analyser.connect(playCtx.destination);
-      sourceNode.start(0, 0, 10);
+      if (tenSecAudioMode === "songClip") {
+        sourceNode.start(0, 0, 10);
+      } else {
+        sourceNode.start(0);
+      }
 
       previewAudioCtxRef.current = playCtx;
       previewSourceNodeRef.current = sourceNode;
@@ -1134,54 +1131,104 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
     reader.readAsDataURL(file);
   };
 
+  const handlePrintAndDownloadThreePartPdf = async (alsoTriggerBrowserPrint = true) => {
+    if (isGeneratingPdf) return;
+    setIsGeneratingPdf(true);
+    try {
+      const qrSvg = qrContainerRef.current?.querySelector("svg") || null;
+      await generateAndDownloadThreePartGiftCardPdf({
+        songTitle,
+        recipientName,
+        artistPersona: characterChoice,
+        greetingStatement:
+          greetingScript.trim() || `Enjoy your celebration song, ${recipientName}!`,
+        lyrics: editableLyricsText || lyrics,
+        shareableSongUrl: resolvedShareableSongUrl,
+        directAudioLink: resolvedDirectAudioLink,
+        directNarrationLink: resolvedDirectNarrationLink,
+        qrSvgElement: qrSvg,
+        artistImageElement: loadedImageRef.current,
+      });
+      setPdfDownloadedNotice(true);
+      setTimeout(() => setPdfDownloadedNotice(false), 6000);
+    } catch (err) {
+      console.warn("Could not generate 3-part PDF file:", err);
+    } finally {
+      setIsGeneratingPdf(false);
+    }
+
+    if (alsoTriggerBrowserPrint && typeof window !== "undefined") {
+      setTimeout(() => {
+        try {
+          window.print();
+        } catch {
+          // ignore if blocked by iframe sandbox
+        }
+      }, 250);
+    }
+  };
+
   return (
     <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-md border border-stone-200 p-4 sm:p-6 text-slate-900 my-4 space-y-5">
       {/* =====================================================================
-          PDF-STYLE PRINTABLE & SHAREABLE KEEPSAKE GIFT CARD CERTIFICATE
-          Styled like a formal PDF Gift Card with QR Code, Dedication & Lyrics
+          THREE-PART PRINTABLE & SHAREABLE CELEBRATION GIFT CARD
+          Part 1: Celebration Cover & Yosia/Haddi Statement
+          Part 2: Personalized Celebration Song Lyrics Sheet
+          Part 3: Scan-to-Play QR Code & Direct Audio/Video Links
       ===================================================================== */}
       <div
         id="printable-keepsake-card"
         className="printable-keepsake-certificate rounded-2xl border-2 border-teal-800 bg-gradient-to-b from-[#fffdf7] via-white to-[#f3faf8] p-1.5 shadow-sm"
       >
-        <div className="rounded-xl border border-amber-400/80 p-4 sm:p-6 space-y-4">
-          {/* Certificate Header & Seal */}
-          <div className="text-center border-b border-amber-300/70 pb-3.5 space-y-1">
-            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-900 text-amber-200 text-[10px] font-mono font-bold uppercase tracking-widest">
-              <span>✨ Official Custom Gift Song Certificate • www.mygiftsong.org ✨</span>
+        <div className="rounded-xl border border-amber-400/80 p-4 sm:p-5 space-y-4">
+          {/* ---------------- PART 1 OF 3: CELEBRATION COVER & STATEMENT ---------------- */}
+          <div className="space-y-3">
+            <div className="text-center space-y-1">
+              <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-900 text-amber-200 text-[10px] font-mono font-bold uppercase tracking-widest">
+                <span>✨ Part 1 of 3 • Celebration Gift Card • www.mygiftsong.org ✨</span>
+              </div>
+              <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 pt-1">
+                {songTitle}
+              </h3>
+              <p className="text-xs sm:text-sm font-semibold text-teal-800">
+                Presented with Love &amp; Celebration To{" "}
+                <span className="underline decoration-amber-400 decoration-2 underline-offset-4 font-bold text-slate-950">
+                  {recipientName}
+                </span>
+              </p>
+              <p className="text-[11px] text-slate-500 font-medium">
+                Performed by{" "}
+                {characterChoice === "yosia"
+                  ? "Yosia (Haddi's Little Brother) • Acoustic Guitar & Vocals"
+                  : "Haddi the Street Minstrel • Acoustic Guitar & Vocals"}
+              </p>
             </div>
-            <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 pt-1">
-              {songTitle}
-            </h3>
-            <p className="text-xs sm:text-sm font-semibold text-teal-800">
-              Presented with Love &amp; Blessing To{" "}
-              <span className="underline decoration-amber-400 decoration-2 underline-offset-4 font-bold text-slate-950">
-                {recipientName}
-              </span>
-            </p>
-            <p className="text-[11px] text-slate-500 font-medium">
-              Performed by{" "}
-              {characterChoice === "yosia"
-                ? "Yosia (Haddi's Little Brother) • Acoustic Guitar & Vocals"
-                : "Haddi the Street Minstrel • Acoustic Guitar & Vocals"}
-            </p>
+
+            {/* Concise Celebration Statement on Part 1 */}
+            <div className="rounded-xl bg-amber-50/80 border border-amber-300/80 px-3.5 py-2.5 text-center">
+              <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 mb-0.5">
+                💬 {characterChoice === "yosia" ? "Yosia's" : "Haddi's"} Celebration Statement:
+              </p>
+              <p className="text-xs sm:text-sm text-slate-900 italic font-semibold leading-relaxed">
+                &ldquo;{greetingScript}&rdquo;
+              </p>
+            </div>
           </div>
 
-          {/* Personal Blessing Message Quote on the PDF Certificate */}
-          <div className="rounded-xl bg-amber-50/70 border border-amber-300/80 px-3.5 py-2.5 text-center">
-            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 mb-0.5">
-              💬 Personal Audio Blessing Included with Your Card:
-            </p>
-            <p className="text-xs text-slate-800 italic font-medium leading-relaxed">
-              &ldquo;{greetingScript}&rdquo;
-            </p>
+          {/* Fold / Cut Divider Between Part 1 and Part 2 */}
+          <div className="relative py-1 flex items-center justify-center">
+            <div className="w-full border-t-2 border-dashed border-amber-300/90" />
+            <span className="px-2.5 bg-white text-[9px] font-mono font-bold uppercase tracking-widest text-teal-800 shrink-0">
+              ✂ Fold Line • Part 2 of 3
+            </span>
+            <div className="w-full border-t-2 border-dashed border-amber-300/90" />
           </div>
 
-          {/* Formatted Song Lyrics Sheet on the PDF Certificate */}
+          {/* ---------------- PART 2 OF 3: CUSTOM CELEBRATION SONG LYRICS ---------------- */}
           <div className="space-y-1.5 text-left">
             <div className="flex items-center justify-between">
               <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-900">
-                📜 Custom Song Lyrics Dedicated to {recipientName}:
+                📜 Part 2 of 3 • Custom Song Lyrics Dedicated to {recipientName}:
               </span>
               {!isSharedRecipientView && (
                 <button
@@ -1199,11 +1246,23 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
             </div>
           </div>
 
-          {/* Scannable QR Code + Direct Clickable Song & Audio Links on the PDF Certificate */}
+          {/* Fold / Cut Divider Between Part 2 and Part 3 */}
+          <div className="relative py-1 flex items-center justify-center">
+            <div className="w-full border-t-2 border-dashed border-teal-300/90" />
+            <span className="px-2.5 bg-white text-[9px] font-mono font-bold uppercase tracking-widest text-teal-800 shrink-0">
+              ✂ Fold Line • Part 3 of 3
+            </span>
+            <div className="w-full border-t-2 border-dashed border-teal-300/90" />
+          </div>
+
+          {/* ---------------- PART 3 OF 3: QR CODE & DIRECT AUDIO LINKS ---------------- */}
           <div className="rounded-xl bg-teal-50/85 border border-teal-300 p-3.5 space-y-2.5 text-left">
             <div className="flex flex-col sm:flex-row items-center gap-3.5">
               {/* High-Contrast Scannable QR Code */}
-              <div className="p-2 bg-white rounded-xl border-2 border-teal-700 shadow-2xs shrink-0 flex flex-col items-center">
+              <div
+                ref={qrContainerRef}
+                className="p-2 bg-white rounded-xl border-2 border-teal-700 shadow-2xs shrink-0 flex flex-col items-center"
+              >
                 <QRCodeSVG
                   value={
                     cardQrTarget === "song"
@@ -1220,12 +1279,12 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
                 </span>
               </div>
 
-              {/* Direct Clickable Links inside Certificate */}
+              {/* Direct Clickable Links inside Part 3 */}
               <div className="flex-1 min-w-0 w-full space-y-1.5 text-xs">
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-[11px] font-bold text-teal-950 flex items-center gap-1">
                     <QrCode size={13} className="text-teal-700 shrink-0" />
-                    <span>Scan QR with Phone Camera or Click Links:</span>
+                    <span>Part 3 of 3 • Scan QR or Click Links:</span>
                   </span>
                   <div className="no-print flex items-center gap-1">
                     <button
@@ -1332,18 +1391,18 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
 
           {/* Certificate Footer Line */}
           <div className="flex items-center justify-between pt-2 border-t border-amber-300/70 text-[9px] font-mono text-slate-500 uppercase">
-            <span>MYGIFTSONG.ORG • OFFICIAL GIFT SONG KEEPSAKE</span>
+            <span>MYGIFTSONG.ORG • OFFICIAL 3-PART CELEBRATION GIFT CARD</span>
             <span>SCAN QR CODE OR CLICK LINK TO PLAY</span>
           </div>
         </div>
       </div>
 
-      {/* PROMINENT PDF PRINT, WHATSAPP & EMAIL GIFT CARD ACTION BAR */}
+      {/* PROMINENT 3-PART PDF DOWNLOAD / PRINT, WHATSAPP & EMAIL GIFT CARD ACTION BAR */}
       <div className="no-print rounded-2xl bg-gradient-to-r from-teal-900 via-teal-800 to-teal-900 p-3.5 text-white space-y-2.5 shadow-sm">
         <div className="flex items-center justify-between gap-2">
           <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
             <Printer size={13} />
-            <span>Print PDF Gift Card or Send via WhatsApp / Email</span>
+            <span>3-Part PDF Gift Card • Print, WhatsApp or Email</span>
           </span>
           <button
             type="button"
@@ -1355,14 +1414,26 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           </button>
         </div>
 
+        {pdfDownloadedNotice && (
+          <div className="rounded-xl bg-emerald-500/20 border border-emerald-300/50 px-3 py-1.5 text-[11px] font-semibold text-emerald-100 flex items-center gap-1.5">
+            <Check size={13} className="text-emerald-300 shrink-0" />
+            <span>
+              ✓ 3-Part Gift Card PDF downloaded! Open it to print or attach directly to WhatsApp / Email.
+            </span>
+          </div>
+        )}
+
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             type="button"
-            onClick={() => window.print()}
-            className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
+            disabled={isGeneratingPdf}
+            onClick={() => handlePrintAndDownloadThreePartPdf(true)}
+            className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
           >
             <Printer size={14} />
-            <span>Print / Save PDF Card</span>
+            <span>
+              {isGeneratingPdf ? "Preparing 3-Part PDF..." : "Print / Save 3-Part PDF"}
+            </span>
           </button>
 
           <button
@@ -1844,6 +1915,206 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
           </button>
         </div>
       </div>
+
+      {/* ROOT-LEVEL 3-PART PRINT PORTAL FOR CLEAN SINGLE-SHEET BROWSER PRINTING */}
+      {typeof document !== "undefined" &&
+        createPortal(
+          <div className="three-part-print-portal">
+            <div
+              style={{
+                border: "3px solid #0f766e",
+                borderRadius: "16px",
+                padding: "18px",
+                fontFamily: "Georgia, serif",
+                background: "#ffffff",
+                color: "#0f172a",
+              }}
+            >
+              {/* PART 1 */}
+              <div
+                style={{
+                  border: "2px solid #f59e0b",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  textAlign: "center",
+                  background: "#fffdf7",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontFamily: "monospace",
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    letterSpacing: "1.5px",
+                    color: "#0f766e",
+                  }}
+                >
+                  ✨ Part 1 of 3 • Official Celebration Gift Card • www.mygiftsong.org ✨
+                </div>
+                <h2 style={{ fontSize: "22px", fontWeight: "bold", margin: "6px 0 4px" }}>
+                  {songTitle}
+                </h2>
+                <p style={{ fontSize: "14px", fontWeight: "bold", color: "#0f766e", margin: "2px 0" }}>
+                  Presented with Love &amp; Celebration To: {recipientName}
+                </p>
+                <p style={{ fontSize: "11px", color: "#475569", margin: "2px 0 8px" }}>
+                  Performed by{" "}
+                  {characterChoice === "yosia"
+                    ? "Yosia (Haddi's Little Brother) • Acoustic Guitar & Vocals"
+                    : "Haddi the Street Minstrel • Acoustic Guitar & Vocals"}
+                </p>
+                <div
+                  style={{
+                    background: "#fffbeb",
+                    border: "1px solid #f59e0b",
+                    borderRadius: "8px",
+                    padding: "8px 12px",
+                    fontSize: "13px",
+                    fontStyle: "italic",
+                    fontWeight: "bold",
+                  }}
+                >
+                  &ldquo;{greetingScript}&rdquo;
+                </div>
+              </div>
+
+              {/* FOLD LINE 1 */}
+              <div
+                style={{
+                  borderTop: "2px dashed #94a3b8",
+                  margin: "12px 0",
+                  textAlign: "center",
+                  fontSize: "9px",
+                  fontFamily: "monospace",
+                  color: "#64748b",
+                }}
+              >
+                ✂ FOLD LINE • PART 2 OF 3: PERSONALIZED CELEBRATION SONG LYRICS
+              </div>
+
+              {/* PART 2 */}
+              <div
+                style={{
+                  border: "2px solid #0f766e",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  background: "#ffffff",
+                }}
+              >
+                <div
+                  style={{
+                    fontSize: "10px",
+                    fontFamily: "monospace",
+                    fontWeight: "bold",
+                    textTransform: "uppercase",
+                    color: "#0f766e",
+                    marginBottom: "6px",
+                    textAlign: "center",
+                  }}
+                >
+                  📜 Part 2 of 3 • Custom Song Lyrics Dedicated to {recipientName}
+                </div>
+                <div
+                  style={{
+                    whiteSpace: "pre-line",
+                    fontSize: "12px",
+                    lineHeight: 1.5,
+                    fontStyle: "italic",
+                    textAlign: "center",
+                  }}
+                >
+                  {editableLyricsText || lyrics}
+                </div>
+              </div>
+
+              {/* FOLD LINE 2 */}
+              <div
+                style={{
+                  borderTop: "2px dashed #94a3b8",
+                  margin: "12px 0",
+                  textAlign: "center",
+                  fontSize: "9px",
+                  fontFamily: "monospace",
+                  color: "#64748b",
+                }}
+              >
+                ✂ FOLD LINE • PART 3 OF 3: SCAN QR CODE OR CLICK LINKS TO LISTEN
+              </div>
+
+              {/* PART 3 */}
+              <div
+                style={{
+                  border: "2px solid #0f766e",
+                  borderRadius: "12px",
+                  padding: "14px",
+                  background: "#f0fdfa",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "16px",
+                }}
+              >
+                <div
+                  style={{
+                    background: "#ffffff",
+                    padding: "8px",
+                    borderRadius: "10px",
+                    border: "2px solid #0f766e",
+                    textAlign: "center",
+                  }}
+                >
+                  <QRCodeSVG
+                    value={`${resolvedShareableSongUrl}${
+                      resolvedShareableSongUrl.includes("?") ? "&" : "?"
+                    }autoplay=1`}
+                    size={96}
+                    level="M"
+                    fgColor="#0f766e"
+                    bgColor="#ffffff"
+                  />
+                  <div
+                    style={{
+                      fontSize: "8px",
+                      fontFamily: "monospace",
+                      fontWeight: "bold",
+                      marginTop: "4px",
+                      color: "#0f766e",
+                    }}
+                  >
+                    SCAN TO PLAY
+                  </div>
+                </div>
+                <div style={{ flex: 1, fontSize: "11px", fontFamily: "sans-serif" }}>
+                  <div
+                    style={{
+                      fontWeight: "bold",
+                      color: "#0f766e",
+                      marginBottom: "6px",
+                      textTransform: "uppercase",
+                    }}
+                  >
+                    Part 3 of 3 • Scan QR Code with Phone Camera or Open Links:
+                  </div>
+                  <div style={{ marginBottom: "6px" }}>
+                    <strong>1. Song &amp; Video Card Page:</strong>
+                    <br />
+                    <span style={{ fontFamily: "monospace", fontSize: "10px", color: "#0369a1" }}>
+                      {resolvedShareableSongUrl}
+                    </span>
+                  </div>
+                  <div>
+                    <strong>2. Direct Singing Song Audio (MP3):</strong>
+                    <br />
+                    <span style={{ fontFamily: "monospace", fontSize: "10px", color: "#0369a1" }}>
+                      {resolvedDirectAudioLink}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 };

@@ -1516,7 +1516,7 @@ function mixVocalWithAcousticGuitarWav(
   const vocalDurationSec = vocalFrames / sampleRate;
 
   const finalDurationSec = targetDurationSec
-    ? targetDurationSec
+    ? Math.max(targetDurationSec, Math.ceil(vocalDurationSec + 0.8))
     : vocalDurationSec + 0.8;
 
   const totalFrames = Math.floor(finalDurationSec * sampleRate);
@@ -1956,7 +1956,6 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
   } = req.body;
 
   const cleanRecipient = (recipientName || "My Friend").trim();
-  const personaName = artistPersona === "yosia" ? "Yosia" : "Haddi";
   const extractedWords =
     extractUserWordsFromContext(userWords) ||
     lyrics
@@ -1964,17 +1963,10 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
       .filter((l: string) => l && !l.startsWith("["))
       .slice(0, 2)
       .join(" ");
-  const conciseWords = extractedWords
-    ? extractedWords.split(/\s+/).slice(0, 18).join(" ")
-    : cardTheme === "birthday"
-    ? "May God bless you with joy, laughter, and a big smile today!"
-    : "May God's love, grace, and joy shine brightly on you today!";
 
   const greetingScript =
     (customGreetingScript || customGreetingText || "").trim() ||
-    (cardTheme === "birthday"
-      ? `Hi ${cleanRecipient}! This is ${personaName}, wishing you a happy, blessed birthday! ${conciseWords}`
-      : `Hi ${cleanRecipient}! This is ${personaName}, sending you a joyful, blessed song today! ${conciseWords}`);
+    `Enjoy your celebration song, ${cleanRecipient}!`;
 
   const shareId = normalizeShareId(requestedShareId);
 

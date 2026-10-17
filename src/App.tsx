@@ -32,6 +32,7 @@ import {
   synthesizeClientAcousticSongWavDataUrl,
   mixVoiceMp3WithAcousticGuitarWav,
 } from "./utils/clientSongGenerator";
+import { generateAndDownloadThreePartGiftCardPdf } from "./utils/giftCardPdfGenerator";
 
 const FREE_SONGS_RESET_VERSION = "mygiftsong_free_reset_v2_2026_10";
 
@@ -3100,11 +3101,31 @@ export default function App() {
             <div className="no-print absolute top-4 right-4 flex gap-2">
               <button
                 type="button"
-                onClick={() => window.print()}
+                onClick={async () => {
+                  const qrSvg = document.querySelector("#printable-keepsake-card svg") as SVGSVGElement | null;
+                  await generateAndDownloadThreePartGiftCardPdf({
+                    songTitle: currentSong.title,
+                    recipientName: currentSong.target,
+                    artistPersona: currentSong.artistPersona || artistPersona,
+                    greetingStatement: `Enjoy your celebration song, ${currentSong.target}!`,
+                    lyrics: currentSong.lyricSections
+                      .filter((s) => s.sectionName !== "Intro")
+                      .flatMap((s) => s.lines)
+                      .join("\n"),
+                    shareableSongUrl: getCanonicalSongLinks(currentSong.id).songLink,
+                    directAudioLink: getCanonicalSongLinks(currentSong.id).audioLink,
+                    qrSvgElement: qrSvg,
+                  });
+                  try {
+                    window.print();
+                  } catch {
+                    // ignore if blocked by iframe
+                  }
+                }}
                 className="px-3.5 py-1.5 bg-teal-700 hover:bg-teal-800 text-white rounded-lg text-xs font-bold inline-flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
               >
                 <Printer size={13} />
-                <span>Print Card with QR Code</span>
+                <span>Print / Save 3-Part PDF Card</span>
               </button>
               <button
                 type="button"
@@ -3235,11 +3256,31 @@ export default function App() {
               <div className="no-print pt-1 flex flex-wrap justify-center gap-2.5">
                 <button
                   type="button"
-                  onClick={() => window.print()}
+                  onClick={async () => {
+                    const qrSvg = document.querySelector("#printable-keepsake-card svg") as SVGSVGElement | null;
+                    await generateAndDownloadThreePartGiftCardPdf({
+                      songTitle: currentSong.title,
+                      recipientName: currentSong.target,
+                      artistPersona: currentSong.artistPersona || artistPersona,
+                      greetingStatement: `Enjoy your celebration song, ${currentSong.target}!`,
+                      lyrics: currentSong.lyricSections
+                        .filter((s) => s.sectionName !== "Intro")
+                        .flatMap((s) => s.lines)
+                        .join("\n"),
+                      shareableSongUrl: getCanonicalSongLinks(currentSong.id).songLink,
+                      directAudioLink: getCanonicalSongLinks(currentSong.id).audioLink,
+                      qrSvgElement: qrSvg,
+                    });
+                    try {
+                      window.print();
+                    } catch {
+                      // ignore if blocked by iframe
+                    }
+                  }}
                   className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold rounded-xl flex items-center gap-1.5 transition-colors cursor-pointer shadow-2xs"
                 >
                   <Printer size={14} />
-                  <span>Print Physical Gift Card</span>
+                  <span>Print / Save 3-Part PDF Card</span>
                 </button>
                 <button
                   type="button"
