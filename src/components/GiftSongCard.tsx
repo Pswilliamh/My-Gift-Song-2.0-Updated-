@@ -25,6 +25,7 @@ import {
   resolveBackendMediaUrl,
   LIVE_BACKEND_ORIGINS,
   synthesizeClientAcousticSongWavDataUrl,
+  mixVoiceMp3WithAcousticGuitarWav,
 } from "../utils/clientSongGenerator";
 
 interface GiftSongCardProps {
@@ -379,6 +380,14 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
         (data?.greetingAudioUrl ? resolveBackendMediaUrl(data.greetingAudioUrl) : null) ||
         (data?.audioUrl ? resolveBackendMediaUrl(data.audioUrl) : null) ||
         null;
+
+      if (data?.needsClientGuitarMix && data?.voiceMp3DataUrl) {
+        newGreetingUrl = await mixVoiceMp3WithAcousticGuitarWav(data.voiceMp3DataUrl, {
+          durationSeconds: 10,
+          artistPersona: characterChoice,
+          guitarGain: 0.22,
+        });
+      }
 
       if (!newGreetingUrl) {
         hasServerVoiceRef.current = false;
@@ -1126,163 +1135,253 @@ export const GiftSongCard: React.FC<GiftSongCardProps> = ({
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-sm border border-stone-200 p-6 text-slate-900 my-4 space-y-4">
-      <div className="text-center">
-        <span className="bg-teal-50 text-teal-800 border border-teal-200 text-[11px] font-semibold px-3 py-1 rounded-full uppercase tracking-wider">
-          Custom {characterChoice === "yosia" ? "Yosia" : "Haddi"} Gift Card
-        </span>
-        <h3 className="text-xl font-display font-bold mt-2.5 text-slate-900">{songTitle}</h3>
-        <p className="text-xs text-teal-700 font-medium mt-0.5">Dedicated to {recipientName}</p>
+    <div className="max-w-xl mx-auto bg-white rounded-2xl shadow-md border border-stone-200 p-4 sm:p-6 text-slate-900 my-4 space-y-5">
+      {/* =====================================================================
+          PDF-STYLE PRINTABLE & SHAREABLE KEEPSAKE GIFT CARD CERTIFICATE
+          Styled like a formal PDF Gift Card with QR Code, Dedication & Lyrics
+      ===================================================================== */}
+      <div
+        id="printable-keepsake-card"
+        className="printable-keepsake-certificate rounded-2xl border-2 border-teal-800 bg-gradient-to-b from-[#fffdf7] via-white to-[#f3faf8] p-1.5 shadow-sm"
+      >
+        <div className="rounded-xl border border-amber-400/80 p-4 sm:p-6 space-y-4">
+          {/* Certificate Header & Seal */}
+          <div className="text-center border-b border-amber-300/70 pb-3.5 space-y-1">
+            <div className="inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full bg-teal-900 text-amber-200 text-[10px] font-mono font-bold uppercase tracking-widest">
+              <span>✨ Official Custom Gift Song Certificate • www.mygiftsong.org ✨</span>
+            </div>
+            <h3 className="text-xl sm:text-2xl font-display font-bold text-slate-900 pt-1">
+              {songTitle}
+            </h3>
+            <p className="text-xs sm:text-sm font-semibold text-teal-800">
+              Presented with Love &amp; Blessing To{" "}
+              <span className="underline decoration-amber-400 decoration-2 underline-offset-4 font-bold text-slate-950">
+                {recipientName}
+              </span>
+            </p>
+            <p className="text-[11px] text-slate-500 font-medium">
+              Performed by{" "}
+              {characterChoice === "yosia"
+                ? "Yosia (Haddi's Little Brother) • Acoustic Guitar & Vocals"
+                : "Haddi the Street Minstrel • Acoustic Guitar & Vocals"}
+            </p>
+          </div>
+
+          {/* Personal Blessing Message Quote on the PDF Certificate */}
+          <div className="rounded-xl bg-amber-50/70 border border-amber-300/80 px-3.5 py-2.5 text-center">
+            <p className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-900 mb-0.5">
+              💬 Personal Audio Blessing Included with Your Card:
+            </p>
+            <p className="text-xs text-slate-800 italic font-medium leading-relaxed">
+              &ldquo;{greetingScript}&rdquo;
+            </p>
+          </div>
+
+          {/* Formatted Song Lyrics Sheet on the PDF Certificate */}
+          <div className="space-y-1.5 text-left">
+            <div className="flex items-center justify-between">
+              <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-teal-900">
+                📜 Custom Song Lyrics Dedicated to {recipientName}:
+              </span>
+              {!isSharedRecipientView && (
+                <button
+                  type="button"
+                  onClick={() => setIsEditingCardLyrics(!isEditingCardLyrics)}
+                  className="no-print text-[10px] font-bold text-teal-700 hover:underline flex items-center gap-1 cursor-pointer"
+                >
+                  <Edit3 size={10} />
+                  <span>{isEditingCardLyrics ? "Close Editor" : "Edit Lyrics"}</span>
+                </button>
+              )}
+            </div>
+            <div className="print-full-lyrics rounded-xl bg-white/95 border border-stone-200/90 p-3.5 max-h-48 overflow-y-auto text-xs text-slate-800 italic leading-relaxed whitespace-pre-line shadow-2xs">
+              {editableLyricsText || lyrics}
+            </div>
+          </div>
+
+          {/* Scannable QR Code + Direct Clickable Song & Audio Links on the PDF Certificate */}
+          <div className="rounded-xl bg-teal-50/85 border border-teal-300 p-3.5 space-y-2.5 text-left">
+            <div className="flex flex-col sm:flex-row items-center gap-3.5">
+              {/* High-Contrast Scannable QR Code */}
+              <div className="p-2 bg-white rounded-xl border-2 border-teal-700 shadow-2xs shrink-0 flex flex-col items-center">
+                <QRCodeSVG
+                  value={
+                    cardQrTarget === "song"
+                      ? `${resolvedShareableSongUrl}${resolvedShareableSongUrl.includes("?") ? "&" : "?"}autoplay=1`
+                      : resolvedDirectAudioLink
+                  }
+                  size={88}
+                  level="M"
+                  fgColor="#0f766e"
+                  bgColor="#ffffff"
+                />
+                <span className="mt-1 text-[9px] font-mono font-bold uppercase tracking-wider text-teal-950">
+                  📱 Scan to Play
+                </span>
+              </div>
+
+              {/* Direct Clickable Links inside Certificate */}
+              <div className="flex-1 min-w-0 w-full space-y-1.5 text-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[11px] font-bold text-teal-950 flex items-center gap-1">
+                    <QrCode size={13} className="text-teal-700 shrink-0" />
+                    <span>Scan QR with Phone Camera or Click Links:</span>
+                  </span>
+                  <div className="no-print flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setCardQrTarget("song")}
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer ${
+                        cardQrTarget === "song"
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-600 border border-stone-200"
+                      }`}
+                    >
+                      QR: Song Card
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setCardQrTarget("audio")}
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold cursor-pointer ${
+                        cardQrTarget === "audio"
+                          ? "bg-teal-700 text-white"
+                          : "bg-white text-slate-600 border border-stone-200"
+                      }`}
+                    >
+                      QR: Audio
+                    </button>
+                  </div>
+                </div>
+
+                {/* Link 1: Dedicated Song & Video Card Page */}
+                <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
+                  <div className="truncate">
+                    <span className="text-[10px] font-bold uppercase text-teal-800 block">
+                      🎵 1. Dedicated Song &amp; Video Card Page:
+                    </span>
+                    <a
+                      href={resolvedShareableSongUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
+                    >
+                      {resolvedShareableSongUrl}
+                    </a>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopySongPageLink}
+                    className="no-print px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
+                  >
+                    {copiedSongLink ? "✓ Copied" : "Copy"}
+                  </button>
+                </div>
+
+                {/* Link 2: Direct Singing Song Audio Link */}
+                <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
+                  <div className="truncate">
+                    <span className="text-[10px] font-bold uppercase text-teal-800 block">
+                      🎸 2. Full Singing Song Audio Link (MP3):
+                    </span>
+                    <a
+                      href={resolvedDirectAudioLink}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
+                    >
+                      {resolvedDirectAudioLink}
+                    </a>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyDirectAudioLink}
+                    className="no-print px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
+                  >
+                    {copiedAudioLink ? "✓ Copied" : "Copy"}
+                  </button>
+                </div>
+
+                {/* Link 3: Spoken Blessing Audio Link */}
+                {resolvedDirectNarrationLink && (
+                  <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
+                    <div className="truncate">
+                      <span className="text-[10px] font-bold uppercase text-teal-800 block">
+                        🎙️ 3. Spoken Blessing Audio Link (Voice Narration):
+                      </span>
+                      <a
+                        href={resolvedDirectNarrationLink}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
+                      >
+                        {resolvedDirectNarrationLink}
+                      </a>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCopyDirectNarrationLink}
+                      className="no-print px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
+                    >
+                      {copiedNarrationLink ? "✓ Copied" : "Copy"}
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Certificate Footer Line */}
+          <div className="flex items-center justify-between pt-2 border-t border-amber-300/70 text-[9px] font-mono text-slate-500 uppercase">
+            <span>MYGIFTSONG.ORG • OFFICIAL GIFT SONG KEEPSAKE</span>
+            <span>SCAN QR CODE OR CLICK LINK TO PLAY</span>
+          </div>
+        </div>
       </div>
 
-      {/* PROMINENT DIRECT LINKS TO AUDIO & SONG (Included on Gift Card!) */}
-      <div className="rounded-xl bg-teal-50/90 border border-teal-300 p-3.5 space-y-2.5 text-left">
+      {/* PROMINENT PDF PRINT, WHATSAPP & EMAIL GIFT CARD ACTION BAR */}
+      <div className="no-print rounded-2xl bg-gradient-to-r from-teal-900 via-teal-800 to-teal-900 p-3.5 text-white space-y-2.5 shadow-sm">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-[11px] font-bold uppercase tracking-wider text-teal-950 flex items-center gap-1.5">
-            <Link2 size={14} className="text-teal-700" />
-            <span>Direct Link to Song &amp; Audio</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+            <Printer size={13} />
+            <span>Print PDF Gift Card or Send via WhatsApp / Email</span>
           </span>
           <button
             type="button"
             onClick={handleCopyGiftCardWithAudioLink}
-            className="px-2.5 py-1 rounded-lg bg-teal-700 hover:bg-teal-800 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
+            className="px-2.5 py-1 rounded-lg bg-white/15 hover:bg-white/25 text-white text-[10px] font-bold flex items-center gap-1 cursor-pointer transition-all"
           >
             {copiedCardWithAudio ? <Check size={11} /> : <Copy size={11} />}
-            <span>{copiedCardWithAudio ? "Copied Card + Audio Link!" : "Copy Card + Audio Link"}</span>
+            <span>{copiedCardWithAudio ? "Copied All!" : "Copy Card + Links"}</span>
           </button>
         </div>
 
-        <div className="space-y-1.5 text-xs">
-          <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
-            <div className="truncate">
-              <span className="text-[10px] font-bold uppercase text-teal-800 block">
-                🎵 Dedicated Song Card Page (Opens Only {recipientName}&apos;s Song):
-              </span>
-              <a
-                href={resolvedShareableSongUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
-              >
-                {resolvedShareableSongUrl}
-              </a>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopySongPageLink}
-              className="px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
-            >
-              {copiedSongLink ? "✓ Copied" : "Copy"}
-            </button>
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => window.print()}
+            className="py-2.5 px-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
+          >
+            <Printer size={14} />
+            <span>Print / Save PDF Card</span>
+          </button>
 
-          <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
-            <div className="truncate">
-              <span className="text-[10px] font-bold uppercase text-teal-800 block">
-                🎸 Singing Song Audio Link (Full Sung MP3):
-              </span>
-              <a
-                href={resolvedDirectAudioLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
-              >
-                {resolvedDirectAudioLink}
-              </a>
-            </div>
-            <button
-              type="button"
-              onClick={handleCopyDirectAudioLink}
-              className="px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
-            >
-              {copiedAudioLink ? "✓ Copied" : "Copy"}
-            </button>
-          </div>
+          <button
+            type="button"
+            onClick={handleWhatsAppGiftShare}
+            className="py-2.5 px-3 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
+          >
+            <Share2 size={14} />
+            <span>Send on WhatsApp</span>
+          </button>
 
-          {resolvedDirectNarrationLink && (
-            <div className="flex items-center justify-between gap-2 bg-white rounded-lg px-2.5 py-1.5 border border-teal-200">
-              <div className="truncate">
-                <span className="text-[10px] font-bold uppercase text-teal-800 block">
-                  🎙️ Spoken Blessing Audio Link (Voice Narration):
-                </span>
-                <a
-                  href={resolvedDirectNarrationLink}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-[11px] text-teal-700 hover:underline font-mono truncate block"
-                >
-                  {resolvedDirectNarrationLink}
-                </a>
-              </div>
-              <button
-                type="button"
-                onClick={handleCopyDirectNarrationLink}
-                className="px-2 py-1 rounded bg-stone-100 hover:bg-teal-100 text-teal-900 text-[10px] font-bold shrink-0 cursor-pointer"
-              >
-                {copiedNarrationLink ? "✓ Copied" : "Copy"}
-              </button>
-            </div>
-          )}
-        </div>
-
-        {/* Scannable QR Code Badge for Physical Card / Phone Camera */}
-        <div className="flex items-center gap-3 bg-white rounded-xl p-3 border border-teal-200 shadow-2xs">
-          <div className="p-1.5 bg-white rounded-lg border border-stone-200 shrink-0">
-            <QRCodeSVG
-              value={
-                cardQrTarget === "song"
-                  ? `${resolvedShareableSongUrl}${resolvedShareableSongUrl.includes("?") ? "&" : "?"}autoplay=1`
-                  : resolvedDirectAudioLink
-              }
-              size={76}
-              level="M"
-              fgColor="#0f766e"
-              bgColor="#ffffff"
-            />
-          </div>
-          <div className="flex-1 min-w-0 space-y-1.5">
-            <div className="flex items-center gap-1 text-[11px] font-bold text-teal-950">
-              <QrCode size={13} className="text-teal-700 shrink-0" />
-              <span>Scan with Phone Camera to Play Song</span>
-            </div>
-            <p className="text-[10px] text-slate-600 leading-snug">
-              Included automatically on your Printable Keepsake Gift Card for physical birthday or blessing envelopes.
-            </p>
-            <div className="flex flex-wrap items-center gap-1.5 pt-0.5">
-              <button
-                type="button"
-                onClick={() => setCardQrTarget("song")}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
-                  cardQrTarget === "song"
-                    ? "bg-teal-700 text-white"
-                    : "bg-stone-100 text-slate-600 hover:bg-stone-200"
-                }`}
-              >
-                QR: Song + Lyrics
-              </button>
-              <button
-                type="button"
-                onClick={() => setCardQrTarget("audio")}
-                className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
-                  cardQrTarget === "audio"
-                    ? "bg-teal-700 text-white"
-                    : "bg-stone-100 text-slate-600 hover:bg-stone-200"
-                }`}
-              >
-                QR: Direct Audio
-              </button>
-              {onOpenPrintableCard && (
-                <button
-                  type="button"
-                  onClick={onOpenPrintableCard}
-                  className="px-2 py-0.5 rounded bg-amber-100 hover:bg-amber-200 text-amber-950 border border-amber-300 text-[10px] font-bold inline-flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <Printer size={10} />
-                  <span>Printable QR Card</span>
-                </button>
-              )}
-            </div>
-          </div>
+          <button
+            type="button"
+            onClick={handleEmailShare}
+            className="py-2.5 px-3 rounded-xl bg-white hover:bg-teal-50 text-teal-950 font-bold text-xs flex items-center justify-center gap-1.5 cursor-pointer transition-all shadow-xs"
+          >
+            <Mail size={14} />
+            <span>Send via Email</span>
+          </button>
         </div>
       </div>
 

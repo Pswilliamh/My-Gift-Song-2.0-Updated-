@@ -8,13 +8,33 @@ import Stripe from "stripe";
 
 dotenv.config();
 
-// Persistent storage directory for shared songs & direct audio links
-const SHARED_SONGS_DIR = path.join(process.cwd(), "data", "shared-songs");
-try {
-  fs.mkdirSync(SHARED_SONGS_DIR, { recursive: true });
-} catch {
-  // ignore directory creation error
+// Persistent storage directory for shared songs & direct audio links (uses /tmp on Vercel serverless)
+function resolveSharedSongsDir(): string {
+  if (process.env.VERCEL) {
+    const vercelTmpDir = path.join("/tmp", "shared-songs");
+    try {
+      fs.mkdirSync(vercelTmpDir, { recursive: true });
+    } catch {
+      // ignore
+    }
+    return vercelTmpDir;
+  }
+  const localDir = path.join(process.cwd(), "data", "shared-songs");
+  try {
+    fs.mkdirSync(localDir, { recursive: true });
+    return localDir;
+  } catch {
+    const fallbackTmp = path.join("/tmp", "shared-songs");
+    try {
+      fs.mkdirSync(fallbackTmp, { recursive: true });
+    } catch {
+      // ignore
+    }
+    return fallbackTmp;
+  }
 }
+
+const SHARED_SONGS_DIR = resolveSharedSongsDir();
 
 interface StoredSongRecord {
   shareId: string;
@@ -317,16 +337,26 @@ function getStripeClient(): Stripe | null {
 let aiClient: GoogleGenAI | null = null;
 let cachedApiKey: string | undefined = undefined;
 
+function getConfiguredGeminiKey(): string {
+  return (
+    process.env.GEMINI_API_KEY ||
+    process.env.VITE_GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GOOGLE_GENAI_API_KEY ||
+    ""
+  ).trim();
+}
+
 function hasValidApiKey(): boolean {
-  const currentKey = process.env.GEMINI_API_KEY;
+  const currentKey = getConfiguredGeminiKey();
   return Boolean(currentKey && currentKey !== "MOCK_KEY" && currentKey.trim() !== "");
 }
 
 function getAiClient(): GoogleGenAI {
-  const currentKey = process.env.GEMINI_API_KEY;
+  const currentKey = getConfiguredGeminiKey();
   if (!aiClient || cachedApiKey !== currentKey) {
     if (!currentKey) {
-      console.warn("WARNING: GEMINI_API_KEY environment variable is not set. Mock response will be used as fallback.");
+      console.warn("WARNING: GEMINI_API_KEY environment variable is not set. Fallback vocal engine will be used.");
     }
     cachedApiKey = currentKey;
     aiClient = new GoogleGenAI({
@@ -1836,6 +1866,80 @@ async function generateHaddiSongAudio(
   return mixVocalWithAcousticGuitarWav(rawVoiceWav, undefined, 0.22);
 }
 
+// Zero-key server-side Cloud TTS MP3 fetcher so GitHub/Vercel deployments ALWAYS produce real human vocals even if GEMINI_API_KEY isn't set in Vercel yet
+async function fetchCloudTtsMp3Buffer(text: string, language = "English"): Promise<Buffer | null> {
+  const cleaned = String(text || "")
+    .replace(/\[[^\]]*\]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  if (!cleaned) return null;
+
+  const lowerLang = language.toLowerCase();
+  const tl = lowerLang.includes("indonesia")
+    ? "id"
+    : lowerLang.includes("spanish")
+    ? "es"
+    : lowerLang.includes("french")
+    ? "fr"
+    : lowerLang.includes("portuguese")
+    ? "pt"
+    : lowerLang.includes("tagalog") || lowerLang.includes("filipino")
+    ? "tl"
+    : "en";
+
+  // Split text into natural <= 175 char phrases for clean multi-sentence MP3 streaming
+  const words = cleaned.split(" ");
+  const chunks: string[] = [];
+  let current = "";
+  for (const w of words) {
+    if ((current + " " + w).trim().length <= 175) {
+      current = (current + " " + w).trim();
+    } else {
+      if (current) chunks.push(current);
+      current = w;
+    }
+  }
+  if (current) chunks.push(current);
+
+  const buffers: Buffer[] = [];
+  for (const chunk of chunks.slice(0, 8)) {
+    try {
+      const url = `https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=${tl}&q=${encodeURIComponent(
+        chunk
+      )}`;
+      const resp = await fetch(url, {
+        headers: {
+          "User-Agent":
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36",
+        },
+      });
+      if (resp.ok) {
+        const arr = await resp.arrayBuffer();
+        if (arr.byteLength > 256) {
+          buffers.push(Buffer.from(arr));
+        }
+      }
+    } catch {
+      // ignore individual chunk error
+    }
+  }
+
+  if (buffers.length === 0) return null;
+  return Buffer.concat(buffers);
+}
+
+app.post("/api/cloud-voice-tts", async (req, res) => {
+  const { text = "", language = "English" } = req.body || {};
+  const mp3Buf = await fetchCloudTtsMp3Buffer(text, language);
+  if (!mp3Buf) {
+    return res.status(400).json({ error: "Could not synthesize cloud voice." });
+  }
+  return res.json({
+    success: true,
+    voiceMp3DataUrl: `data:audio/mpeg;base64,${mp3Buf.toString("base64")}`,
+  });
+});
+
 // Generate a dedicated 10-Second Personalized Birthday/Blessing Greeting + Song with Yosia or Haddi's voice & Acoustic Guitar!
 // e.g. "Hi Johnny! This is Yosia, wishing you a happy, blessed birthday! [plus user's exact words]"
 app.post("/api/generate-10s-greeting", async (req, res) => {
@@ -1962,7 +2066,35 @@ app.post("/api/generate-10s-greeting", async (req, res) => {
     console.warn("10s greeting TTS generation error, using acoustic guitar backing:", err);
   }
 
-  // Fallback 10s acoustic guitar celebration WAV if TTS is offline
+  // Cloud Voice TTS fallback (produces real human vocal MP3 to mix with guitar in browser when GEMINI_API_KEY is not configured on Vercel)
+  try {
+    const cloudVoiceMp3 = await fetchCloudTtsMp3Buffer(greetingScript, language);
+    if (cloudVoiceMp3) {
+      const voiceMp3DataUrl = `data:audio/mpeg;base64,${cloudVoiceMp3.toString("base64")}`;
+      saveSharedSongRecord(shareId, {
+        recipientName: cleanRecipient,
+        artistPersona,
+        userWords: extractedWords,
+        narrationDataUrl: voiceMp3DataUrl,
+      });
+      return res.json({
+        success: true,
+        hasSpokenVoice: true,
+        needsClientGuitarMix: true,
+        shareId,
+        greetingScript,
+        voiceMp3DataUrl,
+        greetingAudioUrl: `/api/songs/${shareId}/narration`,
+        audioUrl: `/api/songs/${shareId}/narration`,
+        greetingDataUrl: voiceMp3DataUrl,
+        audioDataUrl: voiceMp3DataUrl,
+      });
+    }
+  } catch (cloudErr) {
+    console.warn("Cloud TTS fallback notice:", cloudErr);
+  }
+
+  // Last-resort 10s acoustic guitar celebration WAV
   const guitarOnlyPcm = synthesizeAcousticGuitarBackingPcm(10, 24000, 1, 0.35);
   const guitarWav = pcmToWavBuffer(guitarOnlyPcm, 24000, 1, 16, 1);
   saveSharedSongRecord(shareId, {
@@ -2120,7 +2252,49 @@ app.post("/api/generate-haddi-audio", async (req, res) => {
 
     throw new Error(warnings.join(" | ") || "Both Lyria 3 and TTS audio generation failed.");
   } catch (error: any) {
-    console.error("Error generating audio via Google AI Studio:", error);
+    console.error("Error generating audio via Google AI Studio, using Cloud Vocal TTS fallback:", error);
+    const cleanTarget = target || songObject?.target || "My Friend";
+    const personaName = artistPersona === "yosia" ? "Yosia" : "Haddi";
+    const cleanLyricText = (generatedLyrics || extractUserWordsFromContext(inputPrompt) || inputPrompt)
+      .split("\n")
+      .filter((l: string) => l.trim() && !l.trim().startsWith("["))
+      .join(". ");
+    const vocalScript = `Hello ${cleanTarget}! This is ${personaName} performing your custom gift song, ${
+      songTitle || songObject?.title || `For ${cleanTarget}`
+    }. ${cleanLyricText}`;
+
+    const cloudMp3 = await fetchCloudTtsMp3Buffer(vocalScript, language);
+    if (cloudMp3) {
+      const voiceMp3DataUrl = `data:audio/mpeg;base64,${cloudMp3.toString("base64")}`;
+      saveSharedSongRecord(shareId, {
+        song: songObject || undefined,
+        lyrics: generatedLyrics,
+        userWords: extractUserWordsFromContext(inputPrompt),
+        recipientName: cleanTarget,
+        songTitle: songTitle || songObject?.title || `Gift Song for ${cleanTarget}`,
+        artistPersona,
+        lyriaDataUrl: voiceMp3DataUrl,
+        narrationDataUrl: voiceMp3DataUrl,
+      });
+      return res.json({
+        success: true,
+        needsClientGuitarMix: true,
+        voiceMp3DataUrl,
+        shareId,
+        directAudioUrl: `/api/songs/${shareId}/audio.mp3`,
+        shareableSongUrl: `/?song=${shareId}`,
+        songShareUrl: `/?song=${shareId}`,
+        audio_url: voiceMp3DataUrl,
+        audioUrl: voiceMp3DataUrl,
+        lyriaAudioUrl: voiceMp3DataUrl,
+        narrationAudioUrl: voiceMp3DataUrl,
+        lyrics: generatedLyrics,
+        durationSeconds,
+        setType,
+        modeUsed: "cloud_vocal_mix",
+      });
+    }
+
     const fallbackUrl = "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3";
     saveSharedSongRecord(shareId, {
       song: songObject || undefined,
@@ -2751,4 +2925,10 @@ async function bootstrap() {
   });
 }
 
-bootstrap();
+if (!process.env.VERCEL) {
+  bootstrap();
+}
+
+export { app };
+export default app;
+

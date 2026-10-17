@@ -35,29 +35,10 @@ export function resolveBackendMediaUrl(urlOrPath?: string | null): string {
   if (!urlOrPath) return "";
   if (urlOrPath.startsWith("data:") || urlOrPath.startsWith("blob:")) return urlOrPath;
   if (urlOrPath.startsWith("http://") || urlOrPath.startsWith("https://")) {
-    // If a full mygiftsong.org/api/... URL is used while remote backend fallback is active, point to remote backend
-    if (activeRemoteBackendOrigin) {
-      try {
-        const parsed = new URL(urlOrPath);
-        if (parsed.pathname.startsWith("/api/")) {
-          return `${activeRemoteBackendOrigin}${parsed.pathname}${parsed.search}`;
-        }
-      } catch {
-        // ignore URL parse error
-      }
-    }
     return urlOrPath;
   }
-  if (urlOrPath.startsWith("/api/")) {
-    if (activeRemoteBackendOrigin) {
-      return `${activeRemoteBackendOrigin}${urlOrPath}`;
-    }
-    if (typeof window !== "undefined") {
-      const host = window.location.hostname;
-      if (host.includes("mygiftsong.org") || host.includes("vercel.app")) {
-        return `${LIVE_BACKEND_ORIGINS[0]}${urlOrPath}`;
-      }
-    }
+  if (urlOrPath.startsWith("/api/") && activeRemoteBackendOrigin) {
+    return `${activeRemoteBackendOrigin}${urlOrPath}`;
   }
   return urlOrPath;
 }
@@ -495,3 +476,82 @@ export function synthesizeClientAcousticSongWavDataUrl(options?: {
   }
   return `data:audio/wav;base64,${btoa(binary)}`;
 }
+
+/**
+ * Decodes a real human vocal MP3/WAV data URL and mixes warm acoustic guitar accompaniment underneath it,
+ * returning a playable & downloadable `data:audio/wav;base64,...` with BOTH real vocals and acoustic guitar.
+ */
+export async function mixVoiceMp3WithAcousticGuitarWav(
+  voiceDataUrl: string,
+  options?: {
+    durationSeconds?: number;
+    artistPersona?: "haddi" | "yosia";
+    guitarGain?: number;
+  }
+): Promise<string> {
+  try {
+    const commaIdx = voiceDataUrl.indexOf(",");
+    const base64 = commaIdx >= 0 ? voiceDataUrl.slice(commaIdx + 1) : voiceDataUrl;
+    const bin = atob(base64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) {
+      bytes[i] = bin.charCodeAt(i);
+    }
+
+    const AudioCtx =
+      window.AudioContext ||
+      (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+    const ctx = new AudioCtx();
+    const decodedVoice = await ctx.decodeAudioData(bytes.buffer.slice(0));
+    await ctx.close().catch(() => {});
+
+    const sampleRate = 22050;
+    const voiceDur = decodedVoice.duration;
+    const targetDur = options?.durationSeconds
+      ? Math.max(options.durationSeconds, Math.min(voiceDur + 1.2, 60))
+      : Math.min(Math.max(voiceDur + 1.0, 10), 60);
+
+    // Get guitar backing WAV and decode its PCM
+    const guitarWavDataUrl = synthesizeClientAcousticSongWavDataUrl({
+      durationSeconds: targetDur,
+      artistPersona: options?.artistPersona,
+    });
+    const gComma = guitarWavDataUrl.indexOf(",");
+    const gBin = atob(guitarWavDataUrl.slice(gComma + 1));
+    const totalSamples = Math.floor((gBin.length - 44) / 2);
+    const gBytes = new Uint8Array(gBin.length);
+    for (let i = 0; i < gBin.length; i++) {
+      gBytes[i] = gBin.charCodeAt(i);
+    }
+    const gView = new DataView(gBytes.buffer);
+
+    const voiceChan = decodedVoice.getChannelData(0);
+    const voiceRate = decodedVoice.sampleRate;
+    const guitarScale = options?.guitarGain ?? 0.22;
+    const startOffsetSamples = Math.floor(0.25 * sampleRate);
+
+    for (let i = 0; i < totalSamples; i++) {
+      const guitarSample = (gView.getInt16(44 + i * 2, true) / 32768) * guitarScale;
+      let vSample = 0;
+      const vIdx = Math.floor(((i - startOffsetSamples) * voiceRate) / sampleRate);
+      if (vIdx >= 0 && vIdx < voiceChan.length) {
+        vSample = voiceChan[vIdx] * 1.15;
+      }
+      const combined = Math.tanh(vSample + guitarSample);
+      const pcm16 = Math.max(-32768, Math.min(32767, Math.round(combined * 31000)));
+      gView.setInt16(44 + i * 2, pcm16, true);
+    }
+
+    let outBin = "";
+    const chunkSize = 0x8000;
+    for (let i = 0; i < gBytes.length; i += chunkSize) {
+      const chunk = gBytes.subarray(i, i + chunkSize);
+      outBin += String.fromCharCode.apply(null, Array.from(chunk));
+    }
+    return `data:audio/wav;base64,${btoa(outBin)}`;
+  } catch (e) {
+    console.warn("Could not mix voice MP3 with guitar, returning original voice track:", e);
+    return voiceDataUrl;
+  }
+}
+

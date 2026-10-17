@@ -4,7 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <script>
-      // Prevent benign Vite HMR WebSocket errors in the preview container from triggering uncaught error overlays
+      // Prevent Vite HMR WebSocket ('vite-hmr') from failing in the preview container where HMR is disabled
+      (function () {
+        var NativeWebSocket = window.WebSocket;
+        if (NativeWebSocket) {
+          var PatchedWebSocket = function (url, protocols) {
+            var isViteHmr =
+              protocols === "vite-hmr" ||
+              (Array.isArray(protocols) && protocols.indexOf("vite-hmr") !== -1);
+            if (isViteHmr) {
+              var dummy = new EventTarget();
+              dummy.url = String(url || "");
+              dummy.readyState = 1; // OPEN
+              dummy.protocol = "vite-hmr";
+              dummy.extensions = "";
+              dummy.bufferedAmount = 0;
+              dummy.binaryType = "blob";
+              dummy.send = function () {};
+              dummy.close = function () {
+                dummy.readyState = 3;
+              };
+              return dummy;
+            }
+            return protocols !== undefined
+              ? new NativeWebSocket(url, protocols)
+              : new NativeWebSocket(url);
+          };
+          PatchedWebSocket.prototype = NativeWebSocket.prototype;
+          PatchedWebSocket.CONNECTING = NativeWebSocket.CONNECTING;
+          PatchedWebSocket.OPEN = NativeWebSocket.OPEN;
+          PatchedWebSocket.CLOSING = NativeWebSocket.CLOSING;
+          PatchedWebSocket.CLOSED = NativeWebSocket.CLOSED;
+          window.WebSocket = PatchedWebSocket;
+        }
+      })();
       window.addEventListener(
         "unhandledrejection",
         function (event) {

@@ -30,6 +30,7 @@ import {
   resolveBackendMediaUrl,
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
+  mixVoiceMp3WithAcousticGuitarWav,
 } from "./utils/clientSongGenerator";
 
 const FREE_SONGS_RESET_VERSION = "mygiftsong_free_reset_v2_2026_10";
@@ -1010,31 +1011,45 @@ export default function App() {
       });
 
       if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
-        if (audioData.directAudioUrl) {
-          setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
-        }
-        if (audioData.shareableSongUrl) {
-          setShareableSongUrl(
-            audioData.shareableSongUrl.startsWith("http")
-              ? audioData.shareableSongUrl
-              : `${origin}${audioData.shareableSongUrl}`
+        if (audioData.needsClientGuitarMix && audioData.voiceMp3DataUrl) {
+          const mixedVocalWav = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
+            durationSeconds: setTypeVal === "quick" ? 28 : 42,
+            artistPersona: personaVal,
+          });
+          setLyriaAudioUrl(mixedVocalWav);
+          setNarrationAudioUrl(mixedVocalWav);
+          setActiveTrackType("lyria");
+          setAudioSource(mixedVocalWav);
+          setDirectAudioUrl(
+            audioData.directAudioUrl ? resolveBackendMediaUrl(audioData.directAudioUrl) : mixedVocalWav
           );
+        } else {
+          if (audioData.directAudioUrl) {
+            setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
+          }
+          if (audioData.shareableSongUrl) {
+            setShareableSongUrl(
+              audioData.shareableSongUrl.startsWith("http")
+                ? audioData.shareableSongUrl
+                : `${origin}${audioData.shareableSongUrl}`
+            );
+          }
+          if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
+          if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
+          const initType =
+            requestedMode === "narration" && audioData.narrationAudioUrl
+              ? "narration"
+              : audioData.lyriaAudioUrl
+              ? "lyria"
+              : "narration";
+          const primaryPlayUrl = resolveBackendMediaUrl(
+            initType === "lyria"
+              ? audioData.lyriaAudioUrl || audioData.audioUrl
+              : audioData.narrationAudioUrl || audioData.audioUrl
+          );
+          setActiveTrackType(initType);
+          setAudioSource(primaryPlayUrl);
         }
-        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
-        if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
-        const initType =
-          requestedMode === "narration" && audioData.narrationAudioUrl
-            ? "narration"
-            : audioData.lyriaAudioUrl
-            ? "lyria"
-            : "narration";
-        const primaryPlayUrl = resolveBackendMediaUrl(
-          initType === "lyria"
-            ? audioData.lyriaAudioUrl || audioData.audioUrl
-            : audioData.narrationAudioUrl || audioData.audioUrl
-        );
-        setActiveTrackType(initType);
-        setAudioSource(primaryPlayUrl);
       } else {
         const wavFallbackUrl = synthesizeClientAcousticSongWavDataUrl({
           durationSeconds: setTypeVal === "quick" ? 24 : 32,
@@ -1303,31 +1318,45 @@ export default function App() {
       });
 
       if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
-        if (audioData.directAudioUrl) {
-          setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
-        }
-        if (audioData.shareableSongUrl) {
-          setShareableSongUrl(
-            audioData.shareableSongUrl.startsWith("http")
-              ? audioData.shareableSongUrl
-              : `${origin}${audioData.shareableSongUrl}`
+        if (audioData.needsClientGuitarMix && audioData.voiceMp3DataUrl) {
+          const mixedVocalWav = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
+            durationSeconds: setType === "quick" ? 28 : 42,
+            artistPersona,
+          });
+          setLyriaAudioUrl(mixedVocalWav);
+          setNarrationAudioUrl(mixedVocalWav);
+          setActiveTrackType("lyria");
+          setAudioSource(mixedVocalWav);
+          setDirectAudioUrl(
+            audioData.directAudioUrl ? resolveBackendMediaUrl(audioData.directAudioUrl) : mixedVocalWav
           );
+        } else {
+          if (audioData.directAudioUrl) {
+            setDirectAudioUrl(resolveBackendMediaUrl(audioData.directAudioUrl));
+          }
+          if (audioData.shareableSongUrl) {
+            setShareableSongUrl(
+              audioData.shareableSongUrl.startsWith("http")
+                ? audioData.shareableSongUrl
+                : `${origin}${audioData.shareableSongUrl}`
+            );
+          }
+          if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
+          if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
+          const initType =
+            audioGenerationMode === "narration" && audioData.narrationAudioUrl
+              ? "narration"
+              : audioData.lyriaAudioUrl
+              ? "lyria"
+              : "narration";
+          const primaryPlayUrl = resolveBackendMediaUrl(
+            initType === "lyria"
+              ? audioData.lyriaAudioUrl || audioData.audioUrl
+              : audioData.narrationAudioUrl || audioData.audioUrl
+          );
+          setActiveTrackType(initType);
+          setAudioSource(primaryPlayUrl);
         }
-        if (audioData.lyriaAudioUrl) setLyriaAudioUrl(resolveBackendMediaUrl(audioData.lyriaAudioUrl));
-        if (audioData.narrationAudioUrl) setNarrationAudioUrl(resolveBackendMediaUrl(audioData.narrationAudioUrl));
-        const initType =
-          audioGenerationMode === "narration" && audioData.narrationAudioUrl
-            ? "narration"
-            : audioData.lyriaAudioUrl
-            ? "lyria"
-            : "narration";
-        const primaryPlayUrl = resolveBackendMediaUrl(
-          initType === "lyria"
-            ? audioData.lyriaAudioUrl || audioData.audioUrl
-            : audioData.narrationAudioUrl || audioData.audioUrl
-        );
-        setActiveTrackType(initType);
-        setAudioSource(primaryPlayUrl);
       } else {
         const wavFallbackUrl = synthesizeClientAcousticSongWavDataUrl({
           durationSeconds: setType === "quick" ? 24 : 32,

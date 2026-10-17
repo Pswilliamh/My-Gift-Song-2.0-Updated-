@@ -32,6 +32,7 @@ import {
   resolveBackendMediaUrl,
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
+  mixVoiceMp3WithAcousticGuitarWav,
 } from "../utils/clientSongGenerator";
 
 export const DEFAULT_YOSIA_DRIVE_FILE_ID = "1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y";
@@ -333,7 +334,12 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           songTitle: generatedSong.title,
         }),
       });
-      if (audioData?.lyriaAudioUrl || audioData?.audioUrl) {
+      if (audioData?.needsClientGuitarMix && audioData?.voiceMp3DataUrl) {
+        finalAudioUrl = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
+          durationSeconds: params.setType === "quick" ? 28 : 42,
+          artistPersona: "yosia",
+        });
+      } else if (audioData?.lyriaAudioUrl || audioData?.audioUrl) {
         finalAudioUrl = resolveBackendMediaUrl(audioData.lyriaAudioUrl || audioData.audioUrl);
       }
 
