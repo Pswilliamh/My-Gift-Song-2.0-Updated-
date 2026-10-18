@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { SongData, SetType } from "../types";
 import { GiftSongCard } from "./GiftSongCard";
+import { YosiaMusicVideoPlayer } from "./YosiaMusicVideoPlayer";
 import {
   safeParseJson,
   apiFetchJson,
@@ -33,6 +34,7 @@ import {
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
   mixVoiceMp3WithAcousticGuitarWav,
+  synthesizeVocalSongFallbackWav,
 } from "../utils/clientSongGenerator";
 
 export const DEFAULT_YOSIA_DRIVE_FILE_ID = "1N7lspWodacNk-VICZyxKYdVvFCeQMu9Y";
@@ -245,6 +247,8 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
   const [yosiaEditableLyrics, setYosiaEditableLyrics] = useState("");
   const [isEditingYosiaLyrics, setIsEditingYosiaLyrics] = useState(false);
   const [isSpeakingYosiaVoice, setIsSpeakingYosiaVoice] = useState(false);
+  const [showStandaloneMvStudio, setShowStandaloneMvStudio] = useState(false);
+  const [uploadedSongAudioForMv, setUploadedSongAudioForMv] = useState<string | null>(null);
   const yosiaAudioPlayerRef = useRef<HTMLAudioElement | null>(null);
   const yosiaResultCardRef = useRef<HTMLDivElement | null>(null);
 
@@ -336,7 +340,7 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
       });
       if (audioData?.needsClientGuitarMix && audioData?.voiceMp3DataUrl) {
         finalAudioUrl = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
-          durationSeconds: params.setType === "quick" ? 28 : 42,
+          durationSeconds: params.setType === "quick" ? 60 : 75,
           artistPersona: "yosia",
         });
       } else if (audioData?.lyriaAudioUrl || audioData?.audioUrl) {
@@ -344,9 +348,13 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
       }
 
       if (!finalAudioUrl) {
-        finalAudioUrl = synthesizeClientAcousticSongWavDataUrl({
-          durationSeconds: params.setType === "quick" ? 24 : 32,
+        finalAudioUrl = await synthesizeVocalSongFallbackWav({
+          recipientName: params.target || "My Friend",
+          songTitle: generatedSong.title,
+          lyrics: compiledLyrics,
+          language: params.language,
           artistPersona: "yosia",
+          durationSeconds: params.setType === "quick" ? 60 : 75,
         });
       }
 
@@ -664,17 +672,32 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
           </span>
         </div>
 
-        {/* Action Buttons: Create & Play Right Here on Yosia's Page OR Open Full Studio */}
+        {/* Action Buttons: Create & Play Song + Real Music Video Right Here on Yosia's Page OR Open Full Studio */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
-          <button
-            type="button"
-            onClick={() => onGenerateYosiaSong(buildYosiaParams(true))}
-            className="px-4 py-3 rounded-xl bg-white hover:bg-teal-50 text-teal-900 border border-teal-300 font-display font-semibold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
-          >
-            <Music size={15} className="text-teal-700" />
-            <span>Open in Full Multi-Stage Studio</span>
-            <ArrowRight size={14} />
-          </button>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => onGenerateYosiaSong(buildYosiaParams(true))}
+              className="px-4 py-3 rounded-xl bg-white hover:bg-teal-50 text-teal-900 border border-teal-300 font-display font-semibold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
+            >
+              <Music size={15} className="text-teal-700" />
+              <span>Open in Full Multi-Stage Studio</span>
+              <ArrowRight size={14} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowStandaloneMvStudio((prev) => !prev)}
+              className="px-4 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-slate-950 border border-amber-500 font-display font-bold text-xs sm:text-sm flex items-center gap-2 cursor-pointer transition-all shadow-2xs"
+            >
+              <Video size={16} />
+              <span>
+                {showStandaloneMvStudio
+                  ? "Close Yosia Music Video Studio"
+                  : "🎬 Make Real Yosia Music Video"}
+              </span>
+            </button>
+          </div>
 
           <button
             type="button"
@@ -685,14 +708,68 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
             <Sparkles size={16} />
             <span>
               {isCreatingYosiaSong
-                ? `Yosia Is Strumming & Creating ${childName.trim() || "Your Child"}'s Song...`
-                : `🎸 Create & Play ${childName.trim() ? `${childName.trim()}'s` : "Children's"} ${
-                    selectedSetType === "full" ? "2-Min Full" : selectedSetType === "premium" ? "Premium" : "60s"
-                  } Song Now`}
+                ? `Yosia Is Strumming & Creating ${childName.trim() || "Your Child"}'s Song & Video...`
+                : `🎸🎬 Create ${childName.trim() ? `${childName.trim()}'s` : "Children's"} ${
+                    selectedSetType === "full" ? "2-Min" : selectedSetType === "premium" ? "Premium" : "60s"
+                  } Song + Real Yosia Music Video`}
             </span>
             <ArrowRight size={15} />
           </button>
         </div>
+
+        {/* Standalone Yosia Real Music Video Studio (Upload Any Audio or Use Instant Studio Demo) */}
+        {showStandaloneMvStudio && !yosiaCreatedSong && (
+          <div className="mt-4 space-y-3">
+            <div className="rounded-xl bg-teal-50 border border-teal-300 p-3.5 flex flex-wrap items-center justify-between gap-3 text-xs text-teal-950">
+              <div>
+                <p className="font-bold text-teal-900">
+                  🎬 Yosia Real Music Video Maker — Use Your Custom Song or Upload Any Audio File!
+                </p>
+                <p className="text-[11px] text-slate-600">
+                  Click <strong>Create Song + Real Yosia Music Video</strong> above to generate a new custom song, or upload an existing MP3/WAV song file right here to turn it into a real Yosia music video:
+                </p>
+              </div>
+              <label className="px-3.5 py-2 rounded-xl bg-teal-700 hover:bg-teal-800 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer shrink-0 shadow-2xs">
+                <Upload size={14} />
+                <span>{uploadedSongAudioForMv ? "Change Song Audio File" : "Upload Song Audio (.mp3 / .wav)"}</span>
+                <input
+                  type="file"
+                  accept="audio/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setUploadedSongAudioForMv(URL.createObjectURL(file));
+                    }
+                  }}
+                  className="hidden"
+                />
+              </label>
+            </div>
+
+            <YosiaMusicVideoPlayer
+              songTitle={
+                childName.trim()
+                  ? `${childName.trim()}'s Celebration Song`
+                  : "Yosia's Joyful Children's Song"
+              }
+              recipientName={childName.trim() || "Our Special Friend"}
+              audioUrl={
+                uploadedSongAudioForMv ||
+                synthesizeClientAcousticSongWavDataUrl({
+                  durationSeconds: 60,
+                  artistPersona: "yosia",
+                })
+              }
+              lyrics={
+                childWords.trim() ||
+                `Hi ${childName.trim() || "my friend"}! This is Yosia strumming a happy song for you!\nClap your hands and sing along with joy today!\nMay God bless your smile and fill your heart with peace!\nEnjoy your celebration song, ${childName.trim() || "my friend"}!`
+              }
+              genre={selectedChildGenre}
+              language={selectedLanguage}
+              artistPersona="yosia"
+            />
+          </div>
+        )}
 
         {/* =====================================================================
             IN-PAGE YOSIA CUSTOM SONG PLAYER & KEEPSAKE CARD
@@ -797,6 +874,21 @@ export const YosiaChildrenSection: React.FC<YosiaChildrenSectionProps> = ({
                   {yosiaEditableLyrics}
                 </pre>
               )}
+            </div>
+
+            {/* FULL-LENGTH REAL YOSIA MUSIC VIDEO PLAYER & EXPORTER */}
+            <div className="pt-1">
+              <YosiaMusicVideoPlayer
+                songId={yosiaCreatedSong.id}
+                songTitle={yosiaCreatedSong.title}
+                recipientName={yosiaCreatedSong.target}
+                audioUrl={yosiaCreatedAudioUrl}
+                lyrics={yosiaEditableLyrics}
+                lyricSections={yosiaCreatedSong.lyricSections}
+                genre={yosiaCreatedSong.genre}
+                language={yosiaCreatedSong.language}
+                artistPersona="yosia"
+              />
             </div>
 
             {/* Yosia's 10-Second Personal Birthday Greeting Video & Printable QR Gift Card */}

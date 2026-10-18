@@ -22,6 +22,7 @@ import { RewardsAndAffiliateSections, ReferralEntry } from "./components/Rewards
 import { PWAInstallButton, OfflineIndicator } from "./components/PWAInstallButton";
 import { AdminAccountDashboard, AdminUser, MASTER_ADMIN_EMAIL } from "./components/AdminAccountDashboard";
 import { YosiaChildrenSection, SUPPORTED_SONG_LANGUAGES } from "./components/YosiaChildrenSection";
+import { YosiaMusicVideoPlayer } from "./components/YosiaMusicVideoPlayer";
 import { MinistryAndSponsorPackages } from "./components/MinistryAndSponsorPackages";
 import { RecipientReactionAndThankYouCard } from "./components/RecipientReactionAndThankYouCard";
 import {
@@ -31,6 +32,7 @@ import {
   buildClientFallbackSong,
   synthesizeClientAcousticSongWavDataUrl,
   mixVoiceMp3WithAcousticGuitarWav,
+  synthesizeVocalSongFallbackWav,
 } from "./utils/clientSongGenerator";
 import { generateAndDownloadThreePartGiftCardPdf } from "./utils/giftCardPdfGenerator";
 
@@ -1014,7 +1016,7 @@ export default function App() {
       if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
         if (audioData.needsClientGuitarMix && audioData.voiceMp3DataUrl) {
           const mixedVocalWav = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
-            durationSeconds: setTypeVal === "quick" ? 28 : 42,
+            durationSeconds: setTypeVal === "quick" ? 60 : 75,
             artistPersona: personaVal,
           });
           setLyriaAudioUrl(mixedVocalWav);
@@ -1052,9 +1054,13 @@ export default function App() {
           setAudioSource(primaryPlayUrl);
         }
       } else {
-        const wavFallbackUrl = synthesizeClientAcousticSongWavDataUrl({
-          durationSeconds: setTypeVal === "quick" ? 24 : 32,
+        const wavFallbackUrl = await synthesizeVocalSongFallbackWav({
+          recipientName: returnedSong.target || targetVal.trim() || "My Friend",
+          songTitle: returnedSong.title,
+          lyrics: compiledLyrics,
+          language: languageVal,
           artistPersona: personaVal,
+          durationSeconds: setTypeVal === "quick" ? 60 : 75,
         });
         setLyriaAudioUrl(wavFallbackUrl);
         setNarrationAudioUrl(wavFallbackUrl);
@@ -1321,7 +1327,7 @@ export default function App() {
       if (audioData && (audioData.audioUrl || audioData.lyriaAudioUrl || audioData.narrationAudioUrl)) {
         if (audioData.needsClientGuitarMix && audioData.voiceMp3DataUrl) {
           const mixedVocalWav = await mixVoiceMp3WithAcousticGuitarWav(audioData.voiceMp3DataUrl, {
-            durationSeconds: setType === "quick" ? 28 : 42,
+            durationSeconds: setType === "quick" ? 60 : 75,
             artistPersona,
           });
           setLyriaAudioUrl(mixedVocalWav);
@@ -1359,9 +1365,13 @@ export default function App() {
           setAudioSource(primaryPlayUrl);
         }
       } else {
-        const wavFallbackUrl = synthesizeClientAcousticSongWavDataUrl({
-          durationSeconds: setType === "quick" ? 24 : 32,
+        const wavFallbackUrl = await synthesizeVocalSongFallbackWav({
+          recipientName: returnedSong.target || target.trim() || "My Friend",
+          songTitle: returnedSong.title,
+          lyrics: compiledLyrics,
+          language: songLanguage,
           artistPersona,
+          durationSeconds: setType === "quick" ? 60 : 75,
         });
         setLyriaAudioUrl(wavFallbackUrl);
         setNarrationAudioUrl(wavFallbackUrl);
@@ -1561,7 +1571,13 @@ export default function App() {
         if (data?.shareableSongUrl) {
           setShareableSongUrl(data.shareableSongUrl);
         }
-        const freshUrl = data?.lyriaAudioUrl || data?.audioUrl || null;
+        let freshUrl = data?.lyriaAudioUrl || data?.audioUrl || null;
+        if (data?.needsClientGuitarMix && data?.voiceMp3DataUrl) {
+          freshUrl = await mixVoiceMp3WithAcousticGuitarWav(data.voiceMp3DataUrl, {
+            durationSeconds: (currentSong.setType || setType) === "quick" ? 60 : 75,
+            artistPersona: currentSong.artistPersona || artistPersona,
+          });
+        }
         if (freshUrl) {
           const resolvedFresh = resolveBackendMediaUrl(freshUrl);
           setLyriaAudioUrl(resolvedFresh);
@@ -3037,8 +3053,31 @@ export default function App() {
                         )}
                       </div>
 
-                      {/* Right side: The Clean White & Teal Lyric Sheet + Recipient Thank-You Card */}
+                      {/* Right side: Full-Length Real Music Video Player + Lyric Sheet + Recipient Thank-You Card */}
                       <div className="lg:col-span-7 space-y-6">
+                        <YosiaMusicVideoPlayer
+                          songId={currentSong.id}
+                          songTitle={currentSong.title}
+                          recipientName={currentSong.target}
+                          audioUrl={
+                            audioSource ||
+                            audioUrl ||
+                            lyriaAudioUrl ||
+                            directAudioUrl ||
+                            `/api/songs/${encodeURIComponent(currentSong.id)}/audio`
+                          }
+                          lyrics={
+                            currentSong.lyricSections
+                              .filter((s) => s.sectionName !== "Intro")
+                              .flatMap((s) => s.lines)
+                              .join("\n")
+                          }
+                          lyricSections={currentSong.lyricSections}
+                          genre={currentSong.genre}
+                          language={currentSong.language || songLanguage}
+                          artistPersona={currentSong.artistPersona || artistPersona}
+                        />
+
                         <LyricCanvas
                           lyricSections={currentSong.lyricSections}
                           originalLyricSections={originalLyricSections}

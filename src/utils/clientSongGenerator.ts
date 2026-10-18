@@ -334,13 +334,15 @@ export function buildClientFallbackSong(params: {
 export function synthesizeClientAcousticSongWavDataUrl(options?: {
   durationSeconds?: number;
   artistPersona?: "haddi" | "yosia";
+  isVocalBacking?: boolean;
 }): string {
   const sampleRate = 22050;
-  const durationSec = Math.min(Math.max(options?.durationSeconds || 28, 10), 45);
+  const durationSec = Math.min(Math.max(options?.durationSeconds || 60, 10), 90);
   const totalSamples = Math.floor(sampleRate * durationSec);
   const mix = new Float32Array(totalSamples);
 
   const isYosia = options?.artistPersona === "yosia";
+  const isVocalBacking = Boolean(options?.isVocalBacking);
 
   // Plucked string helper (Karplus-Strong physical modeling)
   const pluckNote = (freq: number, startSec: number, noteDurSec: number, gain: number) => {
@@ -371,7 +373,7 @@ export function synthesizeClientAcousticSongWavDataUrl(options?: {
     }
   };
 
-  // Warm singing lead bell/vocal-pad tone for the melody line
+  // Warm singing lead bell/vocal-pad tone for the melody line (only when instrumental)
   const playMelodyNote = (freq: number, startSec: number, noteDurSec: number, gain: number) => {
     const startIdx = Math.floor(startSec * sampleRate);
     if (startIdx >= totalSamples) return;
@@ -414,21 +416,23 @@ export function synthesizeClientAcousticSongWavDataUrl(options?: {
 
     // Downbeat full acoustic guitar strum
     chord.forEach((freq, idx) => {
-      pluckNote(freq, barStart + idx * 0.028, barDur * 0.95, 0.22);
+      pluckNote(freq, barStart + idx * 0.028, barDur * 0.95, isVocalBacking ? 0.16 : 0.22);
     });
 
     // Fingerpicked arpeggio across the bar
     const arpSteps = [0, 2, 3, 5, 4, 2];
     arpSteps.forEach((noteIdx, step) => {
       const freq = chord[noteIdx % chord.length];
-      pluckNote(freq, barStart + 0.32 + step * (barDur / 7.2), 0.85, 0.16);
+      pluckNote(freq, barStart + 0.32 + step * (barDur / 7.2), 0.85, isVocalBacking ? 0.12 : 0.16);
     });
 
-    // Warm melodic lead phrase
-    const melA = melodyPattern[(bar * 2) % melodyPattern.length];
-    const melB = melodyPattern[(bar * 2 + 1) % melodyPattern.length];
-    playMelodyNote(melA, barStart + 0.1, barDur * 0.45, 0.14);
-    playMelodyNote(melB, barStart + barDur * 0.52, barDur * 0.42, 0.14);
+    if (!isVocalBacking) {
+      // Warm melodic lead phrase
+      const melA = melodyPattern[(bar * 2) % melodyPattern.length];
+      const melB = melodyPattern[(bar * 2 + 1) % melodyPattern.length];
+      playMelodyNote(melA, barStart + 0.1, barDur * 0.45, 0.14);
+      playMelodyNote(melB, barStart + barDur * 0.52, barDur * 0.42, 0.14);
+    }
   }
 
   // Smooth fade-in and fade-out + soft limiter
@@ -507,14 +511,17 @@ export async function mixVoiceMp3WithAcousticGuitarWav(
 
     const sampleRate = 22050;
     const voiceDur = decodedVoice.duration;
-    const targetDur = options?.durationSeconds
-      ? Math.max(options.durationSeconds, Math.min(voiceDur + 1.2, 60))
-      : Math.min(Math.max(voiceDur + 1.0, 10), 60);
+    const requestedDur = options?.durationSeconds || 60;
+    const targetDur =
+      requestedDur <= 12
+        ? Math.max(requestedDur, Math.ceil(voiceDur + 0.8))
+        : Math.min(Math.max(requestedDur, Math.ceil(voiceDur + 2.0)), 90);
 
-    // Get guitar backing WAV and decode its PCM
+    // Get gentle guitar backing WAV without synth lead melody so vocals shine clearly
     const guitarWavDataUrl = synthesizeClientAcousticSongWavDataUrl({
       durationSeconds: targetDur,
       artistPersona: options?.artistPersona,
+      isVocalBacking: true,
     });
     const gComma = guitarWavDataUrl.indexOf(",");
     const gBin = atob(guitarWavDataUrl.slice(gComma + 1));
@@ -527,16 +534,28 @@ export async function mixVoiceMp3WithAcousticGuitarWav(
 
     const voiceChan = decodedVoice.getChannelData(0);
     const voiceRate = decodedVoice.sampleRate;
-    const guitarScale = options?.guitarGain ?? 0.22;
+    const guitarScale = options?.guitarGain ?? 0.16;
     const startOffsetSamples = Math.floor(0.25 * sampleRate);
+    const voiceSamplesAtTargetRate = Math.floor((voiceChan.length * sampleRate) / voiceRate);
+    const interludeGapSamples = Math.floor(2.2 * sampleRate);
+    const cycleSamples = Math.max(1, voiceSamplesAtTargetRate + interludeGapSamples);
 
     for (let i = 0; i < totalSamples; i++) {
-      const guitarSample = (gView.getInt16(44 + i * 2, true) / 32768) * guitarScale;
       let vSample = 0;
-      const vIdx = Math.floor(((i - startOffsetSamples) * voiceRate) / sampleRate);
-      if (vIdx >= 0 && vIdx < voiceChan.length) {
-        vSample = voiceChan[vIdx] * 1.15;
+      const relSample = i - startOffsetSamples;
+      if (relSample >= 0) {
+        // For full songs (>15s), reprise the vocal chorus after a brief 2.2s guitar turnaround so the song never gets stuck on empty strumming
+        const posInCycle = requestedDur > 15 ? relSample % cycleSamples : relSample;
+        if (posInCycle < voiceSamplesAtTargetRate) {
+          const vIdx = Math.floor((posInCycle * voiceRate) / sampleRate);
+          if (vIdx >= 0 && vIdx < voiceChan.length) {
+            vSample = voiceChan[vIdx] * 1.25;
+          }
+        }
       }
+
+      const activeDuck = Math.abs(vSample) > 0.02 ? 0.55 : 1.0;
+      const guitarSample = (gView.getInt16(44 + i * 2, true) / 32768) * guitarScale * activeDuck;
       const combined = Math.tanh(vSample + guitarSample);
       const pcm16 = Math.max(-32768, Math.min(32767, Math.round(combined * 31000)));
       gView.setInt16(44 + i * 2, pcm16, true);
@@ -554,4 +573,57 @@ export async function mixVoiceMp3WithAcousticGuitarWav(
     return voiceDataUrl;
   }
 }
+
+/**
+ * Guarantees a full-length song track with real vocals + acoustic guitar even when
+ * `/api/generate-haddi-audio` is unavailable or times out on a static/serverless host.
+ */
+export async function synthesizeVocalSongFallbackWav(params: {
+  recipientName: string;
+  songTitle?: string;
+  lyrics: string;
+  language?: string;
+  artistPersona?: "haddi" | "yosia";
+  durationSeconds?: number;
+}): Promise<string> {
+  const targetDur = params.durationSeconds || 60;
+  const persona = params.artistPersona || "haddi";
+  const personaName = persona === "yosia" ? "Yosia" : "Haddi";
+  const cleanLyrics = (params.lyrics || "")
+    .split("\n")
+    .map((l) => l.trim())
+    .filter((l) => l && !l.startsWith("["))
+    .join(". ");
+
+  const vocalScript = `Enjoy your celebration song, ${params.recipientName}! Here is ${personaName} singing for you. ${cleanLyrics}`;
+
+  try {
+    const ttsRes = await apiFetchJson<{ success?: boolean; voiceMp3DataUrl?: string }>(
+      "/api/cloud-voice-tts",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          text: vocalScript,
+          language: params.language || "English",
+        }),
+      }
+    );
+    if (ttsRes?.voiceMp3DataUrl) {
+      return await mixVoiceMp3WithAcousticGuitarWav(ttsRes.voiceMp3DataUrl, {
+        durationSeconds: targetDur,
+        artistPersona: persona,
+        guitarGain: 0.16,
+      });
+    }
+  } catch {
+    // Fall through to full-length acoustic backing
+  }
+
+  return synthesizeClientAcousticSongWavDataUrl({
+    durationSeconds: targetDur,
+    artistPersona: persona,
+  });
+}
+
 
